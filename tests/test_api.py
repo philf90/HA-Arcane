@@ -120,18 +120,18 @@ async def arcane_server(aiohttp_client, socket_enabled):
         seen["path"] = request.raw_path
         return web.json_response({"success": True, "data": []})
 
-    app.router.add_get("/api/environments/0/containers", containers)
-    app.router.add_get("/api/environments/1/containers", unauthorized)
-    app.router.add_get("/api/environments/2/containers", broken)
-    app.router.add_get("/api/environments/3/containers", redirect)
-    app.router.add_get("/api/environments/4/containers", boom)
-    app.router.add_get("/api/environments/5/containers", chunked)
-    app.router.add_post("/api/environments/0/projects/web/up", deploy_ok)
-    app.router.add_post("/api/environments/1/projects/web/up", deploy_failed)
-    app.router.add_post("/api/environments/2/projects/web/up", deploy_cut_off)
-    app.router.add_post("/api/environments/3/projects/web/up", deploy_no_newline)
-    app.router.add_get("/api/environments/0/ws/system/stats", host_stats)
-    app.router.add_get("/api/environments/6/ws/system/stats", host_stats_redirect)
+    app.router.add_get("/api/agents/0/containers", containers)
+    app.router.add_get("/api/agents/1/containers", unauthorized)
+    app.router.add_get("/api/agents/2/containers", broken)
+    app.router.add_get("/api/agents/3/containers", redirect)
+    app.router.add_get("/api/agents/4/containers", boom)
+    app.router.add_get("/api/agents/5/containers", chunked)
+    app.router.add_post("/api/agents/0/projects/web/deploy", deploy_ok)
+    app.router.add_post("/api/agents/1/projects/web/deploy", deploy_failed)
+    app.router.add_post("/api/agents/2/projects/web/deploy", deploy_cut_off)
+    app.router.add_post("/api/agents/3/projects/web/deploy", deploy_no_newline)
+    app.router.add_get("/api/agents/0/ws/system/stats", host_stats)
+    app.router.add_get("/api/agents/6/ws/system/stats", host_stats_redirect)
     app.router.add_get("/elsewhere/stats", host_stats)
     app.router.add_route("*", "/{tail:.*}", catch_all)
 
@@ -185,7 +185,7 @@ async def test_path_segments_are_escaped(arcane_server) -> None:
 
     await client.async_get_containers("../../etc")
 
-    assert seen["path"].startswith("/api/environments/..%2F..%2Fetc/containers?")
+    assert seen["path"].startswith("/api/agents/..%2F..%2Fetc/containers?")
 
 
 @pytest.mark.parametrize(
@@ -224,7 +224,7 @@ async def test_subpath_installation(arcane_server) -> None:
 
     await client.async_get_projects("0")
 
-    assert seen["path"].startswith("/arcane/api/environments/0/projects")
+    assert seen["path"].startswith("/arcane/api/agents/0/projects")
 
 
 async def test_error_body_is_quoted_back_sanitized(arcane_server) -> None:

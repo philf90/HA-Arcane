@@ -15,6 +15,7 @@ from custom_components.arcane.api import (
     ArcaneAuthenticationError,
     ArcaneConnectionError,
     ArcanePermissionError,
+    ArcaneUnsupportedVersionError,
 )
 from custom_components.arcane.const import DOMAIN
 
@@ -48,6 +49,7 @@ async def test_user_flow(hass: HomeAssistant, mock_client: AsyncMock) -> None:
         (ArcaneAuthenticationError("nope"), "invalid_auth"),
         (ArcaneConnectionError("down"), "cannot_connect"),
         (ArcanePermissionError("forbidden"), "insufficient_permissions"),
+        (ArcaneUnsupportedVersionError("2.17.3"), "unsupported_version"),
         (RuntimeError("boom"), "unknown"),
     ],
 )

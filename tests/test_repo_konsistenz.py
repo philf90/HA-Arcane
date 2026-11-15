@@ -68,11 +68,28 @@ def test_translation_files_match() -> None:
         assert wanted == set(re.findall(r"\{(\w+)\}", de[key])), key
 
 
-def _segment(node: ast.expr) -> str:
-    """Pfadteil eines _url()-Aufrufs: Text bleibt, Variable wird {name}."""
+def _constants(tree: ast.Module) -> dict[str, str]:
+    """Textkonstanten auf Modulebene, z. B. AGENTS: Final = "agents"."""
+    found = {}
+    for node in tree.body:
+        if (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            found[node.target.id] = node.value.value
+    return found
+
+
+def _segment(node: ast.expr, constants: dict[str, str]) -> str:
+    """Pfadteil eines _url()-Aufrufs: Text und Konstanten bleiben, Variable wird
+    {name}."""
     if isinstance(node, ast.Constant):
         return str(node.value)
     if isinstance(node, ast.Name):
+        if node.id in constants:
+            return constants[node.id]
         return "{" + node.id.removesuffix("_id") + "}"
     raise AssertionError(f"unerwarteter Pfadteil: {ast.dump(node)}")
 
@@ -80,6 +97,7 @@ def _segment(node: ast.expr) -> str:
 def client_paths() -> set[str]:
     """Alle Pfade, die der API-Client unter /api/ aufbaut."""
     tree = ast.parse((BASE / "api.py").read_text(encoding="utf-8"))
+    constants = _constants(tree)
     paths = set()
     for node in ast.walk(tree):
         if (
@@ -88,7 +106,7 @@ def client_paths() -> set[str]:
             and node.func.attr == "_url"
             and node.args
         ):
-            paths.add("/".join(_segment(arg) for arg in node.args))
+            paths.add("/".join(_segment(arg, constants) for arg in node.args))
     return paths
 
 

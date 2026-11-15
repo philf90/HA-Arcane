@@ -10,7 +10,7 @@
           "verify_ssl": "SSL-Zertifikat prüfen"
         },
         "data_description": {
-          "url": "Vollständige Adresse der Arcane-Oberfläche, zum Beispiel http://192.168.1.10:3552",
+          "url": "Vollständige Adresse der Arcane-Oberfläche, zum Beispiel {example_url}",
           "api_key": "Ein Arcane-API-Key. Er braucht Leserechte und die Berechtigungen für die Aktionen, die du aus Home Assistant heraus steuern willst. Nach der Einrichtung listet **Konfigurieren > Berechtigungen des API-Keys** genau auf, welche Berechtigungen deine Optionen brauchen.",
           "verify_ssl": "Deaktivieren, wenn Arcane ein selbstsigniertes Zertifikat verwendet."
         }
@@ -39,7 +39,8 @@
       "invalid_auth": "Arcane hat den API-Key abgelehnt.",
       "insufficient_permissions": "Dem API-Key fehlt die Berechtigung environments:list.",
       "unknown": "Unerwarteter Fehler",
-      "invalid_url": "Das ist keine gültige http:// oder https:// Adresse."
+      "invalid_url": "Das ist keine gültige Adresse. Sie muss mit http oder https beginnen.",
+      "unsupported_version": "Diese Arcane-Instanz läuft mit einer Version vor 3.0. Arcane auf 3.0 oder neuer aktualisieren."
     },
     "abort": {
       "already_configured": "Diese Arcane-Instanz ist bereits eingerichtet.",
@@ -309,6 +310,9 @@
     },
     "upgrade_forbidden": {
       "message": "Upgrade von Arcane auf {name} nicht erlaubt: Dem Arcane-API-Key fehlt die Berechtigung {permission}."
+    },
+    "unsupported_version": {
+      "message": "Arcane {version} wird nicht unterstützt. Arcane auf 3.0 oder neuer aktualisieren."
     }
   },
   "issues": {

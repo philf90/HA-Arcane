@@ -13,12 +13,12 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.5.2.
+[Herkunft](#herkunft). Version 0.6.0.
 
-> **Arcane 3.x:** Diese Version läuft nur mit Arcane 2.x. Arcane 3.0.0 hat die
-> API-Pfade umbenannt (`/api/environments/…` heißt jetzt `/api/agents/…`); gegen
-> Arcane 3.x meldet die Einrichtung `HTTP 404 … /api/app-version`. Die Anpassung
-> folgt mit Version 0.6.0.
+> **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
+> Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
+> `/api/agents/…`). Gegen Arcane 2.x meldet die Integration „Arcane 2.x wird nicht
+> unterstützt“; dafür bleibt Version 0.5.2.
 
 > **KI-Hinweis:** Dieses Projekt ist mit Claude Code entstanden. Code, Tests und
 > Dokumentation wurden von der KI geschrieben und mit automatischen Tests geprüft;
@@ -30,8 +30,8 @@ erscheinen, sobald ein neueres Image bereitsteht. Fork von
 - **Marketplace** (ab Home Assistant 2026.11 eingebaut, Einstellungen →
   Marketplace) oder bis 2026.10 **[HACS](https://hacs.xyz)**; ohne beides geht es
   auch von Hand
-- eine **Arcane-Instanz**, die Home Assistant direkt erreicht, in Version 0.5.2 mit
-  **Arcane 2.x**
+- eine **Arcane-Instanz** ab **Version 3.0**, die Home Assistant direkt erreicht
+  (für Arcane 2.x: Version 0.5.2 dieser Integration)
 - ein **API-Schlüssel** von Arcane mit den Rechten aus
   [Rechte des API-Schlüssels](#rechte-des-api-schlüssels)
 
@@ -53,9 +53,11 @@ erscheinen, sobald ein neueres Image bereitsteht. Fork von
 3. **Einrichten:** siehe [Einrichten](#einrichten).
 
 Die Integration hat dieselbe Domain (`arcane`) wie Arcane-HA aus dem
-Standardkatalog. Beide zugleich installieren geht nicht. Wie der Wechsel von
-Arcane-HA zu diesem Fork bei bestehendem Eintrag abläuft, beschreibt Version 0.6.0,
-sobald er geprüft ist.
+Standardkatalog; beide zugleich installieren geht nicht. Wer von Arcane-HA kommt,
+behält Eintrag, Geräte und Entity-IDs, weil Domain, `unique_id`s und
+Entitätsnamen gleich geblieben sind. Wie der Marketplace den Tausch zweier
+Repositories mit derselben Domain abwickelt, ist **noch nicht live geprüft**;
+vorher ein Backup anlegen.
 
 ## Inhalt
 
@@ -208,23 +210,27 @@ dahinter.
 
 | Pfad | Methode | Wann | Recht |
 |---|---|---|---|
-| `app-version` | GET | jede Abfrage, Einrichtung | keins |
-| `environments` | GET | jede Abfrage, Einrichtung, Optionen | `environments:list` |
-| `environments/{environment}/containers` | GET | Option Container | `containers:list` |
-| `environments/{environment}/projects` | GET | Option Compose-Projekte | `projects:list` |
-| `environments/{environment}/images/counts` | GET | Option Images, Volumes und Netzwerke | `images:list` |
-| `environments/{environment}/volumes/counts` | GET | Option Images, Volumes und Netzwerke | `volumes:list` |
-| `environments/{environment}/networks/counts` | GET | Option Images, Volumes und Netzwerke | `networks:list` |
-| `environments/{environment}/system/docker/info` | GET | Option Images, Volumes und Netzwerke | `system:read` |
-| `environments/{environment}/ws/system/stats` | WebSocket, eine Nachricht | Option Hoststatistik | `system:read` |
-| `environments/{environment}/version` | GET | Update-Entitäten, nur entfernte Umgebungen | `environments:read` |
-| `environments/{environment}/containers/{container}/{action}` | POST | Schalter, Buttons, Update (`start`, `stop`, `restart`, `redeploy`) | `containers:<action>` |
-| `environments/{environment}/projects/{project}/{action}` | POST | Schalter, Buttons (`up`, `down`, `restart`, `redeploy`; `up` und `redeploy` antworten als NDJSON-Stream) | `projects:deploy`, `projects:down`, `projects:restart` |
-| `environments/{environment}/system/prune` | POST | Button „Ungenutztes entfernen“ | `system:prune` |
-| `environments/{environment}/system/upgrade` | POST | Arcane-Update installieren | `system:upgrade` |
+| `app/version` | GET | jede Abfrage, Einrichtung | keins |
+| `app-version` | GET | nur wenn `app/version` mit 404 antwortet: erkennt Arcane 2.x | keins |
+| `agents` | GET | jede Abfrage, Einrichtung, Optionen | `environments:list` |
+| `agents/{environment}/containers` | GET | Option Container | `containers:list` |
+| `agents/{environment}/projects` | GET | Option Compose-Projekte | `projects:list` |
+| `agents/{environment}/images/counts` | GET | Option Images, Volumes und Netzwerke | `images:list` |
+| `agents/{environment}/volumes/counts` | GET | Option Images, Volumes und Netzwerke | `volumes:list` |
+| `agents/{environment}/networks/counts` | GET | Option Images, Volumes und Netzwerke | `networks:list` |
+| `agents/{environment}/system/docker/info` | GET | Option Images, Volumes und Netzwerke | `system:read` |
+| `agents/{environment}/ws/system/stats` | WebSocket, eine Nachricht | Option Hoststatistik | `system:read` |
+| `agents/{environment}/version` | GET | Update-Entitäten, nur entfernte Umgebungen | `environments:read` |
+| `agents/{environment}/containers/{container}` | POST `?action=start`, `stop`, `restart` | Schalter, Button „Neustarten“ | `containers:start`, `containers:stop`, `containers:restart` |
+| `agents/{environment}/containers/{container}/redeploy` | POST | Button „Redeploy“, Image-Update installieren | `containers:redeploy` |
+| `agents/{environment}/projects/{project}/deploy` | POST `?action=up`, `redeploy`; Antwort als NDJSON-Stream | Schalter an, Button „Redeploy“ | `projects:deploy` |
+| `agents/{environment}/projects/{project}` | POST `?action=down`, `restart` | Schalter aus, Button „Neustarten“ | `projects:down`, `projects:restart` |
+| `agents/{environment}/system/prune` | POST | Button „Ungenutztes entfernen“ | `system:prune` |
+| `agents/{environment}/system/upgrade` | POST | Arcane-Update installieren | `system:upgrade` |
 
-Die lokale Umgebung hat die ID `0`; ihre Arcane-Version kommt aus `app-version`
-und kostet keine eigene Abfrage. Mit allen Abfrage-Optionen an sind das je
+Die lokale Umgebung hat die ID `0`; ihre Arcane-Version kommt aus `app/version`
+und kostet keine eigene Abfrage. Welche Pfade Arcane 3.0.0 anbietet, steht mit
+Fundstelle im Quelltext in `tests/fixtures/arcane_routen_v3.0.0.json`. Mit allen Abfrage-Optionen an sind das je
 Durchlauf und Umgebung neun Anfragen.
 
 ## Gut zu wissen
@@ -258,7 +264,8 @@ Dieses Repository ist ein Fork von
 Stand Version 0.5.2 vom 10.10.2026. Die Git-Historie ist vollständig übernommen, die
 Urheberschaft der bisherigen Commits bleibt erhalten. Anlass ist Arcane 3.0.0
 (14.11.2026), das die API-Pfade umbenannt hat; Arcane-HA 0.5.2 ist das neueste
-Release dort.
+Release dort und läuft nur mit Arcane 2.x. Version 0.6.0 dieses Forks stellt die
+Pfade auf Arcane 3 um.
 
 Aufbau, Prüfungen und Abläufe folgen
 [HA-WOW](https://github.com/philf90/HA-WOW): Versionshinweise unter
@@ -268,9 +275,20 @@ Versionen 0.1.0 bis 0.4.0 hatten kein Release; ihre Einträge stehen in
 
 ## Teststand
 
-Automatische Tests laufen gegen Home Assistant 2026.2.3. Live geprüft ist im Fork
-noch nichts.
+Automatische Tests laufen gegen Home Assistant 2026.2.3, die Pfade gegen die
+Routen von Arcane 3.0.0. Live geprüft ist im Fork noch nichts.
 
+- **0.6.x:** 149 automatische Tests, davon 17 neu: Vertrag mit Arcane 3.0.0
+  (ein Stub kennt genau die Routen aus dem Arcane-Quelltext und antwortet auf
+  unbekannte Pfade mit 404, auf unbekannte Aktionen mit 400; jede öffentliche
+  Methode des Clients muss darin vorkommen), Erkennung von Arcane 2.x im Client,
+  im Einrichtungsdialog und beim Start, unveränderte `unique_id`s, Gerätemodelle,
+  deutsche Entitätsnamen und Ereignisnamen, keine URLs in Texten, Fehlermeldungen
+  in der Form, die hassfest verlangt (`{"message": …}`). Gegenprobe:
+  Pfadteil `agents` zurück auf `environments`, `?action=` weggelassen, Deploy
+  wieder an `projects/{id}/up`, Erkennung von Arcane 2.x entfernt, Entitätsname
+  `Neustarten` geändert, Beispiel-URL zurück in den Text, Fehlermeldung als blanker
+  Text; jedes Mal schlug ein Test fehl. **Nicht live geprüft.**
 - **0.5.x:** 132 automatische Tests. Stand 0.5.2 mit Repo-Struktur nach HA-WOW:
   88 Tests aus Arcane-HA (ohne die 9 entfallenen Prüfungen von Changelog und
   langen Strichen) und 44 neue in `test_repo_konsistenz.py`, `test_translations.py`
@@ -291,6 +309,12 @@ pytest tests   # pytest.ini setzt asyncio_mode = auto
 `manifest.json` nennen, dass die Testzahl unter [Teststand](#teststand) stimmt, dass
 `strings.json` gleich `translations/en.json` ist und `de.json` dieselben Schlüssel
 hat und dass jeder Pfad des API-Clients unter [Abfragen](#abfragen) steht.
+`test_arcane_vertrag.py` lässt den Client gegen einen Stub laufen, der nur die
+Routen von Arcane 3.0.0 kennt (`tests/fixtures/arcane_routen_v3.0.0.json`, erzeugt
+mit `python3 .github/scripts/arcane_routen.py <arcane-clone> v3.0.0`; das Skript
+liest den Go-Quelltext nur als Text). `test_entitaets_ids.py` hält `unique_id`s,
+Gerätemodelle, deutsche Entitätsnamen und Ereignisnamen fest, auf die Dashboards
+bauen.
 `test_translations.py` prüft, dass jeder Schlüssel aus Dialogen, Entitäten und
 Fehlermeldungen übersetzt ist. `test_pr_vorlage.py` prüft die Prüfung der
 PR-Vorlage selbst.

@@ -40,6 +40,7 @@ from .api import (
     ArcaneConnectionError,
     ArcaneError,
     ArcanePermissionError,
+    ArcaneUnsupportedVersionError,
     validate_url,
 )
 from .const import (
@@ -67,6 +68,8 @@ from .const import (
 from .permissions import format_permissions, required_permissions
 
 _LOGGER = logging.getLogger(__name__)
+
+EXAMPLE_URL = "http://192.168.1.10:3552"
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
@@ -172,6 +175,8 @@ class ArcaneConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except ArcanePermissionError:
                 errors["base"] = "insufficient_permissions"
+            except ArcaneUnsupportedVersionError:
+                errors["base"] = "unsupported_version"
             except ArcaneConnectionError:
                 errors["base"] = "cannot_connect"
             except ArcaneError:
@@ -187,6 +192,9 @@ class ArcaneConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=self.add_suggested_values_to_schema(
                 STEP_USER_DATA_SCHEMA, user_input
             ),
+            # hassfest refuses URLs inside translated texts, so the example
+            # address is handed in as a placeholder.
+            description_placeholders={"example_url": EXAMPLE_URL},
             errors=errors,
         )
 
@@ -209,6 +217,8 @@ class ArcaneConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except ArcanePermissionError:
                 errors["base"] = "insufficient_permissions"
+            except ArcaneUnsupportedVersionError:
+                errors["base"] = "unsupported_version"
             except ArcaneConnectionError:
                 errors["base"] = "cannot_connect"
             except ArcaneError:
@@ -251,6 +261,8 @@ class ArcaneConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except ArcanePermissionError:
                 errors["base"] = "insufficient_permissions"
+            except ArcaneUnsupportedVersionError:
+                errors["base"] = "unsupported_version"
             except ArcaneConnectionError:
                 errors["base"] = "cannot_connect"
             except ArcaneError:

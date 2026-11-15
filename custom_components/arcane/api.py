@@ -26,13 +26,22 @@ HEADER_API_KEY: Final = "X-Api-Key"
 
 ALLOWED_SCHEMES: Final = ("http", "https")
 
-# Only these actions may be built into a request path.
+# Arcane 3 addresses environments under /api/agents/; /api/environments/ is
+# gone (Arcane 3.0.0, backend/internal/environment/module.go).
+AGENTS: Final = "agents"
+
+# Only these actions may be sent to Arcane.
 CONTAINER_ACTIONS: Final = ("start", "stop", "restart", "redeploy")
 PROJECT_ACTIONS: Final = ("up", "down", "restart", "redeploy")
 
-# Arcane answers these project operations with a newline delimited log stream
-# instead of a JSON envelope.
+# Deploying a project goes to ``projects/{id}/deploy?action=`` and is answered
+# with a newline delimited log stream instead of a JSON envelope. Every other
+# project action goes to ``projects/{id}?action=``.
 STREAMING_PROJECT_ACTIONS: Final = ("up", "redeploy")
+
+# Arcane 2 served the version here; it only answers on an instance that is too
+# old for this integration.
+LEGACY_VERSION_PATH: Final = "app-version"
 
 # Arcane paginates every list endpoint; ``-1`` asks for the full set.
 _ALL_ITEMS: Final = "-1"
@@ -84,6 +93,23 @@ class ArcanePermissionError(ArcaneError):
 
 class ArcaneResponseError(ArcaneError):
     """Raised when Arcane answers with an unexpected payload or status."""
+
+
+class ArcaneNotFoundError(ArcaneResponseError):
+    """Raised when Arcane does not know the requested path (HTTP 404)."""
+
+
+class ArcaneUnsupportedVersionError(ArcaneError):
+    """Raised when the instance runs an Arcane older than 3.0.
+
+    Arcane 3 renamed its API paths, so an older instance answers every call
+    with 404. The version it reports on its old path is kept for the message.
+    """
+
+    def __init__(self, version: str) -> None:
+        """Remember the version the instance reported."""
+        super().__init__(f"Arcane {version} is not supported, 3.0 or newer is needed")
+        self.version = version
 
 
 def validate_url(url: str) -> str:
@@ -243,9 +269,12 @@ class ArcaneClient:
                     "utf-8", "replace"
                 )
             )
-            raise ArcaneResponseError(
-                f"Arcane returned HTTP {response.status} for {url}: {body}"
+            error = (
+                ArcaneNotFoundError
+                if response.status == HTTPStatus.NOT_FOUND
+                else ArcaneResponseError
             )
+            raise error(f"Arcane returned HTTP {response.status} for {url}: {body}")
 
         if (length := response.content_length) is not None and (
             length > MAX_RESPONSE_BYTES
@@ -271,7 +300,9 @@ class ArcaneClient:
         except ValueError as err:
             raise ArcaneResponseError(f"Invalid JSON from {url}") from err
 
-    async def _stream(self, url: URL, *, timeout: int) -> None:
+    async def _stream(
+        self, url: URL, *, params: dict[str, Any] | None = None, timeout: int
+    ) -> None:
         """Run an operation that answers with a newline delimited log stream.
 
         The stream ends with ``{"done": true}`` on success or carries an
@@ -282,6 +313,7 @@ class ArcaneClient:
             response = await self._session.request(
                 "POST",
                 url,
+                params=params,
                 headers={HEADER_API_KEY: self._api_key},
                 timeout=ClientTimeout(total=timeout),
                 allow_redirects=False,
@@ -335,18 +367,34 @@ class ArcaneClient:
 
     async def async_get_version(self) -> dict[str, Any]:
         """Return version information about the Arcane instance."""
-        payload = await self._request("GET", self._url("app-version"))
+        try:
+            payload = await self._request("GET", self._url("app", "version"))
+        except ArcaneNotFoundError:
+            await self._raise_if_legacy()
+            raise
         if not isinstance(payload, dict):
             raise ArcaneResponseError("Unexpected payload for the version endpoint")
         return payload
+
+    async def _raise_if_legacy(self) -> None:
+        """Raise ArcaneUnsupportedVersionError if this is an Arcane 2 instance.
+
+        Only called after ``app/version`` answered 404, so a working setup never
+        pays for the extra request. Anything but a version reply on the old
+        path leaves the original 404 to be reported.
+        """
+        try:
+            legacy = await self._request("GET", self._url(LEGACY_VERSION_PATH))
+        except ArcaneError:
+            return
+        if isinstance(legacy, dict) and (version := legacy.get("currentVersion")):
+            raise ArcaneUnsupportedVersionError(_sanitize(str(version)))
 
     async def async_get_environment_version(
         self, environment_id: str
     ) -> dict[str, Any]:
         """Return the Arcane version and update state of one environment."""
-        data = await self._get_data(
-            self._url("environments", environment_id, "version")
-        )
+        data = await self._get_data(self._url(AGENTS, environment_id, "version"))
         return data if isinstance(data, dict) else {}
 
     async def async_upgrade(self, environment_id: str) -> None:
@@ -357,13 +405,13 @@ class ArcaneClient:
         """
         await self._request(
             "POST",
-            self._url("environments", environment_id, "system", "upgrade"),
+            self._url(AGENTS, environment_id, "system", "upgrade"),
             timeout=ACTION_TIMEOUT,
         )
 
     async def async_get_environments(self) -> list[dict[str, Any]]:
         """Return every environment the API key may see."""
-        data = await self._get_data(self._url("environments"), {"limit": _ALL_ITEMS})
+        data = await self._get_data(self._url(AGENTS), {"limit": _ALL_ITEMS})
         return data if isinstance(data, list) else []
 
     async def async_get_containers(
@@ -375,7 +423,7 @@ class ArcaneClient:
     ) -> list[dict[str, Any]]:
         """Return all containers of an environment."""
         data = await self._get_data(
-            self._url("environments", environment_id, "containers"),
+            self._url(AGENTS, environment_id, "containers"),
             {
                 "limit": _ALL_ITEMS,
                 "includeInternal": str(include_internal).lower(),
@@ -387,7 +435,7 @@ class ArcaneClient:
     async def async_get_projects(self, environment_id: str) -> list[dict[str, Any]]:
         """Return all compose projects of an environment."""
         data = await self._get_data(
-            self._url("environments", environment_id, "projects"),
+            self._url(AGENTS, environment_id, "projects"),
             {"limit": _ALL_ITEMS},
         )
         return data if isinstance(data, list) else []
@@ -395,28 +443,28 @@ class ArcaneClient:
     async def async_get_image_counts(self, environment_id: str) -> dict[str, Any]:
         """Return image usage counts of an environment."""
         data = await self._get_data(
-            self._url("environments", environment_id, "images", "counts")
+            self._url(AGENTS, environment_id, "images", "counts")
         )
         return data if isinstance(data, dict) else {}
 
     async def async_get_volume_counts(self, environment_id: str) -> dict[str, Any]:
         """Return volume usage counts of an environment."""
         data = await self._get_data(
-            self._url("environments", environment_id, "volumes", "counts")
+            self._url(AGENTS, environment_id, "volumes", "counts")
         )
         return data if isinstance(data, dict) else {}
 
     async def async_get_network_counts(self, environment_id: str) -> dict[str, Any]:
         """Return network usage counts of an environment."""
         data = await self._get_data(
-            self._url("environments", environment_id, "networks", "counts")
+            self._url(AGENTS, environment_id, "networks", "counts")
         )
         return data if isinstance(data, dict) else {}
 
     async def async_get_docker_info(self, environment_id: str) -> dict[str, Any]:
         """Return Docker daemon information of an environment."""
         payload = await self._request(
-            "GET", self._url("environments", environment_id, "system", "docker", "info")
+            "GET", self._url(AGENTS, environment_id, "system", "docker", "info")
         )
         return payload if isinstance(payload, dict) else {}
 
@@ -426,12 +474,17 @@ class ArcaneClient:
         """Run start, stop, restart or redeploy on a container."""
         if action not in CONTAINER_ACTIONS:
             raise ValueError(f"Unsupported container action: {action}")
+        if action == "redeploy":
+            url = self._url(
+                AGENTS, environment_id, "containers", container_id, "redeploy"
+            )
+            await self._request("POST", url, timeout=DEPLOY_TIMEOUT)
+            return
         await self._request(
             "POST",
-            self._url(
-                "environments", environment_id, "containers", container_id, action
-            ),
-            timeout=DEPLOY_TIMEOUT if action == "redeploy" else ACTION_TIMEOUT,
+            self._url(AGENTS, environment_id, "containers", container_id),
+            params={"action": action},
+            timeout=ACTION_TIMEOUT,
         )
 
     async def async_project_action(
@@ -440,11 +493,13 @@ class ArcaneClient:
         """Bring a compose project up or down, restart or redeploy it."""
         if action not in PROJECT_ACTIONS:
             raise ValueError(f"Unsupported project action: {action}")
-        url = self._url("environments", environment_id, "projects", project_id, action)
+        params = {"action": action}
         if action in STREAMING_PROJECT_ACTIONS:
-            await self._stream(url, timeout=DEPLOY_TIMEOUT)
+            url = self._url(AGENTS, environment_id, "projects", project_id, "deploy")
+            await self._stream(url, params=params, timeout=DEPLOY_TIMEOUT)
             return
-        await self._request("POST", url, timeout=ACTION_TIMEOUT)
+        url = self._url(AGENTS, environment_id, "projects", project_id)
+        await self._request("POST", url, params=params, timeout=ACTION_TIMEOUT)
 
     async def async_prune(
         self, environment_id: str, *, unused_images: bool
@@ -461,7 +516,7 @@ class ArcaneClient:
         }
         result = await self._request(
             "POST",
-            self._url("environments", environment_id, "system", "prune"),
+            self._url(AGENTS, environment_id, "system", "prune"),
             json=payload,
             timeout=DEPLOY_TIMEOUT,
         )
@@ -478,9 +533,9 @@ class ArcaneClient:
         sends the current sample immediately after the handshake, so a single
         sample is taken and the socket is closed again rather than held open.
         """
-        url = self._url(
-            "environments", environment_id, "ws", "system", "stats"
-        ).with_query({"interval": str(HOST_STATS_INTERVAL)})
+        url = self._url(AGENTS, environment_id, "ws", "system", "stats").with_query(
+            {"interval": str(HOST_STATS_INTERVAL)}
+        )
         try:
             async with (
                 asyncio.timeout(timeout),
