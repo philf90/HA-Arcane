@@ -68,6 +68,7 @@
           "monitor_projects": "Compose Projekte",
           "monitor_resources": "Images, Volumes und Netzwerke",
           "host_stats": "CPU, RAM und Festplatte des Hosts",
+          "disk_usage": "Freigebbarer Speicher",
           "include_internal": "Interne Container einbeziehen",
           "include_hidden": "Versteckte Container einbeziehen"
         },
@@ -78,6 +79,7 @@
           "monitor_projects": "Für jedes Compose Projekt ein Gerät mit Entitäten anlegen.",
           "monitor_resources": "Image, Volume und Netzwerk Zähler sowie die Docker Version abfragen.",
           "host_stats": "Pro Aktualisierung eine Messung über eine kurzlebige WebSocket Verbindung. Standardmäßig aus, weil es eine zusätzliche Verbindung je Aktualisierung ist.",
+          "disk_usage": "Fragt im Hintergrund höchstens alle 15 Minuten ab, wie viel Platz ungenutzte Images, gestoppte Container, ungenutzte Volumes und der Build-Cache belegen. Standardmäßig aus, weil Docker dafür die Größe jedes Volumes ermittelt, was bei großen Volumes dauern kann.",
           "include_internal": "Auch Container einbeziehen, die Arcane als intern markiert.",
           "include_hidden": "Auch Container einbeziehen, die in der Arcane Oberfläche versteckt sind."
         }
@@ -92,7 +94,7 @@
           "events": "Events auf dem Home Assistant Bus auslösen"
         },
         "data_description": {
-          "update_entities": "Pro Container eine Update Entität anbieten, die per Redeploy auf das neuere Image wechselt.",
+          "update_entities": "Für jeden Container eine Update Entität, die ihn auf das neuere Image redeployt und Versionshinweise zeigt, wo Arcane welche findet, dazu je Environment ein Button, der sofort nach Updates sucht. Ein Update, das Arcane zurückhält, lässt sich nicht installieren.",
           "health_sensors": "Container mit Health Check bekommen einen Sensor Healthy.",
           "entity_prefix": "Geräte als Container x und Project x benennen, damit ein Container und ein Projekt mit gleichem Namen nicht kollidieren. Bereits vorhandene Entity IDs bleiben unverändert.",
           "nest_containers": "Einen Container als Untergerät des Compose Projekts anzeigen, zu dem er gehört.",
@@ -154,6 +156,9 @@
       },
       "prune": {
         "name": "Ungenutztes entfernen"
+      },
+      "check_updates": {
+        "name": "Nach Updates suchen"
       }
     },
     "sensor": {
@@ -272,11 +277,31 @@
       },
       "host_disk_used": {
         "name": "Host Festplatte belegt"
+      },
+      "reclaimable_images": {
+        "name": "Freigebbarer Image-Speicher"
+      },
+      "reclaimable_containers": {
+        "name": "Freigebbarer Container-Speicher"
+      },
+      "reclaimable_volumes": {
+        "name": "Freigebbarer Volume-Speicher"
+      },
+      "reclaimable_build_cache": {
+        "name": "Freigebbarer Build-Cache"
       }
     },
     "update": {
       "image_update": {
-        "name": "Image Update"
+        "name": "Image Update",
+        "state_attributes": {
+          "update_blocked": {
+            "name": "Update gesperrt"
+          },
+          "blocked_reason": {
+            "name": "Grund der Sperre"
+          }
+        }
       },
       "arcane_update": {
         "name": "Arcane"
@@ -313,6 +338,15 @@
     },
     "unsupported_version": {
       "message": "Arcane {version} wird nicht unterstützt. Arcane auf 3.0 oder neuer aktualisieren."
+    },
+    "update_blocked": {
+      "message": "Arcane hält das Update von {name} zurück: {reason}"
+    },
+    "check_updates_failed": {
+      "message": "Suche nach Image-Updates auf {name} fehlgeschlagen: {error}"
+    },
+    "check_updates_forbidden": {
+      "message": "Suche nach Image-Updates auf {name} nicht erlaubt: Dem Arcane-API-Key fehlt die Berechtigung {permission}."
     }
   },
   "issues": {

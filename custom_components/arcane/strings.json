@@ -68,6 +68,7 @@
           "monitor_projects": "Compose projects",
           "monitor_resources": "Images, volumes and networks",
           "host_stats": "Host CPU, memory and disk",
+          "disk_usage": "Reclaimable disk space",
           "include_internal": "Include internal containers",
           "include_hidden": "Include hidden containers"
         },
@@ -78,6 +79,7 @@
           "monitor_projects": "Create a device with entities for each Compose project.",
           "monitor_resources": "Poll the image, volume and network counts and the Docker version.",
           "host_stats": "Take one sample per update over a short lived WebSocket. Off by default because it is an extra connection per update.",
+          "disk_usage": "Ask in the background, at most every 15 minutes, how much space unused images, stopped containers, unused volumes and the build cache hold. Off by default because Docker sizes every volume for it, which can take a while on large volumes.",
           "include_internal": "Also expose containers Arcane marks as internal.",
           "include_hidden": "Also expose containers hidden in the Arcane interface."
         }
@@ -92,7 +94,7 @@
           "events": "Fire events on the Home Assistant bus"
         },
         "data_description": {
-          "update_entities": "Offer an update entity per container that redeploys it onto the newer image.",
+          "update_entities": "Offer an update entity per container that redeploys it onto the newer image and shows release notes where Arcane finds them, plus a button per environment that checks for updates right away. An update Arcane holds back cannot be installed.",
           "health_sensors": "Add a Healthy sensor to containers that define a health check.",
           "entity_prefix": "Name devices Container x and Project x so a container and a project of the same name do not collide. Entity IDs that already exist keep their current name.",
           "nest_containers": "Show a container as a child device of the Compose project it belongs to.",
@@ -154,6 +156,9 @@
       },
       "prune": {
         "name": "Prune unused"
+      },
+      "check_updates": {
+        "name": "Check for updates"
       }
     },
     "sensor": {
@@ -272,11 +277,31 @@
       },
       "host_disk_used": {
         "name": "Host disk used"
+      },
+      "reclaimable_images": {
+        "name": "Reclaimable image space"
+      },
+      "reclaimable_containers": {
+        "name": "Reclaimable container space"
+      },
+      "reclaimable_volumes": {
+        "name": "Reclaimable volume space"
+      },
+      "reclaimable_build_cache": {
+        "name": "Reclaimable build cache"
       }
     },
     "update": {
       "image_update": {
-        "name": "Image update"
+        "name": "Image update",
+        "state_attributes": {
+          "update_blocked": {
+            "name": "Update blocked"
+          },
+          "blocked_reason": {
+            "name": "Reason for the block"
+          }
+        }
       },
       "arcane_update": {
         "name": "Arcane"
@@ -313,6 +338,15 @@
     },
     "unsupported_version": {
       "message": "Arcane {version} is not supported. Update Arcane to 3.0 or newer."
+    },
+    "update_blocked": {
+      "message": "Arcane holds back the update of {name}: {reason}"
+    },
+    "check_updates_failed": {
+      "message": "Failed to check for image updates on {name}: {error}"
+    },
+    "check_updates_forbidden": {
+      "message": "Not allowed to check for image updates on {name}: the Arcane API key is missing the {permission} permission."
     }
   },
   "issues": {

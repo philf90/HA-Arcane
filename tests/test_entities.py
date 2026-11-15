@@ -291,7 +291,8 @@ async def test_read_only_mode(
     )
 
     update = hass.states.get("update.container_homeassistant_image_update")
-    assert update.attributes["supported_features"] == 0
+    # Reading the release notes changes nothing, so it stays; installing goes.
+    assert update.attributes["supported_features"] == UpdateEntityFeature.RELEASE_NOTES
 
 
 async def test_disabled_resource_polling(

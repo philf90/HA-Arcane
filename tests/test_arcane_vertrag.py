@@ -117,6 +117,11 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
         await client.async_project_action("0", "p1", action)
     await client.async_prune("0", unused_images=True)
     await client.async_get_host_stats("0")
+    await client.async_get_disk_usage("0")
+    await client.async_get_release_notes(
+        "0", "nginx:1.27", version="1.28", digest="sha256:" + "a" * 64
+    )
+    await client.async_check_image_updates("0")
     return {
         "async_get_version",
         "async_get_environments",
@@ -132,6 +137,9 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
         "async_project_action",
         "async_prune",
         "async_get_host_stats",
+        "async_get_disk_usage",
+        "async_get_release_notes",
+        "async_check_image_updates",
     }
 
 
@@ -157,6 +165,9 @@ async def test_every_call_hits_an_arcane_3_route(arcane3) -> None:
     assert ("POST", "/agents/{id}/projects/{projectId}/deploy", "up") in calls
     assert ("POST", "/agents/{id}/projects/{projectId}", "down") in calls
     assert ("GET", "/agents/{id}/ws/system/stats", None) in calls
+    assert ("GET", "/agents/{id}/system/df", None) in calls
+    assert ("GET", "/agents/{id}/images/updates/releasenotes", None) in calls
+    assert ("POST", "/agents/{id}/images/updates/check", "all") in calls
 
 
 async def test_actions_match_arcane(arcane3) -> None:
@@ -172,6 +183,7 @@ async def test_actions_match_arcane(arcane3) -> None:
         ("/agents/{id}/projects/{projectId}/deploy", "redeploy"),
         ("/agents/{id}/projects/{projectId}", "down"),
         ("/agents/{id}/projects/{projectId}", "restart"),
+        ("/agents/{id}/images/updates/check", "all"),
     }
 
 

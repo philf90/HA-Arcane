@@ -82,6 +82,7 @@ def _entity_keys() -> dict[str, set[str]]:
                 button.RESTART_BUTTON,
                 button.REDEPLOY_BUTTON,
                 button.PRUNE_BUTTON,
+                button.CHECK_UPDATES_BUTTON,
             )
         },
         "update": {

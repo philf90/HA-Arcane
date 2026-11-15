@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.6.1.
+[Herkunft](#herkunft). Version 0.7.0.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -101,6 +101,9 @@ ausgeschaltete Option nimmt ihre Rechte aus der Liste.
 | Steuerung | `containers:start`, `containers:stop`, `containers:restart`, `containers:redeploy`, `projects:deploy`, `projects:down`, `projects:restart` |
 | Prune-Button | `system:prune` |
 | Arcane selbst aktualisieren | `system:upgrade` |
+| Versionshinweise der Container-Updates | `image-updates:read` |
+| Button „Nach Updates suchen“ | `image-updates:check` |
+| Freigebbarer Speicher (Option) | `system:read` |
 
 Pflicht ist nur `environments:list`. Ein Schlüssel ohne die übrigen richtet sich
 trotzdem ein; was er nicht erreicht, bleibt leer, und Aktionen scheitern mit einer
@@ -125,14 +128,16 @@ Namen wie auf einer deutschen Instanz; die Entity-IDs bildet Home Assistant dara
 | Arcane | Update | aktualisiert die Arcane-Instanz selbst |
 | Host CPU, Host Arbeitsspeicher (belegt, gesamt), Host Festplatte (belegt) | Sensor | standardmäßig aus |
 | Docker-Version, Arcane Version | Sensor | Diagnose, standardmäßig deaktiviert |
+| Freigebbarer Image-Speicher, Freigebbarer Container-Speicher, Freigebbarer Volume-Speicher, Freigebbarer Build-Cache | Sensor | standardmäßig aus, siehe [Freigebbarer Speicher](#freigebbarer-speicher) |
 | Ungenutztes entfernen | Button | standardmäßig aus |
+| Nach Updates suchen | Button | mit Update-Entitäten und Steuerung |
 
 ### Container
 
 | Entität | Art | Hinweis |
 |---|---|---|
 | *(Containername)* | Schalter | startet und stoppt |
-| Image Update | Update | installiert per Redeploy auf das neuere Image |
+| Image Update | Update | installiert per Redeploy auf das neuere Image; Versionshinweise; Attribute `update_blocked`, `blocked_reason` |
 | Läuft, Update verfügbar | Binärsensor | |
 | Healthy | Binärsensor | nur mit Healthcheck |
 | Zustand, Status | Sensor | `running`, `exited`, `paused` usw. |
@@ -160,8 +165,8 @@ während Home Assistant läuft.
 Integration öffnen → **Konfigurieren**.
 
 - **Abfrage:** Intervall (30 s, 10 bis 3600), welche Umgebungen, ob Container,
-  Compose-Projekte, Zähler und Hoststatistik überhaupt abgefragt werden; interne und
-  versteckte Container nur auf Wunsch. Eine ausgeschaltete Option stoppt auch die
+  Compose-Projekte, Zähler, Hoststatistik und freigebbarer Speicher überhaupt
+  abgefragt werden; interne und versteckte Container nur auf Wunsch. Eine ausgeschaltete Option stoppt auch die
   Abfragen dahinter.
 - **Entitäten:** Update-Entitäten, Health-Sensoren, Art vor dem Gerätenamen,
   Container unter ihrem Projekt, Ereignisse.
@@ -184,6 +189,30 @@ verfügbar. Ob ein Update ansteht, entscheidet Arcane, nicht ein Versionsverglei
 Home Assistant: Versionen sind oft Digests und lassen sich nicht ordnen. Mit
 ausgeschalteter Steuerung zeigen die Entitäten Versionen, erscheinen aber nicht in
 der Liste.
+
+- **Gesperrte Updates:** Hält Arcane ein Update zurück, etwa wegen eines
+  Schwachstellen-Limits, zeigt die Entität es weiter an, mit `update_blocked: true`
+  und dem Grund in `blocked_reason`. Installieren bietet sie dann nicht an; Arcanes
+  eigene Update-Regel gilt auch aus Home Assistant heraus.
+- **Versionshinweise:** Der Update-Dialog zeigt die Hinweise, die Arcane in den
+  GitHub-Releases der Image-Quelle findet, sonst einen Link dorthin. Sie werden erst
+  beim Öffnen des Dialogs abgefragt. Gefragt wird wie in Arcanes eigener
+  Update-Ansicht: mit dem Digest des neueren Images und, wenn das Update ein neuer
+  Tag ist, mit dessen Namen. Für ein Image, das noch nicht gezogen ist, gibt es
+  keine Hinweise.
+- **Nach Updates suchen:** Der Button lässt Arcane sofort alle Images prüfen, statt
+  auf den eigenen Zeitplan zu warten. Er wartet, bis Arcane jede Registry gefragt
+  hat (bis zu fünf Minuten), und fragt danach neu ab.
+
+### Freigebbarer Speicher
+
+Vier Sensoren je Umgebung zeigen, wie viel Platz ungenutzte Images, gestoppte
+Container, ungenutzte Volumes und der Build-Cache belegen. Arcane lässt Docker
+dafür die Größe jedes Volumes ermitteln, was bei großen Volumes dauern kann. Die
+Option ist deshalb standardmäßig aus, und die Integration fragt höchstens alle
+15 Minuten, im Hintergrund, ohne die übrigen Abfragen aufzuhalten. Bis der erste
+Bericht da ist, zeigen die Sensoren „unbekannt“. Der Prune-Button entfernt
+Volumes und gestoppte Container nie; die beiden Sensoren dazu sind nur Auskunft.
 
 ## Ereignisse
 
@@ -227,13 +256,16 @@ dahinter.
 | `agents/{environment}/projects/{project}` | POST `?action=down`, `restart` | Schalter aus, Button „Neustarten“ | `projects:down`, `projects:restart` |
 | `agents/{environment}/system/prune` | POST | Button „Ungenutztes entfernen“ | `system:prune` |
 | `agents/{environment}/system/upgrade` | POST | Arcane-Update installieren | `system:upgrade` |
+| `agents/{environment}/system/df` | GET | Option freigebbarer Speicher, höchstens alle 15 Minuten im Hintergrund | `system:read` |
+| `agents/{environment}/images/updates/releasenotes` | GET `?imageRef=…&digest=…`, bei neuem Tag `&version=…` | Update-Dialog geöffnet | `image-updates:read` |
+| `agents/{environment}/images/updates/check` | POST `?action=all` | Button „Nach Updates suchen“ | `image-updates:check` |
 
 Die lokale Umgebung hat die ID `0`; ihre Arcane-Version kommt aus `app/version`
 und kostet keine eigene Abfrage. Welche Pfade Arcane 3.0.0 anbietet, steht mit
 Fundstelle im Quelltext in `tests/fixtures/arcane_routen_v3.0.0.json`, abgeglichen
 mit der OpenAPI-Datei einer laufenden Arcane-3.0.0-Instanz
 (`tests/fixtures/arcane_openapi_v3.0.0.json`). Mit allen Abfrage-Optionen an sind das je
-Durchlauf und Umgebung neun Anfragen.
+Durchlauf und Umgebung neun Anfragen, dazu höchstens alle 15 Minuten `system/df`.
 
 ## Gut zu wissen
 
@@ -242,8 +274,7 @@ Durchlauf und Umgebung neun Anfragen.
   oder alle ungenutzten Images. Ein Button in Home Assistant fragt nicht nach.
 - **Hoststatistik** gibt es bei Arcane nur über einen WebSocket. Die Integration
   öffnet ihn je Abfrage, liest die erste Nachricht und schließt ihn wieder. CPU und
-  RAM je Container liefert die Integration nicht: Arcane will dafür einen Socket je
-  Container und lässt höchstens fünf zugleich zu.
+  RAM je Container liefert die Integration nicht.
 - **Sicherheit:** Der Schlüssel steht im Header, nie in einer URL, und ist in der
   Diagnose geschwärzt. Nur `http://`- und `https://`-Adressen ohne Zugangsdaten,
   Query oder Fragment. Weiterleitungen werden nicht verfolgt. Zertifikatsprüfung
@@ -282,6 +313,15 @@ Routen von Arcane 3.0.0. Live geprüft mit Arcane 3.0.0 und Home Assistant 2026.
 Einrichtung und alle lesenden Abfragen; die schreibenden Aktionen (Start, Stop,
 Neustart, Redeploy, Prune, Arcane-Update) nur im Vertragstest.
 
+- **0.7.x:** 182 automatische Tests. 0.7.0: 21 neue Tests in
+  `test_image_updates.py` und `test_speicher.py`: gesperrtes Update angezeigt, aber
+  nicht installierbar; Versionshinweise mit Digest bzw. Tag wie in Arcanes
+  Update-Ansicht, nur `https://`-Links, abgelehntes Recht gemeldet, keine Hinweise
+  für nicht gezogene Images; Button „Nach Updates suchen“ nur mit Update-Entitäten
+  und Steuerung; freigebbarer Speicher nur auf Wunsch, höchstens einmal je
+  Intervall, im Hintergrund, auch wenn der Bericht vor dem ersten Stand ankommt.
+  Gegenprobe: zwölf Schutzmaßnahmen einzeln ausgebaut, jedes Mal schlug ein Test
+  fehl. **Nicht live geprüft.**
 - **0.6.x:** 161 automatische Tests. Nach 0.6.1: 7 neue Tests in
   `test_arcane_routen.py`; die Routen aus dem Arcane-Quelltext sind dieselben wie
   in der OpenAPI-Datei einer laufenden Arcane-3.0.0-Instanz (bis auf WebSocket-,

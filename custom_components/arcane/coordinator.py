@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -22,6 +23,7 @@ from .api import (
     ArcaneUnsupportedVersionError,
 )
 from .const import (
+    CONF_DISK_USAGE,
     CONF_ENVIRONMENTS,
     CONF_EVENTS,
     CONF_HOST_STATS,
@@ -33,6 +35,7 @@ from .const import (
     CONF_UPDATE_ENTITIES,
     DEFAULT_OPTIONS,
     DEFAULT_SCAN_INTERVAL,
+    DISK_USAGE_INTERVAL,
     DOMAIN,
     EVENT_CONTAINER_HEALTH,
     EVENT_CONTAINER_STATE,
@@ -50,6 +53,7 @@ from .models import (
     ArcaneVersion,
 )
 from .permissions import (
+    PERM_SYSTEM_READ,
     POLL_PERMISSIONS,
     RequiredPermissions,
     format_permissions,
@@ -92,6 +96,12 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         # reloaded, because nothing polls it again.
         self._denied_polling: set[str] = set()
         self._denied_actions: set[str] = set()
+        # Reclaimable disk space per environment. It is fetched in the
+        # background at most every DISK_USAGE_INTERVAL seconds, so a slow
+        # Docker disk usage report never holds up a refresh.
+        self._disk_usage: dict[str, dict[str, Any]] = {}
+        self._disk_usage_asked: dict[str, float] = {}
+        self._disk_usage_running: set[str] = set()
 
     def option(self, key: str) -> Any:
         """Return an option of the config entry, or its default."""
@@ -308,6 +318,9 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         environment.docker_version = environment.docker_info.get("ServerVersion")
         if host := value("host", {}):
             environment.host_stats = ArcaneHostStats.from_api(host)
+        if self.option(CONF_DISK_USAGE):
+            environment.disk_usage = self._disk_usage.get(environment_id, {})
+            self._async_schedule_disk_usage(environment)
         if self.option(CONF_UPDATE_ENTITIES):
             version = (
                 version_info
@@ -316,6 +329,50 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             )
             if version:
                 environment.arcane_version = ArcaneVersion.from_api(version)
+
+    def _async_schedule_disk_usage(self, environment: ArcaneEnvironment) -> None:
+        """Fetch the reclaimable disk space in the background when it is due."""
+        environment_id = environment.id
+        if environment_id in self._disk_usage_running:
+            return
+        asked = self._disk_usage_asked.get(environment_id)
+        if asked is not None and time.monotonic() - asked < DISK_USAGE_INTERVAL:
+            return
+        # Counted from the start, so a report that fails is not asked for again
+        # on every refresh either.
+        self._disk_usage_asked[environment_id] = time.monotonic()
+        self._disk_usage_running.add(environment_id)
+        self.config_entry.async_create_background_task(
+            self.hass,
+            self._async_fetch_disk_usage(environment),
+            f"{DOMAIN} disk usage {environment_id}",
+        )
+
+    async def _async_fetch_disk_usage(self, environment: ArcaneEnvironment) -> None:
+        """Fetch the reclaimable disk space and hand it to the entities.
+
+        The report can arrive before the refresh that asked for it has stored
+        its snapshot, so the environment of that snapshot is filled in as well
+        as the one currently shown.
+        """
+        environment_id = environment.id
+        try:
+            usage = await self.client.async_get_disk_usage(environment_id)
+        except ArcanePermissionError:
+            self.async_note_denied(PERM_SYSTEM_READ)
+            return
+        except ArcaneError as err:
+            _LOGGER.debug(
+                "No disk usage report for environment %s: %s", environment_id, err
+            )
+            return
+        finally:
+            self._disk_usage_running.discard(environment_id)
+        self._disk_usage[environment_id] = usage
+        environment.disk_usage = usage
+        if self.data and (shown := self.data.environments.get(environment_id)):
+            shown.disk_usage = usage
+        self.async_update_listeners()
 
     def _fire_events(self, data: ArcaneData) -> None:
         """Announce what changed since the previous refresh on the event bus.
