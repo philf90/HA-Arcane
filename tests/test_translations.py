@@ -156,3 +156,11 @@ def test_example_url_is_a_placeholder() -> None:
     for path in FILES:
         url = _load(path)["config"]["step"]["user"]["data_description"]["url"]
         assert "{example_url}" in url, path
+
+
+@pytest.mark.parametrize("path", FILES)
+def test_exceptions_have_a_message(path: str) -> None:
+    """hassfest verlangt unter exceptions je Schluessel {"message": "..."}."""
+    for key, value in _load(path)["exceptions"].items():
+        assert isinstance(value, dict), f"{path}: {key}"
+        assert isinstance(value.get("message"), str), f"{path}: {key}"

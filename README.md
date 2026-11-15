@@ -278,16 +278,17 @@ Versionen 0.1.0 bis 0.4.0 hatten kein Release; ihre Einträge stehen in
 Automatische Tests laufen gegen Home Assistant 2026.2.3, die Pfade gegen die
 Routen von Arcane 3.0.0. Live geprüft ist im Fork noch nichts.
 
-- **0.6.x:** 146 automatische Tests, davon 14 neu: Vertrag mit Arcane 3.0.0
+- **0.6.x:** 149 automatische Tests, davon 17 neu: Vertrag mit Arcane 3.0.0
   (ein Stub kennt genau die Routen aus dem Arcane-Quelltext und antwortet auf
   unbekannte Pfade mit 404, auf unbekannte Aktionen mit 400; jede öffentliche
   Methode des Clients muss darin vorkommen), Erkennung von Arcane 2.x im Client,
   im Einrichtungsdialog und beim Start, unveränderte `unique_id`s, Gerätemodelle,
-  deutsche Entitätsnamen und Ereignisnamen, keine URLs in Texten. Gegenprobe:
+  deutsche Entitätsnamen und Ereignisnamen, keine URLs in Texten, Fehlermeldungen
+  in der Form, die hassfest verlangt (`{"message": …}`). Gegenprobe:
   Pfadteil `agents` zurück auf `environments`, `?action=` weggelassen, Deploy
   wieder an `projects/{id}/up`, Erkennung von Arcane 2.x entfernt, Entitätsname
-  `Neustarten` geändert, Beispiel-URL zurück in den Text; jedes Mal schlug ein Test
-  fehl. **Nicht live geprüft.**
+  `Neustarten` geändert, Beispiel-URL zurück in den Text, Fehlermeldung als blanker
+  Text; jedes Mal schlug ein Test fehl. **Nicht live geprüft.**
 - **0.5.x:** 132 automatische Tests. Stand 0.5.2 mit Repo-Struktur nach HA-WOW:
   88 Tests aus Arcane-HA (ohne die 9 entfallenen Prüfungen von Changelog und
   langen Strichen) und 44 neue in `test_repo_konsistenz.py`, `test_translations.py`

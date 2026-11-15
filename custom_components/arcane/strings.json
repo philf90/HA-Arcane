@@ -311,7 +311,9 @@
     "upgrade_forbidden": {
       "message": "Not allowed to upgrade Arcane on {name}: the Arcane API key is missing the {permission} permission."
     },
-    "unsupported_version": "Arcane {version} is not supported. Update Arcane to 3.0 or newer."
+    "unsupported_version": {
+      "message": "Arcane {version} is not supported. Update Arcane to 3.0 or newer."
+    }
   },
   "issues": {
     "missing_permissions": {
