@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.6.0.
+[Herkunft](#herkunft). Version 0.6.1.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -278,7 +278,11 @@ Versionen 0.1.0 bis 0.4.0 hatten kein Release; ihre Einträge stehen in
 Automatische Tests laufen gegen Home Assistant 2026.2.3, die Pfade gegen die
 Routen von Arcane 3.0.0. Live geprüft ist im Fork noch nichts.
 
-- **0.6.x:** 149 automatische Tests, davon 17 neu: Vertrag mit Arcane 3.0.0
+- **0.6.x:** 154 automatische Tests. 0.6.1: 5 neue Tests (Geräte ohne das
+  veraltete `via_device`, Suche über `async_get_device_by_identifier` mit
+  Rückfall für ältere Home-Assistant-Versionen, Zertifikatswarnung nur bei
+  `https://`); Gegenprobe: jede der drei Korrekturen einzeln zurückgenommen,
+  jedes Mal schlug ein Test fehl. **Nicht live geprüft.** 0.6.0: 149 Tests, davon 17 neu: Vertrag mit Arcane 3.0.0
   (ein Stub kennt genau die Routen aus dem Arcane-Quelltext und antwortet auf
   unbekannte Pfade mit 404, auf unbekannte Aktionen mit 400; jede öffentliche
   Methode des Clients muss darin vorkommen), Erkennung von Arcane 2.x im Client,
