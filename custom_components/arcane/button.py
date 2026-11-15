@@ -201,6 +201,32 @@ class ArcanePruneButton(ArcaneEnvironmentEntity, ButtonEntity):
         _LOGGER.debug(
             "Prune of environment %s returned %s", self.environment_id, result
         )
+        # The reclaimable space the last report counted is gone now.
+        self.coordinator.async_disk_usage_now(self.environment_id)
+        await self.coordinator.async_request_refresh()
+
+
+class ArcaneCheckUpdatesButton(ArcaneEnvironmentEntity, ButtonEntity):
+    """Have Arcane check every image of an environment for an update now.
+
+    Arcane checks on its own schedule as well; this only saves the wait. The
+    image update entities show the result once the check is done.
+    """
+
+    async def async_press(self) -> None:
+        """Run the update check."""
+        try:
+            await self.coordinator.client.async_check_image_updates(self.environment_id)
+        except ArcaneError as err:
+            raise action_error(
+                self.coordinator,
+                err,
+                permission=PERM_IMAGE_UPDATES_CHECK,
+                action_key="check_updates",
+                placeholders={
+                    "name": self.environment.name if self.environment else ""
+                },
+            ) from err
         await self.coordinator.async_request_refresh()
 
 

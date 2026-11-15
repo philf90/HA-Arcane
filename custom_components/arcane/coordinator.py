@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import (
     ArcaneAuthenticationError,
@@ -102,6 +103,13 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         self._disk_usage: dict[str, dict[str, Any]] = {}
         self._disk_usage_asked: dict[str, float] = {}
         self._disk_usage_running: set[str] = set()
+        # When the report on show was asked for. A report describes the disk as
+        # Docker found it after that moment, so a report asked for before a
+        # prune never counts as one taken after it.
+        self._disk_usage_at: dict[str, datetime] = {}
+        # Environments whose running report started before a prune and so has
+        # to be followed by another one.
+        self._disk_usage_again: set[str] = set()
 
     def option(self, key: str) -> Any:
         """Return an option of the config entry, or its default."""
@@ -320,6 +328,7 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             environment.host_stats = ArcaneHostStats.from_api(host)
         if self.option(CONF_DISK_USAGE):
             environment.disk_usage = self._disk_usage.get(environment_id, {})
+            environment.disk_usage_at = self._disk_usage_at.get(environment_id)
             self._async_schedule_disk_usage(environment)
         if self.option(CONF_UPDATE_ENTITIES):
             version = (
@@ -344,11 +353,30 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         self._disk_usage_running.add(environment_id)
         self.config_entry.async_create_background_task(
             self.hass,
-            self._async_fetch_disk_usage(environment),
+            self._async_fetch_disk_usage(environment, dt_util.utcnow()),
             f"{DOMAIN} disk usage {environment_id}",
         )
 
-    async def _async_fetch_disk_usage(self, environment: ArcaneEnvironment) -> None:
+    def async_disk_usage_now(self, environment_id: str) -> None:
+        """Ask for a new disk usage report at once, outside the interval.
+
+        Called after a prune: what the last report counted as reclaimable is
+        gone, and waiting DISK_USAGE_INTERVAL for the next one would keep
+        showing it. A report already running was asked for before the prune,
+        so another one follows it.
+        """
+        if not self.option(CONF_DISK_USAGE):
+            return
+        self._disk_usage_asked.pop(environment_id, None)
+        if environment_id in self._disk_usage_running:
+            self._disk_usage_again.add(environment_id)
+            return
+        if self.data and (environment := self.data.environments.get(environment_id)):
+            self._async_schedule_disk_usage(environment)
+
+    async def _async_fetch_disk_usage(
+        self, environment: ArcaneEnvironment, asked_at: datetime
+    ) -> None:
         """Fetch the reclaimable disk space and hand it to the entities.
 
         The report can arrive before the refresh that asked for it has stored
@@ -356,23 +384,37 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         as the one currently shown.
         """
         environment_id = environment.id
+        usage: dict[str, Any] | None = None
         try:
             usage = await self.client.async_get_disk_usage(environment_id)
         except ArcanePermissionError:
             self.async_note_denied(PERM_SYSTEM_READ)
-            return
         except ArcaneError as err:
             _LOGGER.debug(
                 "No disk usage report for environment %s: %s", environment_id, err
             )
-            return
         finally:
             self._disk_usage_running.discard(environment_id)
-        self._disk_usage[environment_id] = usage
-        environment.disk_usage = usage
-        if self.data and (shown := self.data.environments.get(environment_id)):
-            shown.disk_usage = usage
-        self.async_update_listeners()
+        if usage is not None:
+            self._disk_usage[environment_id] = usage
+            self._disk_usage_at[environment_id] = asked_at
+            environment.disk_usage = usage
+            environment.disk_usage_at = asked_at
+            if self.data and (shown := self.data.environments.get(environment_id)):
+                shown.disk_usage = usage
+                shown.disk_usage_at = asked_at
+            self.async_update_listeners()
+        # Only now: Home Assistant starts the next report at once, and one that
+        # needs no wait would otherwise be overwritten by this older one.
+        if environment_id in self._disk_usage_again:
+            self._async_disk_usage_again(environment_id)
+
+    def _async_disk_usage_again(self, environment_id: str) -> None:
+        """Start the report a prune asked for while another one was running."""
+        self._disk_usage_again.discard(environment_id)
+        self._disk_usage_asked.pop(environment_id, None)
+        if self.data and (environment := self.data.environments.get(environment_id)):
+            self._async_schedule_disk_usage(environment)
 
     def _fire_events(self, data: ArcaneData) -> None:
         """Announce what changed since the previous refresh on the event bus.
