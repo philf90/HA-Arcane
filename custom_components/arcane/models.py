@@ -337,6 +337,8 @@ class ArcaneEnvironment:
     #: Reclaimable disk space by kind, in bytes, as Arcane's ``system/df``
     #: reports it. Empty until the first report is in.
     disk_usage: dict[str, Any] = field(default_factory=dict)
+    #: When the report in ``disk_usage`` was asked for; None until one is in.
+    disk_usage_at: datetime | None = None
 
     @property
     def is_online(self) -> bool:
