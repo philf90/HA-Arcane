@@ -53,6 +53,11 @@ DEPLOY_TIMEOUT: Final = 900
 # A Docker disk usage report sizes every volume, and an update check asks the
 # registry of every image, so neither fits the default timeout of a read.
 DISK_USAGE_TIMEOUT: Final = 120
+# Arcane gives one container update up to 15 minutes and a whole updater run up
+# to 30 (DefaultAutoUpdateOperation, DefaultAutoUpdateApply); a minute more here
+# lets Arcane's own limit decide.
+UPDATE_TIMEOUT: Final = 16 * 60
+UPDATER_RUN_TIMEOUT: Final = 31 * 60
 
 # Refuse to buffer a reply larger than this. Every endpoint used here returns a
 # small JSON document, so anything bigger means the URL does not point at an
@@ -374,6 +379,19 @@ class ArcaneClient:
             raise ArcaneResponseError(f"Unexpected payload from {url}")
         return payload["data"]
 
+    async def _get_post_data(
+        self,
+        url: URL,
+        *,
+        params: dict[str, Any] | None = None,
+        timeout: int | None = None,
+    ) -> Any:
+        """POST without a body and return the ``data`` member of the reply."""
+        payload = await self._request("POST", url, params=params, timeout=timeout)
+        if not isinstance(payload, dict) or "data" not in payload:
+            raise ArcaneResponseError(f"Unexpected payload from {url}")
+        return payload["data"]
+
     async def async_get_version(self) -> dict[str, Any]:
         """Return version information about the Arcane instance."""
         try:
@@ -545,6 +563,66 @@ class ArcaneClient:
         data = await self._get_data(
             self._url("events"),
             {"sort": "timestamp", "order": "desc", "limit": str(limit)},
+        )
+        return data if isinstance(data, list) else []
+
+    async def async_update_container(
+        self, environment_id: str, container_id: str
+    ) -> dict[str, Any]:
+        """Bring a container onto its newer image through Arcane's updater.
+
+        Unlike a redeploy, the updater follows the container's tag policy onto a
+        newer tag, skips a container whose image did not change, and pulls
+        through Arcane's vulnerability gate when that is on. Arcane answers once
+        the update is done, with one result per resource it touched.
+        """
+        data = await self._get_post_data(
+            self._url(AGENTS, environment_id, "containers", container_id, "update"),
+            timeout=UPDATE_TIMEOUT,
+        )
+        return data if isinstance(data, dict) else {}
+
+    async def async_set_auto_update(
+        self, environment_id: str, container_id: str, *, enabled: bool
+    ) -> None:
+        """Include a container in Arcane's automatic updates, or leave it out.
+
+        Arcane keeps a list of containers its automatic updates skip; this adds
+        or removes the container's name. The container itself is not touched.
+        """
+        await self._request(
+            "PUT",
+            self._url(AGENTS, environment_id, "containers", container_id, "autoupdate"),
+            json={"enabled": enabled},
+        )
+
+    async def async_run_updater(self, environment_id: str) -> dict[str, Any]:
+        """Install every pending update of an environment, as Arcane would itself.
+
+        ``automatic=true`` makes the run honour the containers left out of
+        automatic updates and the opt-out label, like Arcane's scheduled runs.
+        """
+        data = await self._get_post_data(
+            self._url(AGENTS, environment_id, "updater", "run"),
+            params={"automatic": "true"},
+            timeout=UPDATER_RUN_TIMEOUT,
+        )
+        return data if isinstance(data, dict) else {}
+
+    async def async_get_updater_status(self, environment_id: str) -> dict[str, Any]:
+        """Return which containers and projects Arcane is updating right now."""
+        data = await self._get_data(
+            self._url(AGENTS, environment_id, "updater", "status")
+        )
+        return data if isinstance(data, dict) else {}
+
+    async def async_get_updater_history(
+        self, environment_id: str, *, limit: int = 1
+    ) -> list[dict[str, Any]]:
+        """Return the newest records of updates Arcane applied, newest first."""
+        data = await self._get_data(
+            self._url(AGENTS, environment_id, "updater", "history"),
+            {"limit": str(limit)},
         )
         return data if isinstance(data, list) else []
 

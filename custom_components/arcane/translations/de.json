@@ -94,15 +94,17 @@
           "entity_prefix": "Gerätenamen mit ihrer Art voranstellen",
           "nest_containers": "Container unter ihrem Projekt einordnen",
           "events": "Events auf dem Home Assistant Bus auslösen",
-          "arcane_events": "Arcane Ereignisprotokoll auf dem Bus"
+          "arcane_events": "Arcane Ereignisprotokoll auf dem Bus",
+          "updater": "Arcane Updater"
         },
         "data_description": {
-          "update_entities": "Für jeden Container eine Update Entität, die ihn auf das neuere Image redeployt und Versionshinweise zeigt, wo Arcane welche findet, dazu je Environment ein Button, der sofort nach Updates sucht. Ein Update, das Arcane zurückhält, lässt sich nicht installieren.",
+          "update_entities": "Für jeden Container eine Update Entität, die das neuere Image über Arcanes Updater installiert und Versionshinweise zeigt, wo Arcane welche findet, dazu je Environment ein Button, der sofort nach Updates sucht. Ein Update, das Arcane zurückhält, lässt sich nicht installieren.",
           "health_sensors": "Container mit Health Check bekommen einen Sensor Healthy.",
           "entity_prefix": "Geräte als Container x und Project x benennen, damit ein Container und ein Projekt mit gleichem Namen nicht kollidieren. Bereits vorhandene Entity IDs bleiben unverändert.",
           "nest_containers": "Einen Container als Untergerät des Compose Projekts anzeigen, zu dem er gehört.",
           "events": "Löst arcane_container_state_changed, arcane_container_health_changed und arcane_project_state_changed aus, damit Automatisierungen auf Abstürze und Health Wechsel reagieren können.",
-          "arcane_events": "Bei jeder Aktualisierung Arcanes eigenes Ereignisprotokoll lesen und für jeden neuen Eintrag arcane_event feuern, etwa für einen Container ohne Speicher, einen Image Pull oder eine Anmeldung."
+          "arcane_events": "Bei jeder Aktualisierung Arcanes eigenes Ereignisprotokoll lesen und für jeden neuen Eintrag arcane_event feuern, etwa für einen Container ohne Speicher, einen Image Pull oder eine Anmeldung.",
+          "updater": "Je Environment ein Button, der alle ausstehenden Updates so installiert wie Arcanes geplante Updates, ein Sensor, der zeigt, dass Updates installiert werden, und einer mit dem letzten Update, das Arcane eingespielt hat."
         }
       },
       "control": {
@@ -110,11 +112,13 @@
         "data": {
           "allow_control": "Steuerung aus Home Assistant erlauben",
           "redeploy_buttons": "Redeploy Buttons",
+          "auto_update_switches": "Auto-Update Schalter",
           "prune_button": "Prune Button"
         },
         "data_description": {
           "allow_control": "Ausschalten für einen reinen Lesebetrieb: keine Schalter, Buttons oder Update Installationen.",
           "redeploy_buttons": "Pro Container und Projekt einen Button, der das Image neu zieht und neu erstellt.",
+          "auto_update_switches": "Je Container ein Schalter, der ihn in Arcanes automatische Updates aufnimmt oder herausnimmt. Die automatischen Updates selbst laufen nur, wenn sie in den Einstellungen von Arcane eingeschaltet sind.",
           "prune_button": "Pro Environment ein Button, der ungenutzte Images, Netzwerke und Build Cache entfernt. Container und Volumes werden nie entfernt."
         }
       },
@@ -149,6 +153,9 @@
       },
       "container_healthy": {
         "name": "Healthy"
+      },
+      "updater_running": {
+        "name": "Updates werden installiert"
       }
     },
     "button": {
@@ -163,6 +170,9 @@
       },
       "check_updates": {
         "name": "Nach Updates suchen"
+      },
+      "apply_updates": {
+        "name": "Alle Updates installieren"
       }
     },
     "sensor": {
@@ -293,6 +303,26 @@
       },
       "reclaimable_build_cache": {
         "name": "Freigebbarer Build-Cache"
+      },
+      "updater_last_update": {
+        "name": "Letztes Image-Update",
+        "state_attributes": {
+          "resource_name": {
+            "name": "Ressource"
+          },
+          "resource_type": {
+            "name": "Art der Ressource"
+          },
+          "status": {
+            "name": "Status"
+          },
+          "update_applied": {
+            "name": "Update eingespielt"
+          },
+          "error": {
+            "name": "Fehler"
+          }
+        }
       }
     },
     "update": {
@@ -309,6 +339,11 @@
       },
       "arcane_update": {
         "name": "Arcane"
+      }
+    },
+    "switch": {
+      "auto_update": {
+        "name": "Automatisch aktualisieren"
       }
     }
   },
@@ -351,6 +386,27 @@
     },
     "check_updates_forbidden": {
       "message": "Suche nach Image-Updates auf {name} nicht erlaubt: Dem Arcane-API-Key fehlt die Berechtigung {permission}."
+    },
+    "image_update_failed": {
+      "message": "Update von Container {name} fehlgeschlagen: {error}"
+    },
+    "image_update_forbidden": {
+      "message": "Update von Container {name} nicht erlaubt: Dem Arcane-API-Key fehlt die Berechtigung {permission}."
+    },
+    "update_not_applied": {
+      "message": "Arcane hat Container {name} nicht aktualisiert (Status {status}): {reason}"
+    },
+    "auto_update_failed": {
+      "message": "Automatische Updates für Container {name} konnten nicht geändert werden: {error}"
+    },
+    "auto_update_forbidden": {
+      "message": "Automatische Updates für Container {name} zu ändern ist nicht erlaubt: Dem Arcane-API-Key fehlt die Berechtigung {permission}."
+    },
+    "auto_update_label": {
+      "message": "Container {name} ist mit dem Label {label} vom Updater von Arcane ausgenommen; das Label hat Vorrang."
+    },
+    "apply_updates_running": {
+      "message": "Arcane installiert die Updates von {name} bereits."
     }
   },
   "issues": {

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from custom_components.arcane import binary_sensor, button, sensor, update
+from custom_components.arcane import binary_sensor, button, sensor, switch, update
 
 BASE = Path(__file__).parents[1] / "custom_components" / "arcane"
 FILES = ["strings.json", "translations/en.json", "translations/de.json"]
@@ -65,6 +65,7 @@ def _entity_keys() -> dict[str, set[str]]:
                 *sensor.CONTAINER_SENSORS,
                 *sensor.PROJECT_SENSORS,
                 sensor.ARCANE_VERSION_SENSOR,
+                sensor.UPDATER_LAST_SENSOR,
             )
         },
         "binary_sensor": {
@@ -74,6 +75,7 @@ def _entity_keys() -> dict[str, set[str]]:
                 *binary_sensor.CONTAINER_BINARY_SENSORS,
                 *binary_sensor.PROJECT_BINARY_SENSORS,
                 binary_sensor.HEALTH_BINARY_SENSOR,
+                binary_sensor.UPDATER_RUNNING_SENSOR,
             )
         },
         "button": {
@@ -83,8 +85,10 @@ def _entity_keys() -> dict[str, set[str]]:
                 button.REDEPLOY_BUTTON,
                 button.PRUNE_BUTTON,
                 button.CHECK_UPDATES_BUTTON,
+                button.APPLY_UPDATES_BUTTON,
             )
         },
+        "switch": {switch.AUTO_UPDATE_SWITCH.translation_key},
         "update": {
             d.translation_key for d in (update.CONTAINER_UPDATE, update.ARCANE_UPDATE)
         },

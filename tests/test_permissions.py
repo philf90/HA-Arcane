@@ -60,7 +60,7 @@ def test_defaults_need_read_and_control() -> None:
         "containers:start",
         "containers:stop",
         "containers:restart",
-        "containers:redeploy",
+        "image-updates:apply",
         "projects:deploy",
         "projects:down",
         "projects:restart",

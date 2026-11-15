@@ -23,12 +23,13 @@ from .const import (
     MANUFACTURER,
     UPDATE_TYPE_NOT_PULLED,
     UPDATE_TYPE_TAG,
+    UPDATER_APPLIED_STATUSES,
 )
 from .entity import ArcaneContainerEntity, ArcaneEnvironmentEntity
 from .helpers import action_error, async_setup_entities
 from .models import ArcaneVersion, image_name
 from .permissions import (
-    PERM_CONTAINERS_REDEPLOY,
+    PERM_IMAGE_UPDATES_APPLY,
     PERM_IMAGE_UPDATES_READ,
     PERM_SYSTEM_UPGRADE,
 )
@@ -84,6 +85,32 @@ def _summary(notes: str | None) -> str | None:
     return f"{text[: MAX_RELEASE_SUMMARY - 1].rstrip()}…"
 
 
+def _raise_unless_applied(result: dict[str, Any], container_id: str, name: str) -> None:
+    """Raise when Arcane's updater did not bring the container onto a new image.
+
+    The updater answers a skipped or failed update with success and says so per
+    resource; a skip comes with its reason, for example an image whose digest
+    did not change after the pull.
+    """
+    items = [item for item in result.get("items") or [] if isinstance(item, dict)]
+    own = next(
+        (item for item in items if item.get("resourceId") == container_id),
+        items[0] if items else None,
+    )
+    status = own.get("status") if own else None
+    if status in UPDATER_APPLIED_STATUSES:
+        return
+    raise HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key="update_not_applied",
+        translation_placeholders={
+            "name": name,
+            "status": str(status or "-"),
+            "reason": str((own or {}).get("error") or "-"),
+        },
+    )
+
+
 def _release_notes_text(notes: dict[str, Any]) -> str | None:
     """Return Arcane's release notes reply as markdown for the update dialog."""
     text = notes.get("notes")
@@ -101,10 +128,11 @@ def _release_notes_text(notes: dict[str, Any]) -> str | None:
 class ArcaneContainerUpdate(ArcaneContainerEntity, UpdateEntity):
     """Report and install a newer image for a container.
 
-    Installing runs Arcane's redeploy, which pulls the image the container was
-    created from and recreates the container with the same configuration. An
-    update Arcane holds back is not installed: Arcane's own update policy, for
-    example a vulnerability limit, decided against it.
+    Installing runs Arcane's updater for the one container, the way Arcane's
+    own "Update" does: it follows the container's tag policy onto a newer tag,
+    pulls through Arcane's vulnerability gate when that is on, and recreates
+    the container. A redeploy would pull the old reference again and skip the
+    gate. An update Arcane holds back is not offered for installation.
     """
 
     @property
@@ -190,7 +218,7 @@ class ArcaneContainerUpdate(ArcaneContainerEntity, UpdateEntity):
     async def async_install(
         self, version: str | None, backup: bool, **kwargs: Any
     ) -> None:
-        """Pull the newer image and recreate the container."""
+        """Have Arcane's updater bring the container onto the newer image."""
         if (container := self.container) is None:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -206,19 +234,21 @@ class ArcaneContainerUpdate(ArcaneContainerEntity, UpdateEntity):
                     "reason": container.update_blocked_reason or "-",
                 },
             )
+        # Home Assistant shows the update as in progress while this runs.
         try:
-            await self.coordinator.client.async_container_action(
-                self.environment_id, container.id, "redeploy"
+            result = await self.coordinator.client.async_update_container(
+                self.environment_id, container.id
             )
         except ArcaneError as err:
             raise action_error(
                 self.coordinator,
                 err,
-                permission=PERM_CONTAINERS_REDEPLOY,
-                action_key="container_action",
-                placeholders={"action": "redeploy", "name": self.container_name},
+                permission=PERM_IMAGE_UPDATES_APPLY,
+                action_key="image_update",
+                placeholders={"name": self.container_name},
             ) from err
         await self.coordinator.async_request_refresh()
+        _raise_unless_applied(result, container.id, self.container_name)
 
 
 class ArcaneInstanceUpdate(ArcaneEnvironmentEntity, UpdateEntity):

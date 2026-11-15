@@ -29,6 +29,8 @@ CONF_PRUNE_BUTTON: Final = "prune_button"
 CONF_DISK_USAGE: Final = "disk_usage"
 CONF_INSTANT_UPDATES: Final = "instant_updates"
 CONF_ARCANE_EVENTS: Final = "arcane_events"
+CONF_AUTO_UPDATE_SWITCHES: Final = "auto_update_switches"
+CONF_UPDATER: Final = "updater"
 
 # Values of the prune button option. Containers and volumes are deliberately
 # never pruned: both destroy data that cannot be pulled back.
@@ -86,6 +88,8 @@ DEFAULT_OPTIONS: Final[dict[str, object]] = {
     CONF_DISK_USAGE: False,
     CONF_INSTANT_UPDATES: False,
     CONF_ARCANE_EVENTS: False,
+    CONF_AUTO_UPDATE_SWITCHES: False,
+    CONF_UPDATER: False,
 }
 
 # Reserved ID of the environment Arcane manages directly.
@@ -143,3 +147,10 @@ EXIT_CODE_SIGKILL: Final = 137
 UPDATE_TYPE_TAG: Final = "tag"
 # Arcane's update type for an image that is referenced but not pulled yet.
 UPDATE_TYPE_NOT_PULLED: Final = "not_pulled"
+
+# Statuses of Arcane's updater for a resource it brought onto the newer image.
+UPDATER_APPLIED_STATUSES: Final = frozenset({"updated", "restarted"})
+# Label with which a container opts out of Arcane's updater; matched without
+# regard to case, with the values Arcane reads as false (kit.ParseBool).
+LABEL_UPDATER: Final = "com.getarcaneapp.arcane.updater"
+LABEL_FALSE_VALUES: Final = frozenset({"false", "0", "no", "off"})

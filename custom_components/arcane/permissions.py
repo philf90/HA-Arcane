@@ -20,6 +20,7 @@ from typing import Any, Final
 from .const import (
     CONF_ALLOW_CONTROL,
     CONF_ARCANE_EVENTS,
+    CONF_AUTO_UPDATE_SWITCHES,
     CONF_DISK_USAGE,
     CONF_HOST_STATS,
     CONF_INSTANT_UPDATES,
@@ -29,6 +30,7 @@ from .const import (
     CONF_PRUNE_BUTTON,
     CONF_REDEPLOY_BUTTONS,
     CONF_UPDATE_ENTITIES,
+    CONF_UPDATER,
     DEFAULT_OPTIONS,
     PRUNE_OFF,
 )
@@ -56,6 +58,9 @@ PERM_SYSTEM_UPGRADE: Final = "system:upgrade"
 PERM_IMAGE_UPDATES_READ: Final = "image-updates:read"
 PERM_IMAGE_UPDATES_CHECK: Final = "image-updates:check"
 PERM_EVENTS_LIST: Final = "events:list"
+PERM_IMAGE_UPDATES_LIST: Final = "image-updates:list"
+PERM_IMAGE_UPDATES_APPLY: Final = "image-updates:apply"
+PERM_CONTAINERS_AUTOUPDATE: Final = "containers:autoupdate"
 
 # The permission each container and project action is gated on. Both mirror
 # ``CONTAINER_ACTIONS`` and ``PROJECT_ACTIONS`` of the API client: deploying a
@@ -86,6 +91,8 @@ POLL_PERMISSIONS: Final[dict[str, str]] = {
     "host": PERM_SYSTEM_READ,
     "version": PERM_ENVIRONMENTS_READ,
     "disk_usage": PERM_SYSTEM_READ,
+    "updater_status": PERM_IMAGE_UPDATES_READ,
+    "updater_history": PERM_IMAGE_UPDATES_LIST,
 }
 
 
@@ -152,6 +159,9 @@ def _monitoring_permissions(options: Mapping[str, Any]) -> list[str]:
     if _option(options, CONF_INSTANT_UPDATES) or _option(options, CONF_ARCANE_EVENTS):
         # Waiting for changes and reading the event log are both event calls.
         permissions.append(PERM_EVENTS_LIST)
+    if _option(options, CONF_UPDATER):
+        # What the updater is busy with, and the last update it applied.
+        permissions += [PERM_IMAGE_UPDATES_READ, PERM_IMAGE_UPDATES_LIST]
     return permissions
 
 
@@ -162,8 +172,6 @@ def _control_permissions(options: Mapping[str, Any]) -> list[str]:
 
     containers = _option(options, CONF_MONITOR_CONTAINERS)
     projects = _option(options, CONF_MONITOR_PROJECTS)
-    # Installing a container update redeploys the container, which is what the
-    # redeploy button does as well.
     redeploy = _option(options, CONF_REDEPLOY_BUTTONS)
     updates = _option(options, CONF_UPDATE_ENTITIES)
 
@@ -174,8 +182,14 @@ def _control_permissions(options: Mapping[str, Any]) -> list[str]:
             PERM_CONTAINERS_STOP,
             PERM_CONTAINERS_RESTART,
         ]
-        if redeploy or updates:
+        if redeploy:
             permissions.append(PERM_CONTAINERS_REDEPLOY)
+        if updates or _option(options, CONF_UPDATER):
+            # Installing a container update and the button that installs all
+            # of them both go through Arcane's updater.
+            permissions.append(PERM_IMAGE_UPDATES_APPLY)
+        if _option(options, CONF_AUTO_UPDATE_SWITCHES):
+            permissions.append(PERM_CONTAINERS_AUTOUPDATE)
     if projects:
         permissions += [
             PERM_PROJECTS_DEPLOY,

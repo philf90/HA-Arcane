@@ -151,4 +151,8 @@ def mock_client() -> Generator[AsyncMock]:
         client.async_get_release_notes.return_value = {}
         client.async_get_events.return_value = []
         client.async_wait_for_changes.return_value = {}
+        client.async_update_container.return_value = {}
+        client.async_run_updater.return_value = {}
+        client.async_get_updater_status.return_value = {}
+        client.async_get_updater_history.return_value = []
         yield client
