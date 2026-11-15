@@ -1,48 +1,47 @@
+# Legt ein GitHub-Release an; HACS zeigt dessen Version an.
+# Start: Tag "v*" pushen oder den Workflow von Hand starten. Beim Start von Hand
+# wird der Tag aus der Version in manifest.json gebildet und mit angelegt.
+# Die Versionshinweise stehen in .github/release-notes/<tag>.md. Gibt es das
+# Release schon, ersetzt ein erneuter Start nur dessen Versionshinweise.
 name: Release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   release:
-    name: Publish ${{ github.ref_name }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-
-      - name: Check the tag against the manifest and the changelog
-        run: python scripts/release.py check "${{ github.ref_name }}"
-
-      - name: Run the tests
+      - name: Tag aus manifest.json bestimmen
+        id: version
         run: |
-          pip install -r requirements_test.txt
-          python -m pytest
+          version=$(python3 -c "import json; print(json.load(open('custom_components/arcane/manifest.json'))['version'])")
+          tag="v$version"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$tag" != "$GITHUB_REF_NAME" ]; then
+            echo "manifest.json nennt $version, der Tag ist $GITHUB_REF_NAME"
+            exit 1
+          fi
+          test -f ".github/release-notes/$tag.md" || { echo "Versionshinweise .github/release-notes/$tag.md fehlen"; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Collect the release notes
-        run: |
-          {
-            echo "notes<<RELEASE_NOTES_EOF"
-            python scripts/release.py notes "${{ github.ref_name }}"
-            echo "RELEASE_NOTES_EOF"
-          } >> "$GITHUB_ENV"
-
-      - name: Publish the release
+      - name: Release anlegen oder Hinweise aktualisieren
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
-          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
-            echo "A release for ${{ github.ref_name }} already exists, so it was" \
-                 "written by hand. Leaving its notes alone."
-            exit 0
+          # Gibt es das Release schon, werden nur die Versionshinweise ersetzt
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file ".github/release-notes/$TAG.md"
+          else
+            gh release create "$TAG" \
+              --title "Arcane $TAG" \
+              --notes-file ".github/release-notes/$TAG.md" \
+              --target "$GITHUB_SHA"
           fi
-          gh release create "${{ github.ref_name }}" \
-            --title "${{ github.ref_name }}" \
-            --notes "$notes"
