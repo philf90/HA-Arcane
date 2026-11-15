@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.7.0.
+[Herkunft](#herkunft). Version 0.7.1.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -214,6 +214,13 @@ Option ist deshalb standardmäßig aus, und die Integration fragt höchstens all
 Bericht da ist, zeigen die Sensoren „unbekannt“. Der Prune-Button entfernt
 Volumes und gestoppte Container nie; die beiden Sensoren dazu sind nur Auskunft.
 
+Nach einem Prune fragt die Integration sofort einen neuen Bericht an, statt bis
+zu 15 Minuten zu warten. Läuft gerade einer, der vor dem Prune begann, folgt ihm
+ein zweiter. Das Attribut `report_started_at` der vier Sensoren nennt, wann der
+gezeigte Bericht angefragt wurde (ISO 8601, UTC). Damit kann ein Dashboard einen
+Bericht von nach dem Prune von einem älteren unterscheiden, auch wenn sich der
+Wert nicht ändert. Die Zeit landet nicht in der Datenbank.
+
 ## Ereignisse
 
 Mit eingeschalteten Ereignissen feuern diese auf dem Bus und taugen als Auslöser:
@@ -256,7 +263,7 @@ dahinter.
 | `agents/{environment}/projects/{project}` | POST `?action=down`, `restart` | Schalter aus, Button „Neustarten“ | `projects:down`, `projects:restart` |
 | `agents/{environment}/system/prune` | POST | Button „Ungenutztes entfernen“ | `system:prune` |
 | `agents/{environment}/system/upgrade` | POST | Arcane-Update installieren | `system:upgrade` |
-| `agents/{environment}/system/df` | GET | Option freigebbarer Speicher, höchstens alle 15 Minuten im Hintergrund | `system:read` |
+| `agents/{environment}/system/df` | GET | Option freigebbarer Speicher, höchstens alle 15 Minuten im Hintergrund, dazu sofort nach einem Prune | `system:read` |
 | `agents/{environment}/images/updates/releasenotes` | GET `?imageRef=…&digest=…`, bei neuem Tag `&version=…` | Update-Dialog geöffnet | `image-updates:read` |
 | `agents/{environment}/images/updates/check` | POST `?action=all` | Button „Nach Updates suchen“ | `image-updates:check` |
 
@@ -265,7 +272,8 @@ und kostet keine eigene Abfrage. Welche Pfade Arcane 3.0.0 anbietet, steht mit
 Fundstelle im Quelltext in `tests/fixtures/arcane_routen_v3.0.0.json`, abgeglichen
 mit der OpenAPI-Datei einer laufenden Arcane-3.0.0-Instanz
 (`tests/fixtures/arcane_openapi_v3.0.0.json`). Mit allen Abfrage-Optionen an sind das je
-Durchlauf und Umgebung neun Anfragen, dazu höchstens alle 15 Minuten `system/df`.
+Durchlauf und Umgebung neun Anfragen, dazu höchstens alle 15 Minuten und nach jedem
+Prune `system/df`.
 
 ## Gut zu wissen
 
@@ -310,10 +318,19 @@ Versionen 0.1.0 bis 0.4.0 hatten kein Release; ihre Einträge stehen in
 
 Automatische Tests laufen gegen Home Assistant 2026.2.3, die Pfade gegen die
 Routen von Arcane 3.0.0. Live geprüft mit Arcane 3.0.0 und Home Assistant 2026.11.1:
-Einrichtung und alle lesenden Abfragen; die schreibenden Aktionen (Start, Stop,
-Neustart, Redeploy, Prune, Arcane-Update) nur im Vertragstest.
+Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
+3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
+Arcane-Update) nur im Vertragstest.
 
-- **0.7.x:** 182 automatische Tests. 0.7.0: 21 neue Tests in
+- **0.7.x:** 188 automatische Tests. 0.7.1: 6 neue Tests in `test_speicher.py`:
+  neuer Bericht sofort nach dem Prune, danach wieder das Intervall; ein Bericht,
+  der vor dem Prune begann, bekommt einen zweiten; `report_started_at` ist der
+  Beginn des Berichts, nicht seine Ankunft, und fehlt vor dem ersten; ohne Option
+  oder bei gescheitertem Prune kein Bericht; die Zeit wird nicht aufgezeichnet.
+  Gegenprobe: acht Schutzmaßnahmen einzeln ausgebaut, jedes Mal schlug ein Test
+  fehl. Live geprüft mit 0.7.0, Home Assistant 2026.11.1 und Arcane
+  3.0.1: Prune-Button (3 ungenutzte Images, 1,56 GB, genau der vorher gemeldete
+  freigebbare Image-Speicher); 0.7.1 **nicht live geprüft**. 0.7.0: 21 neue Tests in
   `test_image_updates.py` und `test_speicher.py`: gesperrtes Update angezeigt, aber
   nicht installierbar; Versionshinweise mit Digest bzw. Tag wie in Arcanes
   Update-Ansicht, nur `https://`-Links, abgelehntes Recht gemeldet, keine Hinweise

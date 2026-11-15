@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -46,6 +47,8 @@ class ArcaneEnvironmentSensorDescription(SensorEntityDescription):
     value_fn: Callable[[ArcaneEnvironment], StateType]
     #: Option that has to be on for this sensor to have anything to report.
     requires: str
+    #: State attributes, if the sensor has any.
+    attributes_fn: Callable[[ArcaneEnvironment], dict[str, Any] | None] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -69,6 +72,21 @@ def _host(environment: ArcaneEnvironment, attribute: str) -> StateType:
     return getattr(environment.host_stats, attribute)
 
 
+#: State attribute with the time the reclaimable space report was asked for.
+ATTR_REPORT_STARTED_AT = "report_started_at"
+
+
+def _report_started_at(environment: ArcaneEnvironment) -> dict[str, Any] | None:
+    """Return when the reclaimable space report on show was asked for.
+
+    The report describes the disk as Docker found it after that moment, so a
+    dashboard can tell a report taken after a prune from one taken before.
+    """
+    if environment.disk_usage_at is None:
+        return None
+    return {ATTR_REPORT_STARTED_AT: environment.disk_usage_at.isoformat()}
+
+
 def _reclaimable(key: str) -> ArcaneEnvironmentSensorDescription:
     """Describe a sensor for one kind of reclaimable disk space."""
     return ArcaneEnvironmentSensorDescription(
@@ -83,6 +101,7 @@ def _reclaimable(key: str) -> ArcaneEnvironmentSensorDescription:
         value_fn=lambda environment: environment.disk_usage.get(
             RECLAIMABLE_FIELDS[key]
         ),
+        attributes_fn=_report_started_at,
     )
 
 
@@ -373,6 +392,10 @@ class ArcaneEnvironmentSensor(ArcaneEnvironmentEntity, SensorEntity):
     """A sensor reporting an aggregate value of an environment."""
 
     entity_description: ArcaneEnvironmentSensorDescription
+    # The report time changes with every report and only matters while it is
+    # current; keeping it out of the recorder saves storing a new attributes
+    # row for each one.
+    _unrecorded_attributes = frozenset({ATTR_REPORT_STARTED_AT})
 
     @property
     def native_value(self) -> StateType:
@@ -380,6 +403,14 @@ class ArcaneEnvironmentSensor(ArcaneEnvironmentEntity, SensorEntity):
         if (environment := self.environment) is None:
             return None
         return self.entity_description.value_fn(environment)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the state attributes, if the sensor has any."""
+        attributes_fn = self.entity_description.attributes_fn
+        if attributes_fn is None or (environment := self.environment) is None:
+            return None
+        return attributes_fn(environment)
 
 
 class ArcaneContainerSensor(ArcaneContainerEntity, SensorEntity):

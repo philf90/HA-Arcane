@@ -201,6 +201,8 @@ class ArcanePruneButton(ArcaneEnvironmentEntity, ButtonEntity):
         _LOGGER.debug(
             "Prune of environment %s returned %s", self.environment_id, result
         )
+        # The reclaimable space the last report counted is gone now.
+        self.coordinator.async_disk_usage_now(self.environment_id)
         await self.coordinator.async_request_refresh()
 
 
