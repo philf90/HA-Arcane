@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from homeassistant.const import CONF_URL
+from homeassistant.core import callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -15,6 +17,21 @@ from .const import (
 )
 from .coordinator import ArcaneCoordinator
 from .models import ArcaneContainer, ArcaneEnvironment, ArcaneProject
+
+
+def _find_device(
+    registry: dr.DeviceRegistry, identifier: str, config_entry_id: str
+) -> dr.DeviceEntry | None:
+    """Return the device of this config entry with the given identifier.
+
+    Home Assistant 2026.11 deprecates ``async_get_device`` in favour of
+    ``async_get_device_by_identifier``, which older releases lack. The newer
+    lookup is used where it exists, so neither version reports a deprecation.
+    """
+    lookup = getattr(registry, "async_get_device_by_identifier", None)
+    if lookup is not None:
+        return lookup((DOMAIN, identifier), config_entry_id)
+    return registry.async_get_device(identifiers={(DOMAIN, identifier)})
 
 
 class ArcaneEntity(CoordinatorEntity[ArcaneCoordinator]):
@@ -33,6 +50,40 @@ class ArcaneEntity(CoordinatorEntity[ArcaneCoordinator]):
     def _configuration_url(self) -> str:
         """Return the URL of the Arcane instance backing this entity."""
         return str(self.coordinator.config_entry.data[CONF_URL]).rstrip("/")
+
+    def _parent_identifier(self) -> str | None:
+        """Return the identifier of the device this entity's device hangs below."""
+        return None
+
+    async def async_added_to_hass(self) -> None:
+        """Link the device to its parent once Home Assistant has created it."""
+        await super().async_added_to_hass()
+        self._async_link_parent_device()
+
+    @callback
+    def _async_link_parent_device(self) -> None:
+        """Point the device at its parent device.
+
+        Home Assistant 2026.11 deprecates ``via_device`` in the device info and
+        drops it in 2027.8. Its replacement, ``via_device_id``, is the parent's
+        registry id, which the device info of 2026.2 does not accept. Updating
+        the device after it was created works on both.
+        """
+        if self.device_entry is None or (parent := self._parent_identifier()) is None:
+            return
+        registry = dr.async_get(self.hass)
+        parent_device = _find_device(
+            registry, parent, self.coordinator.config_entry.entry_id
+        )
+        device = registry.async_get(self.device_entry.id)
+        if (
+            parent_device is None
+            or device is None
+            or parent_device.id == device.id
+            or device.via_device_id == parent_device.id
+        ):
+            return
+        registry.async_update_device(device.id, via_device_id=parent_device.id)
 
     def _device_name(self, kind: str, name: str) -> str:
         """Return the device name, prefixed with its kind when asked for.
@@ -105,11 +156,10 @@ class ArcaneContainerEntity(ArcaneEntity):
             manufacturer=MANUFACTURER,
             model="Container",
             name=self._device_name("Container", container_name),
-            via_device=(DOMAIN, self._via_device_id()),
             configuration_url=f"{self._configuration_url}/containers",
         )
 
-    def _via_device_id(self) -> str:
+    def _parent_identifier(self) -> str:
         """Return the device this container hangs below.
 
         Containers of a compose project are nested under the project device so
@@ -168,9 +218,12 @@ class ArcaneProjectEntity(ArcaneEntity):
             manufacturer=MANUFACTURER,
             model="Compose project",
             name=self._device_name("Project", project.name if project else project_id),
-            via_device=(DOMAIN, f"{entry_id}_{environment_id}"),
             configuration_url=f"{self._configuration_url}/projects/{project_id}",
         )
+
+    def _parent_identifier(self) -> str:
+        """Return the environment device a project hangs below."""
+        return f"{self.coordinator.config_entry.entry_id}_{self.environment_id}"
 
     @property
     def project(self) -> ArcaneProject | None:

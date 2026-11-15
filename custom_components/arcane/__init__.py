@@ -32,7 +32,9 @@ PLATFORMS: list[Platform] = [
 async def async_setup_entry(hass: HomeAssistant, entry: ArcaneConfigEntry) -> bool:
     """Set up Arcane from a config entry."""
     verify_ssl = entry.data.get(CONF_VERIFY_SSL, True)
-    if not verify_ssl:
+    # Certificate verification only exists for https. Over plain http the
+    # setting has no effect, so warning about it there would only be noise.
+    if not verify_ssl and str(entry.data[CONF_URL]).startswith("https://"):
         _LOGGER.warning(
             "Certificate verification is disabled for %s. The API key is sent "
             "over a connection that is not authenticated",
