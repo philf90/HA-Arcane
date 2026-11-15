@@ -50,6 +50,9 @@ _ALL_ITEMS: Final = "-1"
 # additionally pull images, so both get more headroom than a plain read.
 ACTION_TIMEOUT: Final = 300
 DEPLOY_TIMEOUT: Final = 900
+# A Docker disk usage report sizes every volume, and an update check asks the
+# registry of every image, so neither fits the default timeout of a read.
+DISK_USAGE_TIMEOUT: Final = 120
 
 # Refuse to buffer a reply larger than this. Every endpoint used here returns a
 # small JSON document, so anything bigger means the URL does not point at an
@@ -358,9 +361,15 @@ class ArcaneClient:
         if not done:
             raise ArcaneResponseError(f"{url} ended without reporting that it finished")
 
-    async def _get_data(self, url: URL, params: dict[str, Any] | None = None) -> Any:
+    async def _get_data(
+        self,
+        url: URL,
+        params: dict[str, Any] | None = None,
+        *,
+        timeout: int | None = None,
+    ) -> Any:
         """Return the ``data`` member of an Arcane API envelope."""
-        payload = await self._request("GET", url, params=params)
+        payload = await self._request("GET", url, params=params, timeout=timeout)
         if not isinstance(payload, dict) or "data" not in payload:
             raise ArcaneResponseError(f"Unexpected payload from {url}")
         return payload["data"]
@@ -467,6 +476,52 @@ class ArcaneClient:
             "GET", self._url(AGENTS, environment_id, "system", "docker", "info")
         )
         return payload if isinstance(payload, dict) else {}
+
+    async def async_get_disk_usage(self, environment_id: str) -> dict[str, Any]:
+        """Return the disk space unused images, volumes and the like hold."""
+        data = await self._get_data(
+            self._url(AGENTS, environment_id, "system", "df"),
+            timeout=DISK_USAGE_TIMEOUT,
+        )
+        return data if isinstance(data, dict) else {}
+
+    async def async_get_release_notes(
+        self,
+        environment_id: str,
+        image_ref: str,
+        *,
+        version: str | None = None,
+        digest: str | None = None,
+    ) -> dict[str, Any]:
+        """Return the release notes Arcane finds for the newer image.
+
+        The newer version only names a tag when the update is a new tag; for a
+        moving tag the digest identifies the newer image. Arcane's own update
+        view asks the same way.
+        """
+        params = {"imageRef": image_ref}
+        if version:
+            params["version"] = version
+        if digest:
+            params["digest"] = digest
+        data = await self._get_data(
+            self._url(AGENTS, environment_id, "images", "updates", "releasenotes"),
+            params,
+        )
+        return data if isinstance(data, dict) else {}
+
+    async def async_check_image_updates(self, environment_id: str) -> None:
+        """Ask Arcane to check every image for an update right now.
+
+        Arcane answers once it has asked the registry of every image, which
+        takes longer than an ordinary request.
+        """
+        await self._request(
+            "POST",
+            self._url(AGENTS, environment_id, "images", "updates", "check"),
+            params={"action": "all"},
+            timeout=ACTION_TIMEOUT,
+        )
 
     async def async_container_action(
         self, environment_id: str, container_id: str, action: str

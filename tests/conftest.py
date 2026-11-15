@@ -146,4 +146,7 @@ def mock_client() -> Generator[AsyncMock]:
         client.async_get_host_stats.return_value = HOST_STATS
         client.async_get_environment_version.return_value = REMOTE_VERSION_PAYLOAD
         client.async_prune.return_value = {"spaceReclaimed": 1024}
+        # Like the real client: an empty dict when Arcane reports nothing.
+        client.async_get_disk_usage.return_value = {}
+        client.async_get_release_notes.return_value = {}
         yield client

@@ -19,6 +19,7 @@ from homeassistant.helpers.typing import StateType
 
 from . import ArcaneConfigEntry
 from .const import (
+    CONF_DISK_USAGE,
     CONF_HEALTH_SENSORS,
     CONF_HOST_STATS,
     CONF_MONITOR_CONTAINERS,
@@ -66,6 +67,32 @@ def _host(environment: ArcaneEnvironment, attribute: str) -> StateType:
     if environment.host_stats is None:
         return None
     return getattr(environment.host_stats, attribute)
+
+
+def _reclaimable(key: str) -> ArcaneEnvironmentSensorDescription:
+    """Describe a sensor for one kind of reclaimable disk space."""
+    return ArcaneEnvironmentSensorDescription(
+        key=f"reclaimable_{key}",
+        requires=CONF_DISK_USAGE,
+        translation_key=f"reclaimable_{key}",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.BYTES,
+        suggested_unit_of_measurement=UnitOfInformation.GIGABYTES,
+        suggested_display_precision=2,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda environment: environment.disk_usage.get(
+            RECLAIMABLE_FIELDS[key]
+        ),
+    )
+
+
+# Sensor key suffix and the field of Arcane's ``system/df`` reply it reports.
+RECLAIMABLE_FIELDS: dict[str, str] = {
+    "images": "unusedImagesBytes",
+    "containers": "stoppedContainersBytes",
+    "volumes": "unusedVolumesBytes",
+    "build_cache": "buildCacheBytes",
+}
 
 
 def _enum_value(value: str, options: list[str]) -> str | None:
@@ -239,6 +266,7 @@ ENVIRONMENT_SENSORS: tuple[ArcaneEnvironmentSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda environment: _host(environment, "disk_used"),
     ),
+    *(_reclaimable(key) for key in RECLAIMABLE_FIELDS),
 )
 
 CONTAINER_SENSORS: tuple[ArcaneContainerSensorDescription, ...] = (

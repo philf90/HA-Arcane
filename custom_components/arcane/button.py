@@ -17,8 +17,10 @@ from . import ArcaneConfigEntry
 from .api import ArcaneError
 from .const import (
     CONF_ALLOW_CONTROL,
+    CONF_MONITOR_CONTAINERS,
     CONF_PRUNE_BUTTON,
     CONF_REDEPLOY_BUTTONS,
+    CONF_UPDATE_ENTITIES,
     DOMAIN,
     PRUNE_OFF,
     PRUNE_UNUSED,
@@ -27,6 +29,7 @@ from .entity import ArcaneContainerEntity, ArcaneEnvironmentEntity, ArcaneProjec
 from .helpers import action_error, async_setup_entities
 from .permissions import (
     CONTAINER_ACTION_PERMISSIONS,
+    PERM_IMAGE_UPDATES_CHECK,
     PERM_SYSTEM_PRUNE,
     PROJECT_ACTION_PERMISSIONS,
 )
@@ -51,6 +54,11 @@ PRUNE_BUTTON = ButtonEntityDescription(
     translation_key="prune",
 )
 
+CHECK_UPDATES_BUTTON = ButtonEntityDescription(
+    key="check_updates",
+    translation_key="check_updates",
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -64,19 +72,28 @@ async def async_setup_entry(
 
     redeploy = coordinator.option(CONF_REDEPLOY_BUTTONS)
     prune = coordinator.option(CONF_PRUNE_BUTTON) != PRUNE_OFF
+    # Checking for updates only matters where the container update entities
+    # show what the check found.
+    check_updates = coordinator.option(CONF_UPDATE_ENTITIES) and coordinator.option(
+        CONF_MONITOR_CONTAINERS
+    )
+
+    def environment_buttons(environment_id: str) -> list[ButtonEntity]:
+        buttons: list[ButtonEntity] = []
+        if prune:
+            buttons.append(ArcanePruneButton(coordinator, environment_id, PRUNE_BUTTON))
+        if check_updates:
+            buttons.append(
+                ArcaneCheckUpdatesButton(
+                    coordinator, environment_id, CHECK_UPDATES_BUTTON
+                )
+            )
+        return buttons
 
     async_setup_entities(
         coordinator,
         async_add_entities,
-        environments=(
-            (
-                lambda environment_id: [
-                    ArcanePruneButton(coordinator, environment_id, PRUNE_BUTTON)
-                ]
-            )
-            if prune
-            else None
-        ),
+        environments=environment_buttons if prune or check_updates else None,
         containers=lambda environment_id, name: [
             ArcaneContainerButton(coordinator, environment_id, name, RESTART_BUTTON),
             *(
@@ -184,4 +201,28 @@ class ArcanePruneButton(ArcaneEnvironmentEntity, ButtonEntity):
         _LOGGER.debug(
             "Prune of environment %s returned %s", self.environment_id, result
         )
+        await self.coordinator.async_request_refresh()
+
+
+class ArcaneCheckUpdatesButton(ArcaneEnvironmentEntity, ButtonEntity):
+    """Have Arcane check every image of an environment for an update now.
+
+    Arcane checks on its own schedule as well; this only saves the wait. The
+    image update entities show the result once the check is done.
+    """
+
+    async def async_press(self) -> None:
+        """Run the update check."""
+        try:
+            await self.coordinator.client.async_check_image_updates(self.environment_id)
+        except ArcaneError as err:
+            raise action_error(
+                self.coordinator,
+                err,
+                permission=PERM_IMAGE_UPDATES_CHECK,
+                action_key="check_updates",
+                placeholders={
+                    "name": self.environment.name if self.environment else ""
+                },
+            ) from err
         await self.coordinator.async_request_refresh()

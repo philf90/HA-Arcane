@@ -26,6 +26,7 @@ CONF_NEST_CONTAINERS: Final = "nest_containers"
 CONF_EVENTS: Final = "events"
 CONF_REDEPLOY_BUTTONS: Final = "redeploy_buttons"
 CONF_PRUNE_BUTTON: Final = "prune_button"
+CONF_DISK_USAGE: Final = "disk_usage"
 
 # Values of the prune button option. Containers and volumes are deliberately
 # never pruned: both destroy data that cannot be pulled back.
@@ -37,6 +38,11 @@ PRUNE_MODES: Final = [PRUNE_OFF, PRUNE_DANGLING, PRUNE_UNUSED]
 DEFAULT_SCAN_INTERVAL: Final = 30
 MIN_SCAN_INTERVAL: Final = 10
 MAX_SCAN_INTERVAL: Final = 3600
+
+# Reclaimable disk space is asked for at most this often, in seconds. Arcane
+# answers it with a Docker disk usage report that sizes every volume, which can
+# take a while on a host with large volumes, and the figures change slowly.
+DISK_USAGE_INTERVAL: Final = 900
 
 DEFAULT_OPTIONS: Final[dict[str, object]] = {
     "scan_interval": DEFAULT_SCAN_INTERVAL,
@@ -55,6 +61,7 @@ DEFAULT_OPTIONS: Final[dict[str, object]] = {
     CONF_EVENTS: True,
     CONF_REDEPLOY_BUTTONS: False,
     CONF_PRUNE_BUTTON: PRUNE_OFF,
+    CONF_DISK_USAGE: False,
 }
 
 # Reserved ID of the environment Arcane manages directly.
@@ -103,3 +110,10 @@ EVENT_PROJECT_STATE: Final = "arcane_project_state_changed"
 # Exit code Docker reports when the kernel OOM killer or a SIGKILL ended the
 # main process. It is the usual fingerprint of an out of memory kill.
 EXIT_CODE_SIGKILL: Final = 137
+
+# Arcane's update type for an image whose newer version is a different tag.
+# Only then does the newer version name a tag the release notes can be found
+# under; otherwise the digest identifies the newer image.
+UPDATE_TYPE_TAG: Final = "tag"
+# Arcane's update type for an image that is referenced but not pulled yet.
+UPDATE_TYPE_NOT_PULLED: Final = "not_pulled"

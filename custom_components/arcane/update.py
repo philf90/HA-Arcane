@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from homeassistant.components.update import (
@@ -14,12 +15,25 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import ArcaneConfigEntry
-from .api import ArcaneError
-from .const import CONF_ALLOW_CONTROL, CONF_UPDATE_ENTITIES, DOMAIN, MANUFACTURER
+from .api import ArcaneError, ArcanePermissionError
+from .const import (
+    CONF_ALLOW_CONTROL,
+    CONF_UPDATE_ENTITIES,
+    DOMAIN,
+    MANUFACTURER,
+    UPDATE_TYPE_NOT_PULLED,
+    UPDATE_TYPE_TAG,
+)
 from .entity import ArcaneContainerEntity, ArcaneEnvironmentEntity
 from .helpers import action_error, async_setup_entities
 from .models import ArcaneVersion, image_name
-from .permissions import PERM_CONTAINERS_REDEPLOY, PERM_SYSTEM_UPGRADE
+from .permissions import (
+    PERM_CONTAINERS_REDEPLOY,
+    PERM_IMAGE_UPDATES_READ,
+    PERM_SYSTEM_UPGRADE,
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 1
 
@@ -70,19 +84,55 @@ def _summary(notes: str | None) -> str | None:
     return f"{text[: MAX_RELEASE_SUMMARY - 1].rstrip()}…"
 
 
+def _release_notes_text(notes: dict[str, Any]) -> str | None:
+    """Return Arcane's release notes reply as markdown for the update dialog."""
+    text = notes.get("notes")
+    url = notes.get("releaseUrl")
+    text = text.strip() if isinstance(text, str) else ""
+    url = url.strip() if isinstance(url, str) and url.startswith("https://") else ""
+    if not url:
+        return text or None
+    name = notes.get("releaseName")
+    label = name.strip() if isinstance(name, str) and name.strip() else url
+    link = f"[{label}]({url})"
+    return f"{text}\n\n{link}" if text else link
+
+
 class ArcaneContainerUpdate(ArcaneContainerEntity, UpdateEntity):
     """Report and install a newer image for a container.
 
     Installing runs Arcane's redeploy, which pulls the image the container was
-    created from and recreates the container with the same configuration.
+    created from and recreates the container with the same configuration. An
+    update Arcane holds back is not installed: Arcane's own update policy, for
+    example a vulnerability limit, decided against it.
     """
 
     @property
     def supported_features(self) -> UpdateEntityFeature:
-        """Return whether this entity may install the update."""
-        if self.coordinator.option(CONF_ALLOW_CONTROL):
-            return UpdateEntityFeature.INSTALL
-        return UpdateEntityFeature(0)
+        """Return what this entity offers beyond reporting a version."""
+        features = UpdateEntityFeature(0)
+        container = self.container
+        if container is None:
+            return features
+        if (
+            container.update_available
+            and container.update_type != UPDATE_TYPE_NOT_PULLED
+        ):
+            # Arcane's own update view offers release notes on the same terms.
+            features |= UpdateEntityFeature.RELEASE_NOTES
+        if self.coordinator.option(CONF_ALLOW_CONTROL) and not container.update_blocked:
+            features |= UpdateEntityFeature.INSTALL
+        return features
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return whether Arcane holds the update back, and why."""
+        if (container := self.container) is None:
+            return None
+        attributes: dict[str, Any] = {"update_blocked": container.update_blocked}
+        if container.update_blocked:
+            attributes["blocked_reason"] = container.update_blocked_reason
+        return attributes
 
     @property
     def title(self) -> str | None:
@@ -109,6 +159,34 @@ class ArcaneContainerUpdate(ArcaneContainerEntity, UpdateEntity):
         """
         return self.container is not None and self.container.update_available
 
+    async def async_release_notes(self) -> str | None:
+        """Return the release notes Arcane finds for the newer image.
+
+        Arcane looks them up in the GitHub releases of the image's source. When
+        it finds no notes but knows where they would be, the link is returned
+        instead, so the dialog still points somewhere useful.
+        """
+        if (container := self.container) is None or not container.image:
+            return None
+        try:
+            notes = await self.coordinator.client.async_get_release_notes(
+                self.environment_id,
+                container.image,
+                version=(
+                    container.latest_version
+                    if container.update_type == UPDATE_TYPE_TAG
+                    else None
+                ),
+                digest=container.latest_digest,
+            )
+        except ArcanePermissionError:
+            self.coordinator.async_note_denied(PERM_IMAGE_UPDATES_READ)
+            return None
+        except ArcaneError as err:
+            _LOGGER.debug("No release notes for %s: %s", container.image, err)
+            return None
+        return _release_notes_text(notes)
+
     async def async_install(
         self, version: str | None, backup: bool, **kwargs: Any
     ) -> None:
@@ -118,6 +196,15 @@ class ArcaneContainerUpdate(ArcaneContainerEntity, UpdateEntity):
                 translation_domain=DOMAIN,
                 translation_key="container_not_found",
                 translation_placeholders={"name": self.container_name},
+            )
+        if container.update_blocked:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="update_blocked",
+                translation_placeholders={
+                    "name": self.container_name,
+                    "reason": container.update_blocked_reason or "-",
+                },
             )
         try:
             await self.coordinator.client.async_container_action(

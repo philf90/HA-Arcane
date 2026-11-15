@@ -143,6 +143,15 @@ class ArcaneContainer:
     exit_code: int | None
     project: str | None
     service: str | None
+    #: Arcane found an update but holds it back, for example because the newer
+    #: image exceeds a vulnerability limit.
+    update_blocked: bool = False
+    update_blocked_reason: str | None = None
+    #: How the newer image differs: a new tag, a new digest under the same tag,
+    #: or not pulled yet. Decides how its release notes are looked up.
+    update_type: str | None = None
+    #: Full digest of the newer image, as Arcane needs it for release notes.
+    latest_digest: str | None = None
 
     @property
     def is_running(self) -> bool:
@@ -178,6 +187,13 @@ class ArcaneContainer:
             exit_code=_exit_code(status),
             project=labels.get("com.docker.compose.project"),
             service=labels.get("com.docker.compose.service"),
+            # Arcane only reports a block together with an update, but a stale
+            # flag on an image without one must not hold anything back.
+            update_blocked=bool(update_info.get("hasUpdate"))
+            and bool(update_info.get("blocked")),
+            update_blocked_reason=_version(update_info.get("blockedReason")),
+            update_type=_version(update_info.get("updateType")),
+            latest_digest=_version(update_info.get("latestDigest")),
         )
 
 
@@ -318,6 +334,9 @@ class ArcaneEnvironment:
     network_counts: dict[str, Any] = field(default_factory=dict)
     host_stats: ArcaneHostStats | None = None
     arcane_version: ArcaneVersion | None = None
+    #: Reclaimable disk space by kind, in bytes, as Arcane's ``system/df``
+    #: reports it. Empty until the first report is in.
+    disk_usage: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_online(self) -> bool:

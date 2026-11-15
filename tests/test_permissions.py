@@ -54,6 +54,7 @@ def test_defaults_need_read_and_control() -> None:
         "networks:list",
         "system:read",
         "environments:read",
+        "image-updates:read",
     ]
     assert needed.control == [
         "containers:start",
@@ -64,6 +65,7 @@ def test_defaults_need_read_and_control() -> None:
         "projects:down",
         "projects:restart",
         "system:upgrade",
+        "image-updates:check",
     ]
 
 

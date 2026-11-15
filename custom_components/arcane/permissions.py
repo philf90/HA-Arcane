@@ -19,6 +19,7 @@ from typing import Any, Final
 
 from .const import (
     CONF_ALLOW_CONTROL,
+    CONF_DISK_USAGE,
     CONF_HOST_STATS,
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
@@ -50,6 +51,8 @@ PERM_NETWORKS_LIST: Final = "networks:list"
 PERM_SYSTEM_READ: Final = "system:read"
 PERM_SYSTEM_PRUNE: Final = "system:prune"
 PERM_SYSTEM_UPGRADE: Final = "system:upgrade"
+PERM_IMAGE_UPDATES_READ: Final = "image-updates:read"
+PERM_IMAGE_UPDATES_CHECK: Final = "image-updates:check"
 
 # The permission each container and project action is gated on. Both mirror
 # ``CONTAINER_ACTIONS`` and ``PROJECT_ACTIONS`` of the API client: deploying a
@@ -79,6 +82,7 @@ POLL_PERMISSIONS: Final[dict[str, str]] = {
     "docker": PERM_SYSTEM_READ,
     "host": PERM_SYSTEM_READ,
     "version": PERM_ENVIRONMENTS_READ,
+    "disk_usage": PERM_SYSTEM_READ,
 }
 
 
@@ -125,15 +129,23 @@ def _monitoring_permissions(options: Mapping[str, Any]) -> list[str]:
         permissions.append(PERM_PROJECTS_LIST)
     if _option(options, CONF_MONITOR_RESOURCES):
         permissions += [PERM_IMAGES_LIST, PERM_VOLUMES_LIST, PERM_NETWORKS_LIST]
-    if _option(options, CONF_MONITOR_RESOURCES) or _option(options, CONF_HOST_STATS):
-        # The Docker version and the host statistics both come out of the
-        # system endpoints.
+    if (
+        _option(options, CONF_MONITOR_RESOURCES)
+        or _option(options, CONF_HOST_STATS)
+        or _option(options, CONF_DISK_USAGE)
+    ):
+        # The Docker version, the host statistics and the reclaimable disk
+        # space all come out of the system endpoints.
         permissions.append(PERM_SYSTEM_READ)
     if _option(options, CONF_UPDATE_ENTITIES):
         # Only environments other than the local one are asked for their
         # version, and which ones exist is not known here, so the permission is
         # listed whenever the update entities are on.
         permissions.append(PERM_ENVIRONMENTS_READ)
+        if _option(options, CONF_MONITOR_CONTAINERS):
+            # Release notes of a container update, fetched when the update
+            # dialog is opened.
+            permissions.append(PERM_IMAGE_UPDATES_READ)
     return permissions
 
 
@@ -166,6 +178,9 @@ def _control_permissions(options: Mapping[str, Any]) -> list[str]:
         ]
     if updates:
         permissions.append(PERM_SYSTEM_UPGRADE)
+        if containers:
+            # The button that has Arcane check every image for an update.
+            permissions.append(PERM_IMAGE_UPDATES_CHECK)
     if _option(options, CONF_PRUNE_BUTTON) != PRUNE_OFF:
         permissions.append(PERM_SYSTEM_PRUNE)
     return permissions
