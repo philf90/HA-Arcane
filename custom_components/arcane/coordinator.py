@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections import deque
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -23,13 +24,18 @@ from .api import (
     ArcanePermissionError,
     ArcaneUnsupportedVersionError,
 )
+from .changes import ArcaneChangeWatcher
 from .const import (
+    ARCANE_EVENTS_PAGE,
+    ARCANE_EVENTS_SEEN,
+    CONF_ARCANE_EVENTS,
     CONF_DISK_USAGE,
     CONF_ENVIRONMENTS,
     CONF_EVENTS,
     CONF_HOST_STATS,
     CONF_INCLUDE_HIDDEN,
     CONF_INCLUDE_INTERNAL,
+    CONF_INSTANT_UPDATES,
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
@@ -38,6 +44,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DISK_USAGE_INTERVAL,
     DOMAIN,
+    EVENT_ARCANE,
     EVENT_CONTAINER_HEALTH,
     EVENT_CONTAINER_STATE,
     EVENT_PROJECT_STATE,
@@ -110,6 +117,13 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         # Environments whose running report started before a prune and so has
         # to be followed by another one.
         self._disk_usage_again: set[str] = set()
+        # Waits for changes in the background, with the option for it.
+        self.change_watcher = ArcaneChangeWatcher(self)
+        # Arcane events already seen per environment, and the newest timestamp
+        # among them. An environment without an entry has not been read yet:
+        # its first read only marks what is already there.
+        self._arcane_events_seen: dict[str, deque[str]] = {}
+        self._arcane_events_since: dict[str, datetime | None] = {}
 
     def option(self, key: str) -> Any:
         """Return an option of the config entry, or its default."""
@@ -203,6 +217,8 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         )
         if self.option(CONF_EVENTS):
             self._fire_events(data)
+        if self.option(CONF_INSTANT_UPDATES):
+            self.change_watcher.async_sync(set(data.environments))
         self._async_update_permission_issue()
         return data
 
@@ -232,6 +248,10 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             # The local environment is the instance that was already asked for
             # its version, so only remote ones cost a request here.
             calls["version"] = self.client.async_get_environment_version(environment_id)
+        if self.option(CONF_ARCANE_EVENTS):
+            calls["arcane_events"] = self.client.async_get_events(
+                environment_id, limit=ARCANE_EVENTS_PAGE
+            )
         return calls
 
     def _note_denied_polling(self, results: dict[str, Any]) -> None:
@@ -326,6 +346,10 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         environment.docker_version = environment.docker_info.get("ServerVersion")
         if host := value("host", {}):
             environment.host_stats = ArcaneHostStats.from_api(host)
+        if self.option(CONF_ARCANE_EVENTS) and isinstance(
+            events := value("arcane_events", None), list
+        ):
+            self._fire_arcane_events(environment, events)
         if self.option(CONF_DISK_USAGE):
             environment.disk_usage = self._disk_usage.get(environment_id, {})
             environment.disk_usage_at = self._disk_usage_at.get(environment_id)
@@ -415,6 +439,76 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         self._disk_usage_asked.pop(environment_id, None)
         if self.data and (environment := self.data.environments.get(environment_id)):
             self._async_schedule_disk_usage(environment)
+
+    def _fire_arcane_events(
+        self, environment: ArcaneEnvironment, items: list[Any]
+    ) -> None:
+        """Announce the entries of Arcane's event log that are new since last time.
+
+        Arcane hands out the newest entries first. They are announced oldest
+        first, each one once: an entry is new when its ID has not been seen
+        and it is not older than the newest one seen before. The first read of
+        an environment only marks what is there, so a restart of Home Assistant
+        does not replay the log.
+        """
+        entries = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            event_id = item.get("id")
+            timestamp = dt_util.parse_datetime(str(item.get("timestamp") or ""))
+            if isinstance(event_id, str) and event_id and timestamp is not None:
+                entries.append((timestamp, event_id, item))
+        entries.sort(key=lambda entry: (entry[0], entry[1]))
+
+        environment_id = environment.id
+        newest = entries[-1][0] if entries else None
+        seen = self._arcane_events_seen.get(environment_id)
+        if seen is None:
+            self._arcane_events_seen[environment_id] = deque(
+                (event_id for _, event_id, _ in entries), maxlen=ARCANE_EVENTS_SEEN
+            )
+            self._arcane_events_since[environment_id] = newest
+            return
+
+        since = self._arcane_events_since.get(environment_id)
+        for timestamp, event_id, item in entries:
+            if event_id in seen or (since is not None and timestamp < since):
+                continue
+            seen.append(event_id)
+            metadata = item.get("metadata")
+            self.hass.bus.async_fire(
+                EVENT_ARCANE,
+                {
+                    "environment_id": environment_id,
+                    "environment": environment.name,
+                    "event_id": event_id,
+                    "type": item.get("type"),
+                    "severity": item.get("severity"),
+                    "title": item.get("title"),
+                    "description": item.get("description"),
+                    "resource_type": item.get("resourceType"),
+                    "resource_id": item.get("resourceId"),
+                    "resource_name": item.get("resourceName"),
+                    "username": item.get("username"),
+                    "timestamp": timestamp.isoformat(),
+                    "metadata": metadata if isinstance(metadata, dict) else {},
+                },
+            )
+        if newest is not None and (since is None or newest > since):
+            self._arcane_events_since[environment_id] = newest
+
+    def arcane_events_diagnostics(self) -> dict[str, Any]:
+        """Return how far the event log of each environment has been read."""
+        return {
+            environment_id: {
+                "seen": len(seen),
+                "newest": since.isoformat()
+                if (since := self._arcane_events_since.get(environment_id))
+                else None,
+            }
+            for environment_id, seen in self._arcane_events_seen.items()
+        }
 
     def _fire_events(self, data: ArcaneData) -> None:
         """Announce what changed since the previous refresh on the event bus.

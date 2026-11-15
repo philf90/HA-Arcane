@@ -69,6 +69,7 @@
           "monitor_resources": "Images, Volumes und Netzwerke",
           "host_stats": "CPU, RAM und Festplatte des Hosts",
           "disk_usage": "Freigebbarer Speicher",
+          "instant_updates": "Bei Änderungen sofort aktualisieren",
           "include_internal": "Interne Container einbeziehen",
           "include_hidden": "Versteckte Container einbeziehen"
         },
@@ -80,6 +81,7 @@
           "monitor_resources": "Image, Volume und Netzwerk Zähler sowie die Docker Version abfragen.",
           "host_stats": "Pro Aktualisierung eine Messung über eine kurzlebige WebSocket Verbindung. Standardmäßig aus, weil es eine zusätzliche Verbindung je Aktualisierung ist.",
           "disk_usage": "Fragt im Hintergrund höchstens alle 15 Minuten ab, wie viel Platz ungenutzte Images, gestoppte Container, ungenutzte Volumes und der Build-Cache belegen. Standardmäßig aus, weil Docker dafür die Größe jedes Volumes ermittelt, was bei großen Volumes dauern kann.",
+          "instant_updates": "Je Environment eine Anfrage offen halten, die Arcane beantwortet, sobald sich etwas ändert, und dann sofort aktualisieren statt auf das nächste Intervall zu warten. Die regelmäßige Abfrage läuft weiter.",
           "include_internal": "Auch Container einbeziehen, die Arcane als intern markiert.",
           "include_hidden": "Auch Container einbeziehen, die in der Arcane Oberfläche versteckt sind."
         }
@@ -91,14 +93,16 @@
           "health_sensors": "Health Binärsensoren",
           "entity_prefix": "Gerätenamen mit ihrer Art voranstellen",
           "nest_containers": "Container unter ihrem Projekt einordnen",
-          "events": "Events auf dem Home Assistant Bus auslösen"
+          "events": "Events auf dem Home Assistant Bus auslösen",
+          "arcane_events": "Arcane Ereignisprotokoll auf dem Bus"
         },
         "data_description": {
           "update_entities": "Für jeden Container eine Update Entität, die ihn auf das neuere Image redeployt und Versionshinweise zeigt, wo Arcane welche findet, dazu je Environment ein Button, der sofort nach Updates sucht. Ein Update, das Arcane zurückhält, lässt sich nicht installieren.",
           "health_sensors": "Container mit Health Check bekommen einen Sensor Healthy.",
           "entity_prefix": "Geräte als Container x und Project x benennen, damit ein Container und ein Projekt mit gleichem Namen nicht kollidieren. Bereits vorhandene Entity IDs bleiben unverändert.",
           "nest_containers": "Einen Container als Untergerät des Compose Projekts anzeigen, zu dem er gehört.",
-          "events": "Löst arcane_container_state_changed, arcane_container_health_changed und arcane_project_state_changed aus, damit Automatisierungen auf Abstürze und Health Wechsel reagieren können."
+          "events": "Löst arcane_container_state_changed, arcane_container_health_changed und arcane_project_state_changed aus, damit Automatisierungen auf Abstürze und Health Wechsel reagieren können.",
+          "arcane_events": "Bei jeder Aktualisierung Arcanes eigenes Ereignisprotokoll lesen und für jeden neuen Eintrag arcane_event feuern, etwa für einen Container ohne Speicher, einen Image Pull oder eine Anmeldung."
         }
       },
       "control": {

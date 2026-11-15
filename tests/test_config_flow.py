@@ -184,6 +184,7 @@ async def test_options_flow_polling(
             "monitor_resources": True,
             "host_stats": False,
             "disk_usage": True,
+            "instant_updates": True,
             "include_internal": True,
             "include_hidden": False,
         },
@@ -194,6 +195,7 @@ async def test_options_flow_polling(
     assert mock_config_entry.options["scan_interval"] == 120
     assert mock_config_entry.options["monitor_projects"] is False
     assert mock_config_entry.options["disk_usage"] is True
+    assert mock_config_entry.options["instant_updates"] is True
     # Untouched sections keep their defaults.
     assert mock_config_entry.options["allow_control"] is True
     assert hass.states.get("switch.project_smarthome").state == STATE_UNAVAILABLE

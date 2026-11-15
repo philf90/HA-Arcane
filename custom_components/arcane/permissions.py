@@ -19,8 +19,10 @@ from typing import Any, Final
 
 from .const import (
     CONF_ALLOW_CONTROL,
+    CONF_ARCANE_EVENTS,
     CONF_DISK_USAGE,
     CONF_HOST_STATS,
+    CONF_INSTANT_UPDATES,
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
@@ -53,6 +55,7 @@ PERM_SYSTEM_PRUNE: Final = "system:prune"
 PERM_SYSTEM_UPGRADE: Final = "system:upgrade"
 PERM_IMAGE_UPDATES_READ: Final = "image-updates:read"
 PERM_IMAGE_UPDATES_CHECK: Final = "image-updates:check"
+PERM_EVENTS_LIST: Final = "events:list"
 
 # The permission each container and project action is gated on. Both mirror
 # ``CONTAINER_ACTIONS`` and ``PROJECT_ACTIONS`` of the API client: deploying a
@@ -83,6 +86,7 @@ POLL_PERMISSIONS: Final[dict[str, str]] = {
     "host": PERM_SYSTEM_READ,
     "version": PERM_ENVIRONMENTS_READ,
     "disk_usage": PERM_SYSTEM_READ,
+    "arcane_events": PERM_EVENTS_LIST,
 }
 
 
@@ -146,6 +150,9 @@ def _monitoring_permissions(options: Mapping[str, Any]) -> list[str]:
             # Release notes of a container update, fetched when the update
             # dialog is opened.
             permissions.append(PERM_IMAGE_UPDATES_READ)
+    if _option(options, CONF_INSTANT_UPDATES) or _option(options, CONF_ARCANE_EVENTS):
+        # Waiting for changes and reading the event log are both event calls.
+        permissions.append(PERM_EVENTS_LIST)
     return permissions
 
 
