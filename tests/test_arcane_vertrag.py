@@ -82,7 +82,7 @@ async def arcane3(aiohttp_client, socket_enabled):
         return handle
 
     for route in ROUTEN["routen"]:
-        if route["method"] in ("GET", "POST"):
+        if route["method"] in ("GET", "POST", "PUT"):
             app.router.add_route(
                 route["method"], "/api" + route["path"], handler(route)
             )
@@ -124,6 +124,11 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
     await client.async_check_image_updates("0")
     await client.async_wait_for_changes("0", epoch="e1", since=4, wait=1)
     await client.async_get_events(limit=100)
+    await client.async_update_container("0", "c1")
+    await client.async_set_auto_update("0", "c1", enabled=False)
+    await client.async_run_updater("0")
+    await client.async_get_updater_status("0")
+    await client.async_get_updater_history("0", limit=1)
     return {
         "async_get_version",
         "async_get_environments",
@@ -144,6 +149,11 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
         "async_check_image_updates",
         "async_wait_for_changes",
         "async_get_events",
+        "async_update_container",
+        "async_set_auto_update",
+        "async_run_updater",
+        "async_get_updater_status",
+        "async_get_updater_history",
     }
 
 
@@ -174,6 +184,11 @@ async def test_every_call_hits_an_arcane_3_route(arcane3) -> None:
     assert ("POST", "/agents/{id}/images/updates/check", "all") in calls
     assert ("GET", "/agents/{id}/events/changes", None) in calls
     assert ("GET", "/events", None) in calls
+    assert ("POST", "/agents/{id}/containers/{containerId}/update", None) in calls
+    assert ("PUT", "/agents/{id}/containers/{containerId}/autoupdate", None) in calls
+    assert ("POST", "/agents/{id}/updater/run", None) in calls
+    assert ("GET", "/agents/{id}/updater/status", None) in calls
+    assert ("GET", "/agents/{id}/updater/history", None) in calls
 
 
 async def test_actions_match_arcane(arcane3) -> None:

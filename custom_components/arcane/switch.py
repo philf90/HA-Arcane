@@ -9,16 +9,27 @@ from homeassistant.components.switch import (
     SwitchEntity,
     SwitchEntityDescription,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import ArcaneConfigEntry
 from .api import ArcaneError
-from .const import CONF_ALLOW_CONTROL, DOMAIN
+from .const import (
+    CONF_ALLOW_CONTROL,
+    CONF_AUTO_UPDATE_SWITCHES,
+    CONF_MONITOR_CONTAINERS,
+    DOMAIN,
+    LABEL_UPDATER,
+)
 from .entity import ArcaneContainerEntity, ArcaneProjectEntity
 from .helpers import action_error, async_setup_entities
-from .permissions import CONTAINER_ACTION_PERMISSIONS, PROJECT_ACTION_PERMISSIONS
+from .permissions import (
+    CONTAINER_ACTION_PERMISSIONS,
+    PERM_CONTAINERS_AUTOUPDATE,
+    PROJECT_ACTION_PERMISSIONS,
+)
 
 PARALLEL_UPDATES = 1
 
@@ -34,6 +45,12 @@ PROJECT_SWITCH = SwitchEntityDescription(
     device_class=SwitchDeviceClass.SWITCH,
 )
 
+AUTO_UPDATE_SWITCH = SwitchEntityDescription(
+    key="auto_update",
+    translation_key="auto_update",
+    entity_category=EntityCategory.CONFIG,
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -45,11 +62,24 @@ async def async_setup_entry(
     if not coordinator.option(CONF_ALLOW_CONTROL):
         return
 
+    auto_update = coordinator.option(CONF_AUTO_UPDATE_SWITCHES) and coordinator.option(
+        CONF_MONITOR_CONTAINERS
+    )
+
     async_setup_entities(
         coordinator,
         async_add_entities,
         containers=lambda environment_id, name: [
-            ArcaneContainerSwitch(coordinator, environment_id, name, CONTAINER_SWITCH)
+            ArcaneContainerSwitch(coordinator, environment_id, name, CONTAINER_SWITCH),
+            *(
+                [
+                    ArcaneAutoUpdateSwitch(
+                        coordinator, environment_id, name, AUTO_UPDATE_SWITCH
+                    )
+                ]
+                if auto_update
+                else []
+            ),
         ],
         projects=lambda environment_id, project_id: [
             ArcaneProjectSwitch(coordinator, environment_id, project_id, PROJECT_SWITCH)
@@ -136,5 +166,67 @@ class ArcaneProjectSwitch(ArcaneProjectEntity, SwitchEntity):
                     "action": action,
                     "name": self.project.name if self.project else self.project_id,
                 },
+            ) from err
+        await self.coordinator.async_request_refresh()
+
+
+class ArcaneAutoUpdateSwitch(ArcaneContainerEntity, SwitchEntity):
+    """Include a container in Arcane's automatic updates, or leave it out.
+
+    Arcane keeps a list of containers its automatic updates skip, and this
+    switch edits it. The automatic updates themselves only run when they are
+    switched on in Arcane's settings. A container that opts out by label stays
+    out whatever the list says.
+    """
+
+    @property
+    def available(self) -> bool:
+        """Return whether Arcane reports the setting for this container."""
+        return (
+            super().available
+            and self.container is not None
+            and self.container.auto_update_enabled is not None
+        )
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return whether Arcane's automatic updates include the container."""
+        return self.container.auto_update_enabled if self.container else None
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Include the container in Arcane's automatic updates."""
+        if self.container is not None and self.container.auto_update_label_disabled:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="auto_update_label",
+                translation_placeholders={
+                    "name": self.container_name,
+                    "label": LABEL_UPDATER,
+                },
+            )
+        await self._async_set(enabled=True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Leave the container out of Arcane's automatic updates."""
+        await self._async_set(enabled=False)
+
+    async def _async_set(self, *, enabled: bool) -> None:
+        if (container := self.container) is None:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="container_not_found",
+                translation_placeholders={"name": self.container_name},
+            )
+        try:
+            await self.coordinator.client.async_set_auto_update(
+                self.environment_id, container.id, enabled=enabled
+            )
+        except ArcaneError as err:
+            raise action_error(
+                self.coordinator,
+                err,
+                permission=PERM_CONTAINERS_AUTOUPDATE,
+                action_key="auto_update",
+                placeholders={"name": self.container_name},
             ) from err
         await self.coordinator.async_request_refresh()

@@ -14,13 +14,14 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import ArcaneConfigEntry
-from .api import ArcaneError
+from .api import ArcaneError, ArcanePermissionError
 from .const import (
     CONF_ALLOW_CONTROL,
     CONF_MONITOR_CONTAINERS,
     CONF_PRUNE_BUTTON,
     CONF_REDEPLOY_BUTTONS,
     CONF_UPDATE_ENTITIES,
+    CONF_UPDATER,
     DOMAIN,
     PRUNE_OFF,
     PRUNE_UNUSED,
@@ -29,6 +30,7 @@ from .entity import ArcaneContainerEntity, ArcaneEnvironmentEntity, ArcaneProjec
 from .helpers import action_error, async_setup_entities
 from .permissions import (
     CONTAINER_ACTION_PERMISSIONS,
+    PERM_IMAGE_UPDATES_APPLY,
     PERM_IMAGE_UPDATES_CHECK,
     PERM_SYSTEM_PRUNE,
     PROJECT_ACTION_PERMISSIONS,
@@ -59,6 +61,11 @@ CHECK_UPDATES_BUTTON = ButtonEntityDescription(
     translation_key="check_updates",
 )
 
+APPLY_UPDATES_BUTTON = ButtonEntityDescription(
+    key="apply_updates",
+    translation_key="apply_updates",
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -78,8 +85,18 @@ async def async_setup_entry(
         CONF_MONITOR_CONTAINERS
     )
 
+    apply_updates = coordinator.option(CONF_UPDATER) and coordinator.option(
+        CONF_MONITOR_CONTAINERS
+    )
+
     def environment_buttons(environment_id: str) -> list[ButtonEntity]:
         buttons: list[ButtonEntity] = []
+        if apply_updates:
+            buttons.append(
+                ArcaneApplyUpdatesButton(
+                    coordinator, environment_id, APPLY_UPDATES_BUTTON
+                )
+            )
         if prune:
             buttons.append(ArcanePruneButton(coordinator, environment_id, PRUNE_BUTTON))
         if check_updates:
@@ -93,7 +110,9 @@ async def async_setup_entry(
     async_setup_entities(
         coordinator,
         async_add_entities,
-        environments=environment_buttons if prune or check_updates else None,
+        environments=(
+            environment_buttons if prune or check_updates or apply_updates else None
+        ),
         containers=lambda environment_id, name: [
             ArcaneContainerButton(coordinator, environment_id, name, RESTART_BUTTON),
             *(
@@ -228,3 +247,59 @@ class ArcaneCheckUpdatesButton(ArcaneEnvironmentEntity, ButtonEntity):
                 },
             ) from err
         await self.coordinator.async_request_refresh()
+
+
+class ArcaneApplyUpdatesButton(ArcaneEnvironmentEntity, ButtonEntity):
+    """Have Arcane install every pending update of an environment.
+
+    The run is the one Arcane's own scheduled updates make: containers left out
+    of automatic updates and those opting out by label stay as they are. It can
+    take up to half an hour, so the press returns at once and the run goes on
+    in the background; the "Updates being installed" sensor shows it, and the
+    last update sensor shows how it went.
+    """
+
+    async def async_press(self) -> None:
+        """Start the updater run."""
+        coordinator = self.coordinator
+        environment_id = self.environment_id
+        name = self.environment.name if self.environment else environment_id
+        if environment_id in coordinator.updater_runs:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="apply_updates_running",
+                translation_placeholders={"name": name},
+            )
+        coordinator.updater_runs.add(environment_id)
+        coordinator.config_entry.async_create_background_task(
+            self.hass,
+            self._async_run(name),
+            f"{DOMAIN} updater run {environment_id}",
+        )
+        await coordinator.async_request_refresh()
+
+    async def _async_run(self, name: str) -> None:
+        coordinator = self.coordinator
+        environment_id = self.environment_id
+        try:
+            result = await coordinator.client.async_run_updater(environment_id)
+        except ArcanePermissionError:
+            coordinator.async_note_denied(PERM_IMAGE_UPDATES_APPLY)
+            _LOGGER.warning(
+                "Arcane refused to install the updates of %s: the API key lacks %s",
+                name,
+                PERM_IMAGE_UPDATES_APPLY,
+            )
+        except ArcaneError as err:
+            _LOGGER.warning("Installing the updates of %s failed: %s", name, err)
+        else:
+            _LOGGER.info(
+                "Arcane installed the updates of %s: %s updated, %s skipped, %s failed",
+                name,
+                result.get("updated"),
+                result.get("skipped"),
+                result.get("failed"),
+            )
+        finally:
+            coordinator.updater_runs.discard(environment_id)
+        await coordinator.async_request_refresh()

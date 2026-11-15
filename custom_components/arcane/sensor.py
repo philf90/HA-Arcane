@@ -17,6 +17,7 @@ from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfInformation
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
+from homeassistant.util import dt as dt_util
 
 from . import ArcaneConfigEntry
 from .const import (
@@ -26,6 +27,7 @@ from .const import (
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
+    CONF_UPDATER,
     CONTAINER_STATES,
     PROJECT_STATES,
 )
@@ -346,6 +348,13 @@ PROJECT_SENSORS: tuple[ArcaneProjectSensorDescription, ...] = (
 )
 
 
+UPDATER_LAST_SENSOR = SensorEntityDescription(
+    key="updater_last_update",
+    translation_key="updater_last_update",
+    device_class=SensorDeviceClass.TIMESTAMP,
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ArcaneConfigEntry,
@@ -364,6 +373,15 @@ async def async_setup_entry(
                 if coordinator.option(description.requires)
             ),
             ArcaneVersionSensor(coordinator, environment_id, ARCANE_VERSION_SENSOR),
+            *(
+                [
+                    ArcaneUpdaterLastSensor(
+                        coordinator, environment_id, UPDATER_LAST_SENSOR
+                    )
+                ]
+                if coordinator.option(CONF_UPDATER)
+                else []
+            ),
         ],
         containers=lambda environment_id, name: [
             ArcaneContainerSensor(coordinator, environment_id, name, description)
@@ -437,3 +455,38 @@ class ArcaneProjectSensor(ArcaneProjectEntity, SensorEntity):
         if (project := self.project) is None:
             return None
         return self.entity_description.value_fn(project)
+
+
+class ArcaneUpdaterLastSensor(ArcaneEnvironmentEntity, SensorEntity):
+    """Report the newest update Arcane's updater applied or tried.
+
+    Arcane keeps one record per container or project an update run touched,
+    so this is the newest of those, with what it was about in the attributes.
+    """
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return when the newest update ended, or began if it has not."""
+        record = self.environment.updater_last if self.environment else None
+        if not record:
+            return None
+        for key in ("endTime", "startTime"):
+            if isinstance(value := record.get(key), str) and (
+                parsed := dt_util.parse_datetime(value)
+            ):
+                return parsed
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return which resource the update was about and how it went."""
+        record = self.environment.updater_last if self.environment else None
+        if not record:
+            return None
+        return {
+            "resource_name": record.get("resourceName"),
+            "resource_type": record.get("resourceType"),
+            "status": record.get("status"),
+            "update_applied": record.get("updateApplied"),
+            "error": record.get("error"),
+        }

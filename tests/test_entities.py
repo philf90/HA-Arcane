@@ -258,13 +258,17 @@ async def test_unload(
 async def test_update_entity(
     hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
 ) -> None:
-    """The update entity reports the newer image and redeploys on install."""
+    """The update entity reports the newer image and installs it via the updater."""
     await _setup(hass, mock_config_entry)
 
     state = hass.states.get("update.container_homeassistant_image_update")
     assert state.state == STATE_ON
     assert state.attributes["installed_version"] == "2025.1.0"
     assert state.attributes["latest_version"] == "2025.2.0"
+    mock_client.async_update_container.return_value = {
+        "items": [{"resourceId": "c1ffee", "status": "updated"}],
+        "updated": 1,
+    }
 
     await hass.services.async_call(
         "update",
@@ -272,9 +276,8 @@ async def test_update_entity(
         {ATTR_ENTITY_ID: "update.container_homeassistant_image_update"},
         blocking=True,
     )
-    mock_client.async_container_action.assert_awaited_once_with(
-        "0", "c1ffee", "redeploy"
-    )
+    mock_client.async_update_container.assert_awaited_once_with("0", "c1ffee")
+    mock_client.async_container_action.assert_not_awaited()
 
 
 async def test_read_only_mode(

@@ -12,6 +12,8 @@ from .const import (
     HEALTH_HEALTHY,
     HEALTH_STARTING,
     HEALTH_UNHEALTHY,
+    LABEL_FALSE_VALUES,
+    LABEL_UPDATER,
     PROJECT_STATE_PARTIALLY_RUNNING,
     PROJECT_STATE_RUNNING,
     STATE_RUNNING,
@@ -119,6 +121,20 @@ def _image_versions(
     return installed, f"{installed} ({NEWER_IMAGE})" if installed else NEWER_IMAGE
 
 
+def _label_disables_updater(labels: Any) -> bool:
+    """Return whether the container's labels opt it out of Arcane's updater.
+
+    Mirrors Arcane's own check (labels.IsUpdateDisabled): the label name in any
+    case, a value Arcane reads as false.
+    """
+    if not isinstance(labels, dict):
+        return False
+    for key, value in labels.items():
+        if isinstance(key, str) and key.lower() == LABEL_UPDATER:
+            return str(value).strip().lower() in LABEL_FALSE_VALUES
+    return False
+
+
 def _created_at(value: Any) -> datetime | None:
     """Return the creation timestamp of a container as an aware datetime."""
     if isinstance(value, (int, float)) and value > 0:
@@ -152,6 +168,12 @@ class ArcaneContainer:
     update_type: str | None = None
     #: Full digest of the newer image, as Arcane needs it for release notes.
     latest_digest: str | None = None
+    #: Whether Arcane's automatic updates include the container; None when
+    #: Arcane does not say.
+    auto_update_enabled: bool | None = None
+    #: The container opts out of Arcane's updater by label, which no switch
+    #: in Arcane or here can override.
+    auto_update_label_disabled: bool = False
 
     @property
     def is_running(self) -> bool:
@@ -194,6 +216,12 @@ class ArcaneContainer:
             update_blocked_reason=_version(update_info.get("blockedReason")),
             update_type=_version(update_info.get("updateType")),
             latest_digest=_version(update_info.get("latestDigest")),
+            auto_update_enabled=(
+                auto_update
+                if isinstance(auto_update := payload.get("autoUpdateEnabled"), bool)
+                else None
+            ),
+            auto_update_label_disabled=_label_disables_updater(labels),
         )
 
 
@@ -334,6 +362,10 @@ class ArcaneEnvironment:
     network_counts: dict[str, Any] = field(default_factory=dict)
     host_stats: ArcaneHostStats | None = None
     arcane_version: ArcaneVersion | None = None
+    #: What Arcane's updater is busy with (``updater/status``), and the newest
+    #: record of an update it applied (``updater/history``), with the option.
+    updater_status: dict[str, Any] = field(default_factory=dict)
+    updater_last: dict[str, Any] | None = None
     #: Reclaimable disk space by kind, in bytes, as Arcane's ``system/df``
     #: reports it. Empty until the first report is in.
     disk_usage: dict[str, Any] = field(default_factory=dict)

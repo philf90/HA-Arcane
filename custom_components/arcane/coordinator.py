@@ -40,6 +40,7 @@ from .const import (
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
     CONF_UPDATE_ENTITIES,
+    CONF_UPDATER,
     DEFAULT_OPTIONS,
     DEFAULT_SCAN_INTERVAL,
     DISK_USAGE_INTERVAL,
@@ -120,6 +121,9 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         self._disk_usage_again: set[str] = set()
         # Waits for changes in the background, with the option for it.
         self.change_watcher = ArcaneChangeWatcher(self)
+        # Environments with an updater run started from the button, so a
+        # second press does not start another one while it goes on.
+        self.updater_runs: set[str] = set()
         # Arcane events already seen, and the newest timestamp among them. None
         # until the log has been read once: that first read only marks what is
         # already there.
@@ -251,6 +255,13 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             # The local environment is the instance that was already asked for
             # its version, so only remote ones cost a request here.
             calls["version"] = self.client.async_get_environment_version(environment_id)
+        if self.option(CONF_UPDATER):
+            calls["updater_status"] = self.client.async_get_updater_status(
+                environment_id
+            )
+            calls["updater_history"] = self.client.async_get_updater_history(
+                environment_id, limit=1
+            )
         return calls
 
     def _note_denied_polling(self, results: dict[str, Any]) -> None:
@@ -345,6 +356,11 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         environment.docker_version = environment.docker_info.get("ServerVersion")
         if host := value("host", {}):
             environment.host_stats = ArcaneHostStats.from_api(host)
+        environment.updater_status = value("updater_status", {})
+        history = value("updater_history", [])
+        environment.updater_last = (
+            history[0] if history and isinstance(history[0], dict) else None
+        )
         if self.option(CONF_DISK_USAGE):
             environment.disk_usage = self._disk_usage.get(environment_id, {})
             environment.disk_usage_at = self._disk_usage_at.get(environment_id)

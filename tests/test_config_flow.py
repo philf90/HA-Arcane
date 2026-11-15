@@ -218,6 +218,7 @@ async def test_options_flow_control(
         {
             "allow_control": False,
             "redeploy_buttons": False,
+            "auto_update_switches": False,
             "prune_button": "off",
         },
     )

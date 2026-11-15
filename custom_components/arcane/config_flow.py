@@ -46,6 +46,7 @@ from .api import (
 from .const import (
     CONF_ALLOW_CONTROL,
     CONF_ARCANE_EVENTS,
+    CONF_AUTO_UPDATE_SWITCHES,
     CONF_DISK_USAGE,
     CONF_ENTITY_PREFIX,
     CONF_ENVIRONMENTS,
@@ -62,6 +63,7 @@ from .const import (
     CONF_PRUNE_BUTTON,
     CONF_REDEPLOY_BUTTONS,
     CONF_UPDATE_ENTITIES,
+    CONF_UPDATER,
     DEFAULT_OPTIONS,
     DOMAIN,
     MAX_SCAN_INTERVAL,
@@ -427,6 +429,7 @@ class ArcaneOptionsFlow(OptionsFlow):
                     vol.Required(CONF_NEST_CONTAINERS): bool,
                     vol.Required(CONF_EVENTS): bool,
                     vol.Required(CONF_ARCANE_EVENTS): bool,
+                    vol.Required(CONF_UPDATER): bool,
                 }
             ),
         )
@@ -444,6 +447,7 @@ class ArcaneOptionsFlow(OptionsFlow):
                 {
                     vol.Required(CONF_ALLOW_CONTROL): bool,
                     vol.Required(CONF_REDEPLOY_BUTTONS): bool,
+                    vol.Required(CONF_AUTO_UPDATE_SWITCHES): bool,
                     vol.Required(CONF_PRUNE_BUTTON): SelectSelector(
                         SelectSelectorConfig(
                             options=PRUNE_MODES,

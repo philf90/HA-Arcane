@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.8.1.
+[Herkunft](#herkunft). Version 0.9.0.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -99,7 +99,11 @@ ausgeschaltete Option nimmt ihre Rechte aus der Liste.
 |---|---|
 | Überwachung | `environments:list`, `containers:list`, `projects:list`, `images:list`, `volumes:list`, `networks:list`, `system:read` |
 | Arcane-Version entfernter Umgebungen (Update-Entitäten) | `environments:read` |
-| Steuerung | `containers:start`, `containers:stop`, `containers:restart`, `containers:redeploy`, `projects:deploy`, `projects:down`, `projects:restart` |
+| Steuerung | `containers:start`, `containers:stop`, `containers:restart`, `projects:deploy`, `projects:down`, `projects:restart` |
+| Redeploy-Buttons | `containers:redeploy` |
+| Container-Updates installieren, Button „Alle Updates installieren“ | `image-updates:apply` |
+| Auto-Update-Schalter (Option) | `containers:autoupdate` |
+| Arcane Updater: laufende Updates, letztes Update (Option) | `image-updates:read`, `image-updates:list` |
 | Prune-Button | `system:prune` |
 | Arcane selbst aktualisieren | `system:upgrade` |
 | Versionshinweise der Container-Updates | `image-updates:read` |
@@ -133,13 +137,17 @@ Namen wie auf einer deutschen Instanz; die Entity-IDs bildet Home Assistant dara
 | Freigebbarer Image-Speicher, Freigebbarer Container-Speicher, Freigebbarer Volume-Speicher, Freigebbarer Build-Cache | Sensor | standardmäßig aus, siehe [Freigebbarer Speicher](#freigebbarer-speicher) |
 | Ungenutztes entfernen | Button | standardmäßig aus |
 | Nach Updates suchen | Button | mit Update-Entitäten und Steuerung |
+| Updates werden installiert | Binärsensor | Option Arcane Updater |
+| Letztes Image-Update | Sensor | Option Arcane Updater; Zeitpunkt, Attribute `resource_name`, `resource_type`, `status`, `update_applied`, `error` |
+| Alle Updates installieren | Button | Option Arcane Updater, mit Steuerung |
 
 ### Container
 
 | Entität | Art | Hinweis |
 |---|---|---|
 | *(Containername)* | Schalter | startet und stoppt |
-| Image Update | Update | installiert per Redeploy auf das neuere Image; Versionshinweise; Attribute `update_blocked`, `blocked_reason` |
+| Image Update | Update | installiert über Arcanes Updater; Versionshinweise; Attribute `update_blocked`, `blocked_reason` |
+| Automatisch aktualisieren | Schalter | Option Auto-Update-Schalter, Konfiguration |
 | Läuft, Update verfügbar | Binärsensor | |
 | Healthy | Binärsensor | nur mit Healthcheck |
 | Zustand, Status | Sensor | `running`, `exited`, `paused` usw. |
@@ -173,9 +181,10 @@ Integration öffnen → **Konfigurieren**.
   nur auf Wunsch. Eine ausgeschaltete Option stoppt auch die
   Abfragen dahinter.
 - **Entitäten:** Update-Entitäten, Health-Sensoren, Art vor dem Gerätenamen,
-  Container unter ihrem Projekt, Ereignisse, Arcane-Ereignisprotokoll auf dem Bus.
+  Container unter ihrem Projekt, Ereignisse, Arcane-Ereignisprotokoll auf dem Bus,
+  Arcane Updater (standardmäßig aus).
 - **Steuerung:** ob Home Assistant überhaupt steuern darf, dazu Redeploy- und
-  Prune-Buttons (beide standardmäßig aus).
+  Prune-Buttons und Auto-Update-Schalter (alle standardmäßig aus).
 
 ### Gerätenamen
 
@@ -187,13 +196,22 @@ dem Gerätenamen; das zweite Gerät bekäme nur IDs mit `_2`. Mit Präfix heiße
 ## Updates
 
 Container-Updates und Arcane selbst erscheinen unter **Einstellungen → Updates**.
-Ein Container-Update installiert per Redeploy von Arcane. Das Arcane-Update lässt
+Ein Container-Update installiert Arcanes Updater (siehe unten). Das Arcane-Update lässt
 Arcane sein neueres Image ziehen und neu starten; alles hier ist dann kurz nicht
 verfügbar. Ob ein Update ansteht, entscheidet Arcane, nicht ein Versionsvergleich in
 Home Assistant: Versionen sind oft Digests und lassen sich nicht ordnen. Mit
 ausgeschalteter Steuerung zeigen die Entitäten Versionen, erscheinen aber nicht in
 der Liste.
 
+- **Installieren über den Updater:** Seit 0.9.0 installiert die Update-Entität
+  über `containers/{id}/update`, so wie „Update“ in Arcane selbst. Der Updater
+  folgt der Tag-Regel des Containers auf einen neueren Tag, zieht über Arcanes
+  Schwachstellen-Prüfung, wenn sie eingeschaltet ist, und überspringt einen
+  Container, dessen Image sich nicht geändert hat. Ein Redeploy (bis 0.8.1) zog
+  die bisherige Referenz erneut und umging die Prüfung. Übersprungen oder
+  fehlgeschlagen meldet Home Assistant mit dem Grund, den Arcane nennt. Ein Update
+  darf bei Arcane bis zu 15 Minuten dauern; so lange zeigt die Entität „wird
+  installiert“. Nötig ist `image-updates:apply` statt bisher `containers:redeploy`.
 - **Gesperrte Updates:** Hält Arcane ein Update zurück, etwa wegen eines
   Schwachstellen-Limits, zeigt die Entität es weiter an, mit `update_blocked: true`
   und dem Grund in `blocked_reason`. Installieren bietet sie dann nicht an; Arcanes
@@ -207,6 +225,25 @@ der Liste.
 - **Nach Updates suchen:** Der Button lässt Arcane sofort alle Images prüfen, statt
   auf den eigenen Zeitplan zu warten. Er wartet, bis Arcane jede Registry gefragt
   hat (bis zu fünf Minuten), und fragt danach neu ab.
+
+### Automatische Updates und Updater
+
+- **Auto-Update-Schalter** (Option unter **Steuerung**): je Container
+  „Automatisch aktualisieren“. Der Schalter bearbeitet Arcanes Liste der Container,
+  die automatische Updates auslassen (`autoUpdateExcludedContainers`); der
+  Container selbst wird nicht angefasst. Die automatischen Updates laufen nur, wenn
+  sie in Arcane unter den Einstellungen eingeschaltet sind (Standard aus). Ein
+  Container mit dem Label `com.getarcaneapp.arcane.updater=false` (auch `0`, `no`,
+  `off`) bleibt ausgenommen; Einschalten meldet das.
+- **Arcane Updater** (Option unter **Entitäten**): je Umgebung ein Binärsensor
+  „Updates werden installiert“ (`updater/status`), ein Sensor „Letztes
+  Image-Update“ mit dem neuesten Eintrag aus `updater/history` und, mit Steuerung,
+  ein Button „Alle Updates installieren“. Der Button startet einen Lauf wie Arcanes
+  geplante Updates (`updater/run?automatic=true`): ausgenommene Container und
+  solche mit dem Label bleiben, wie sie sind. Ein Lauf darf bei Arcane bis zu
+  30 Minuten dauern; der Druck kehrt sofort zurück, der Lauf geht im Hintergrund
+  weiter, und ein zweiter Druck während des Laufs wird abgelehnt. Das Ergebnis
+  steht im Protokoll von Home Assistant und im Sensor.
 
 ### Freigebbarer Speicher
 
@@ -313,7 +350,12 @@ dahinter.
 | `agents/{environment}/ws/system/stats` | WebSocket, eine Nachricht | Option Hoststatistik | `system:read` |
 | `agents/{environment}/version` | GET | Update-Entitäten, nur entfernte Umgebungen | `environments:read` |
 | `agents/{environment}/containers/{container}` | POST `?action=start`, `stop`, `restart` | Schalter, Button „Neustarten“ | `containers:start`, `containers:stop`, `containers:restart` |
-| `agents/{environment}/containers/{container}/redeploy` | POST | Button „Redeploy“, Image-Update installieren | `containers:redeploy` |
+| `agents/{environment}/containers/{container}/redeploy` | POST | Button „Redeploy“ | `containers:redeploy` |
+| `agents/{environment}/containers/{container}/update` | POST, wartet bis zu 16 Minuten | Image-Update installieren | `image-updates:apply` |
+| `agents/{environment}/containers/{container}/autoupdate` | PUT `{"enabled": …}` | Auto-Update-Schalter | `containers:autoupdate` |
+| `agents/{environment}/updater/run` | POST `?automatic=true`, wartet bis zu 31 Minuten | Button „Alle Updates installieren“, im Hintergrund | `image-updates:apply` |
+| `agents/{environment}/updater/status` | GET | Option Arcane Updater, jede Abfrage | `image-updates:read` |
+| `agents/{environment}/updater/history` | GET `?limit=1` | Option Arcane Updater, jede Abfrage | `image-updates:list` |
 | `agents/{environment}/projects/{project}/deploy` | POST `?action=up`, `redeploy`; Antwort als NDJSON-Stream | Schalter an, Button „Redeploy“ | `projects:deploy` |
 | `agents/{environment}/projects/{project}` | POST `?action=down`, `restart` | Schalter aus, Button „Neustarten“ | `projects:down`, `projects:restart` |
 | `agents/{environment}/system/prune` | POST | Button „Ungenutztes entfernen“ | `system:prune` |
@@ -331,7 +373,7 @@ mit der OpenAPI-Datei einer laufenden Arcane-3.0.0-Instanz
 (`tests/fixtures/arcane_openapi_v3.0.0.json`). Arcane 3.0.1 bietet dieselben 474
 Routen mit denselben Aktionen (Skript gegen Tag `v3.0.1` laufen lassen und
 verglichen). Mit allen Abfrage-Optionen an sind das je Durchlauf und Umgebung neun
-Anfragen und eine für das Ereignisprotokoll, dazu höchstens alle 15 Minuten und
+Anfragen, mit der Option Arcane Updater elf, und eine für das Ereignisprotokoll, dazu höchstens alle 15 Minuten und
 nach jedem Prune `system/df` und mit der Option sofort aktualisieren je Umgebung
 eine dauerhaft offene Anfrage.
 
@@ -382,6 +424,14 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
+- **0.9.x:** 240 automatische Tests. 0.9.0: 28 neue Tests in `test_updater.py`:
+  Installieren über den Updater, übersprungene und abgelehnte Updates mit Grund,
+  das eigene Ergebnis entscheidet, leeres Ergebnis kein Erfolg, fehlendes Recht;
+  Label-Ausnahme wie in Arcane gelesen, Schalter mit und ohne Feld, Einschalten
+  trotz Label abgelehnt; Updater-Sensoren, Lauf im Hintergrund, zweiter Druck
+  abgelehnt, Fehler und fehlendes Recht; Rechte der Optionen; der Client sendet
+  `automatic=true` und `{"enabled": …}`. Gegenprobe: 16 Schutzmaßnahmen einzeln
+  ausgebaut, jedes Mal schlug ein Test fehl. **Nicht live geprüft.**
 - **0.8.x:** 212 automatische Tests. 0.8.1: 5 neue Tests: Einträge ohne
   Umgebung (Anmeldung) werden gemeldet, Einträge nicht verfolgter Umgebungen
   nicht, ein Abruf je Aktualisierung für alle Umgebungen, Diagnose des

@@ -94,15 +94,17 @@
           "entity_prefix": "Prefix device names with their kind",
           "nest_containers": "Nest containers under their project",
           "events": "Fire events on the Home Assistant bus",
-          "arcane_events": "Arcane event log on the bus"
+          "arcane_events": "Arcane event log on the bus",
+          "updater": "Arcane updater"
         },
         "data_description": {
-          "update_entities": "Offer an update entity per container that redeploys it onto the newer image and shows release notes where Arcane finds them, plus a button per environment that checks for updates right away. An update Arcane holds back cannot be installed.",
+          "update_entities": "Offer an update entity per container that installs the newer image through Arcane's updater and shows release notes where Arcane finds them, plus a button per environment that checks for updates right away. An update Arcane holds back cannot be installed.",
           "health_sensors": "Add a Healthy sensor to containers that define a health check.",
           "entity_prefix": "Name devices Container x and Project x so a container and a project of the same name do not collide. Entity IDs that already exist keep their current name.",
           "nest_containers": "Show a container as a child device of the Compose project it belongs to.",
           "events": "Fire arcane_container_state_changed, arcane_container_health_changed and arcane_project_state_changed so automations can react to crashes and health changes.",
-          "arcane_events": "Read Arcane's own event log on every update and fire arcane_event for each new entry, such as a container that ran out of memory, an image pull or a login."
+          "arcane_events": "Read Arcane's own event log on every update and fire arcane_event for each new entry, such as a container that ran out of memory, an image pull or a login.",
+          "updater": "Add a button per environment that installs every pending update the way Arcane's scheduled updates do, a sensor showing that updates are being installed and one with the last update Arcane applied."
         }
       },
       "control": {
@@ -110,11 +112,13 @@
         "data": {
           "allow_control": "Allow control from Home Assistant",
           "redeploy_buttons": "Redeploy buttons",
+          "auto_update_switches": "Auto-update switches",
           "prune_button": "Prune button"
         },
         "data_description": {
           "allow_control": "Turn this off for a read only setup: no switches, buttons or update installs are created.",
           "redeploy_buttons": "Add a button per container and per project that pulls the image again and recreates it.",
+          "auto_update_switches": "Add a switch per container that includes it in Arcane's automatic updates or leaves it out. The automatic updates themselves only run when they are switched on in Arcane's settings.",
           "prune_button": "Add a button per environment that removes unused images, networks and build cache. Containers and volumes are never pruned."
         }
       },
@@ -149,6 +153,9 @@
       },
       "container_healthy": {
         "name": "Healthy"
+      },
+      "updater_running": {
+        "name": "Updates being installed"
       }
     },
     "button": {
@@ -163,6 +170,9 @@
       },
       "check_updates": {
         "name": "Check for updates"
+      },
+      "apply_updates": {
+        "name": "Install all updates"
       }
     },
     "sensor": {
@@ -293,6 +303,26 @@
       },
       "reclaimable_build_cache": {
         "name": "Reclaimable build cache"
+      },
+      "updater_last_update": {
+        "name": "Last image update",
+        "state_attributes": {
+          "resource_name": {
+            "name": "Resource"
+          },
+          "resource_type": {
+            "name": "Resource type"
+          },
+          "status": {
+            "name": "Status"
+          },
+          "update_applied": {
+            "name": "Update applied"
+          },
+          "error": {
+            "name": "Error"
+          }
+        }
       }
     },
     "update": {
@@ -309,6 +339,11 @@
       },
       "arcane_update": {
         "name": "Arcane"
+      }
+    },
+    "switch": {
+      "auto_update": {
+        "name": "Auto-update"
       }
     }
   },
@@ -351,6 +386,27 @@
     },
     "check_updates_forbidden": {
       "message": "Not allowed to check for image updates on {name}: the Arcane API key is missing the {permission} permission."
+    },
+    "image_update_failed": {
+      "message": "Failed to update container {name}: {error}"
+    },
+    "image_update_forbidden": {
+      "message": "Not allowed to update container {name}: the Arcane API key is missing the {permission} permission."
+    },
+    "update_not_applied": {
+      "message": "Arcane did not update container {name} (status {status}): {reason}"
+    },
+    "auto_update_failed": {
+      "message": "Failed to change the automatic updates of container {name}: {error}"
+    },
+    "auto_update_forbidden": {
+      "message": "Not allowed to change the automatic updates of container {name}: the Arcane API key is missing the {permission} permission."
+    },
+    "auto_update_label": {
+      "message": "Container {name} opts out of Arcane's updater with the label {label}, which takes precedence."
+    },
+    "apply_updates_running": {
+      "message": "Arcane is already installing the updates of {name}."
     }
   },
   "issues": {

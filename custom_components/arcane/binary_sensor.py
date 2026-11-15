@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import ArcaneConfigEntry
-from .const import CONF_HEALTH_SENSORS
+from .const import CONF_HEALTH_SENSORS, CONF_UPDATER
 from .coordinator import ArcaneCoordinator
 from .entity import (
     ArcaneContainerEntity,
@@ -48,6 +48,23 @@ class ArcaneProjectBinarySensorDescription(BinarySensorEntityDescription):
 
     value_fn: Callable[[ArcaneProject], bool]
 
+
+def _updating(environment: ArcaneEnvironment) -> int:
+    """Return how many containers and projects Arcane's updater is busy with."""
+    status = environment.updater_status
+    return sum(
+        value
+        for value in (status.get("updatingContainers"), status.get("updatingProjects"))
+        if isinstance(value, int) and not isinstance(value, bool)
+    )
+
+
+UPDATER_RUNNING_SENSOR = ArcaneEnvironmentBinarySensorDescription(
+    key="updater_running",
+    translation_key="updater_running",
+    device_class=BinarySensorDeviceClass.RUNNING,
+    value_fn=lambda environment: _updating(environment) > 0,
+)
 
 ENVIRONMENT_BINARY_SENSORS: tuple[ArcaneEnvironmentBinarySensorDescription, ...] = (
     ArcaneEnvironmentBinarySensorDescription(
@@ -126,7 +143,14 @@ async def async_setup_entry(
         async_add_entities,
         environments=lambda environment_id: [
             ArcaneEnvironmentBinarySensor(coordinator, environment_id, description)
-            for description in ENVIRONMENT_BINARY_SENSORS
+            for description in (
+                *ENVIRONMENT_BINARY_SENSORS,
+                *(
+                    (UPDATER_RUNNING_SENSOR,)
+                    if coordinator.option(CONF_UPDATER)
+                    else ()
+                ),
+            )
         ],
         containers=lambda environment_id, name: [
             ArcaneContainerBinarySensor(coordinator, environment_id, name, description)
