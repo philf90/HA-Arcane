@@ -4,8 +4,11 @@ Arcane beantwortet ``GET agents/{id}/events/changes`` sofort, wenn die Epoche
 abweicht oder eine Art eine hoehere Revision als ``since`` hat, und haelt die
 Anfrage sonst bis zu 55 Sekunden (backend/internal/event/service.go,
 WaitForChanges, Arcane v3.0.1). Das Ereignisprotokoll liefert
-``GET events/agent/{id}?sort=timestamp&order=desc``, neueste zuerst; Arcane
-schreibt dort auch Ereignisse des Docker-Daemons hinein (RecordDockerEvent).
+``GET events?sort=timestamp&order=desc``, neueste zuerst; Arcane schreibt dort
+auch Ereignisse des Docker-Daemons hinein (RecordDockerEvent). Anmeldungen,
+Abmeldungen und Arcane-Upgrades legt Arcane ohne Umgebung ab (LogUserEvent);
+``events/agent/{id}`` liefert nur Eintraege genau dieser Umgebung und damit
+diese nie (bis 0.8.0 so gelesen, live gefunden).
 """
 
 from __future__ import annotations
@@ -332,7 +335,7 @@ async def test_diagnostics_show_the_watch(
     watch = diagnostics["instant_updates"]["0"]
     assert watch["epoch"] == "e1"
     assert watch["since"] == 8
-    assert watch["refreshes"] == 1
+    assert watch["refresh_requests"] == 1
     assert watch["last_kinds"] == ["container"]
     assert watch["last_change"] is not None
 
@@ -374,7 +377,7 @@ async def test_new_arcane_events_are_fired_once_and_in_order(
     mock_client.async_get_events.return_value = [OLD]
     await _setup(hass, mock_config_entry, {CONF_ARCANE_EVENTS: True})
 
-    mock_client.async_get_events.assert_awaited_with("0", limit=100)
+    mock_client.async_get_events.assert_awaited_with(limit=100)
     # Der erste Abruf markiert nur, was schon da ist.
     assert fired == []
 
@@ -519,3 +522,113 @@ async def test_change_brings_the_new_event_right_away(
     assert [event.data["event_id"] for event in fired] == ["e-oom"]
 
     await hass.config_entries.async_unload(mock_config_entry.entry_id)
+
+
+LOGIN = {
+    "id": "e-login",
+    "timestamp": "2026-11-15T20:09:54.95Z",
+    "type": "user.login",
+    "severity": "info",
+    "title": "User logged in: admin",
+    "description": "User 'admin' has logged in",
+    "userId": "u1",
+    "username": "admin",
+    "metadata": {"method": "password"},
+}
+
+
+async def test_entries_without_environment_are_announced(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    fired = _recorder(hass)
+    mock_client.async_get_events.return_value = [OLD]
+    await _setup(hass, mock_config_entry, {CONF_ARCANE_EVENTS: True})
+
+    mock_client.async_get_events.return_value = [LOGIN, OLD]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert len(fired) == 1
+    assert fired[0].data["type"] == "user.login"
+    assert fired[0].data["environment_id"] is None
+    assert fired[0].data["environment"] is None
+    assert fired[0].data["username"] == "admin"
+
+
+async def test_entries_of_unfollowed_environments_are_skipped(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    fired = _recorder(hass)
+    mock_client.async_get_events.return_value = [OLD]
+    await _setup(hass, mock_config_entry, {CONF_ARCANE_EVENTS: True})
+
+    elsewhere = _event("e-remote", "2026-11-15T17:07:00Z", environmentId="9")
+    mock_client.async_get_events.return_value = [elsewhere, OLD]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert fired == []
+
+    # Auch spaeter nicht, wenn die Umgebung dazukommt: der Eintrag ist alt.
+    mock_client.async_get_environments.return_value = [
+        {"id": "0", "name": "Local", "status": "online", "enabled": True},
+        {"id": "9", "name": "Remote", "status": "online", "enabled": True},
+    ]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert fired == []
+
+
+async def test_event_log_is_read_once_per_refresh(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    mock_client.async_get_environments.return_value = [
+        {"id": "0", "name": "Local", "status": "online", "enabled": True},
+        {"id": "3", "name": "Remote", "status": "online", "enabled": True},
+    ]
+    await _setup(hass, mock_config_entry, {CONF_ARCANE_EVENTS: True})
+
+    # Zwei Umgebungen, ein Abruf.
+    assert mock_client.async_get_events.await_count == 1
+
+
+async def test_diagnostics_show_the_event_log(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    mock_client.async_get_events.return_value = [LOGIN, OLD]
+    await _setup(hass, mock_config_entry, {CONF_ARCANE_EVENTS: True})
+
+    diagnostics = await async_get_config_entry_diagnostics(hass, mock_config_entry)
+    assert diagnostics["arcane_events"] == {
+        "read": True,
+        "seen": 2,
+        "newest": "2026-11-15T20:09:54.950000+00:00",
+    }
+
+
+async def test_client_reads_the_log_that_holds_logins(
+    aiohttp_client, socket_enabled
+) -> None:
+    """Gegen einen Stub, der wie Arcane nach Umgebung filtert (handler.go:115)."""
+    from aiohttp import web
+
+    from custom_components.arcane.api import ArcaneClient
+
+    log = [LOGIN, OLD]
+
+    async def all_events(request: web.Request) -> web.Response:
+        return web.json_response({"success": True, "data": log})
+
+    async def environment_events(request: web.Request) -> web.Response:
+        wanted = request.match_info["environment_id"]
+        data = [item for item in log if item.get("environmentId") == wanted]
+        return web.json_response({"success": True, "data": data})
+
+    app = web.Application()
+    app.router.add_get("/api/events", all_events)
+    app.router.add_get("/api/events/agent/{environment_id}", environment_events)
+    http = await aiohttp_client(app)
+    client = ArcaneClient(http.session, str(http.make_url("")), "arc_test")
+
+    events = await client.async_get_events(limit=100)
+
+    assert [item["id"] for item in events] == ["e-login", "e-old"]

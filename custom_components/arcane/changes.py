@@ -52,7 +52,9 @@ class WatchState:
 
     epoch: str | None = None
     since: int = 0
-    refreshes: int = 0
+    #: Refreshes asked of the coordinator. It runs fewer: requests within its
+    #: 10 s cooldown end in one refresh.
+    refresh_requests: int = 0
     last_change: datetime | None = None
     last_kinds: list[str] = field(default_factory=list)
     error: str | None = None
@@ -159,7 +161,7 @@ class ArcaneChangeWatcher:
 
             changed = self._changed(state, epoch, _revisions(changes))
             if changed:
-                state.refreshes += 1
+                state.refresh_requests += 1
                 state.last_change = dt_util.utcnow()
                 state.last_kinds = sorted(changed)
                 # Debounced by the coordinator: a burst of changes ends in one

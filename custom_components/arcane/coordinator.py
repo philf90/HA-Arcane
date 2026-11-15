@@ -61,6 +61,7 @@ from .models import (
     ArcaneVersion,
 )
 from .permissions import (
+    PERM_EVENTS_LIST,
     PERM_SYSTEM_READ,
     POLL_PERMISSIONS,
     RequiredPermissions,
@@ -119,11 +120,11 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         self._disk_usage_again: set[str] = set()
         # Waits for changes in the background, with the option for it.
         self.change_watcher = ArcaneChangeWatcher(self)
-        # Arcane events already seen per environment, and the newest timestamp
-        # among them. An environment without an entry has not been read yet:
-        # its first read only marks what is already there.
-        self._arcane_events_seen: dict[str, deque[str]] = {}
-        self._arcane_events_since: dict[str, datetime | None] = {}
+        # Arcane events already seen, and the newest timestamp among them. None
+        # until the log has been read once: that first read only marks what is
+        # already there.
+        self._arcane_events_seen: deque[str] | None = None
+        self._arcane_events_since: datetime | None = None
 
     def option(self, key: str) -> Any:
         """Return an option of the config entry, or its default."""
@@ -217,6 +218,8 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         )
         if self.option(CONF_EVENTS):
             self._fire_events(data)
+        if self.option(CONF_ARCANE_EVENTS):
+            await self._async_read_arcane_events(data)
         if self.option(CONF_INSTANT_UPDATES):
             self.change_watcher.async_sync(set(data.environments))
         self._async_update_permission_issue()
@@ -248,10 +251,6 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             # The local environment is the instance that was already asked for
             # its version, so only remote ones cost a request here.
             calls["version"] = self.client.async_get_environment_version(environment_id)
-        if self.option(CONF_ARCANE_EVENTS):
-            calls["arcane_events"] = self.client.async_get_events(
-                environment_id, limit=ARCANE_EVENTS_PAGE
-            )
         return calls
 
     def _note_denied_polling(self, results: dict[str, Any]) -> None:
@@ -346,10 +345,6 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         environment.docker_version = environment.docker_info.get("ServerVersion")
         if host := value("host", {}):
             environment.host_stats = ArcaneHostStats.from_api(host)
-        if self.option(CONF_ARCANE_EVENTS) and isinstance(
-            events := value("arcane_events", None), list
-        ):
-            self._fire_arcane_events(environment, events)
         if self.option(CONF_DISK_USAGE):
             environment.disk_usage = self._disk_usage.get(environment_id, {})
             environment.disk_usage_at = self._disk_usage_at.get(environment_id)
@@ -440,16 +435,36 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         if self.data and (environment := self.data.environments.get(environment_id)):
             self._async_schedule_disk_usage(environment)
 
-    def _fire_arcane_events(
-        self, environment: ArcaneEnvironment, items: list[Any]
-    ) -> None:
+    async def _async_read_arcane_events(self, data: ArcaneData) -> None:
+        """Read the newest entries of Arcane's event log, once per refresh.
+
+        The log of the whole instance is read rather than one list per
+        environment: Arcane files logins, logouts and its own upgrades without
+        an environment, and those never show up in a per-environment list.
+        """
+        try:
+            items = await self.client.async_get_events(limit=ARCANE_EVENTS_PAGE)
+        except ArcaneAuthenticationError as err:
+            raise ConfigEntryAuthFailed(str(err)) from err
+        except ArcanePermissionError:
+            self._denied_polling.add(PERM_EVENTS_LIST)
+            return
+        except ArcaneError as err:
+            # Nothing is marked as seen, so the next read catches up.
+            _LOGGER.debug("Skipping Arcane's event log: %s", err)
+            return
+        self._fire_arcane_events(data, items)
+
+    def _fire_arcane_events(self, data: ArcaneData, items: list[Any]) -> None:
         """Announce the entries of Arcane's event log that are new since last time.
 
         Arcane hands out the newest entries first. They are announced oldest
         first, each one once: an entry is new when its ID has not been seen
-        and it is not older than the newest one seen before. The first read of
-        an environment only marks what is there, so a restart of Home Assistant
-        does not replay the log.
+        and it is not older than the newest one seen before. The first read
+        only marks what is there, so a restart of Home Assistant does not
+        replay the log. An entry of an environment the integration does not
+        follow is marked as seen but not announced; one without an environment
+        belongs to the instance and is always announced.
         """
         entries = []
         for item in items:
@@ -461,27 +476,37 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
                 entries.append((timestamp, event_id, item))
         entries.sort(key=lambda entry: (entry[0], entry[1]))
 
-        environment_id = environment.id
         newest = entries[-1][0] if entries else None
-        seen = self._arcane_events_seen.get(environment_id)
+        seen = self._arcane_events_seen
         if seen is None:
-            self._arcane_events_seen[environment_id] = deque(
+            self._arcane_events_seen = deque(
                 (event_id for _, event_id, _ in entries), maxlen=ARCANE_EVENTS_SEEN
             )
-            self._arcane_events_since[environment_id] = newest
+            self._arcane_events_since = newest
             return
 
-        since = self._arcane_events_since.get(environment_id)
+        since = self._arcane_events_since
         for timestamp, event_id, item in entries:
             if event_id in seen or (since is not None and timestamp < since):
                 continue
             seen.append(event_id)
+            raw_environment = item.get("environmentId")
+            environment_id = (
+                raw_environment
+                if isinstance(raw_environment, str) and raw_environment
+                else None
+            )
+            environment = (
+                data.environments.get(environment_id) if environment_id else None
+            )
+            if environment_id is not None and environment is None:
+                continue
             metadata = item.get("metadata")
             self.hass.bus.async_fire(
                 EVENT_ARCANE,
                 {
                     "environment_id": environment_id,
-                    "environment": environment.name,
+                    "environment": environment.name if environment else None,
                     "event_id": event_id,
                     "type": item.get("type"),
                     "severity": item.get("severity"),
@@ -496,18 +521,15 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
                 },
             )
         if newest is not None and (since is None or newest > since):
-            self._arcane_events_since[environment_id] = newest
+            self._arcane_events_since = newest
 
     def arcane_events_diagnostics(self) -> dict[str, Any]:
-        """Return how far the event log of each environment has been read."""
+        """Return how far Arcane's event log has been read."""
+        since = self._arcane_events_since
         return {
-            environment_id: {
-                "seen": len(seen),
-                "newest": since.isoformat()
-                if (since := self._arcane_events_since.get(environment_id))
-                else None,
-            }
-            for environment_id, seen in self._arcane_events_seen.items()
+            "read": self._arcane_events_seen is not None,
+            "seen": len(self._arcane_events_seen or ()),
+            "newest": since.isoformat() if since else None,
         }
 
     def _fire_events(self, data: ArcaneData) -> None:

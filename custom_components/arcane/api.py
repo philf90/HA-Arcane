@@ -535,12 +535,15 @@ class ArcaneClient:
         )
         return data if isinstance(data, dict) else {}
 
-    async def async_get_events(
-        self, environment_id: str, *, limit: int = 100
-    ) -> list[dict[str, Any]]:
-        """Return the newest entries of Arcane's event log for an environment."""
+    async def async_get_events(self, *, limit: int = 100) -> list[dict[str, Any]]:
+        """Return the newest entries of Arcane's event log, of every environment.
+
+        The whole log rather than ``events/agent/{id}``: Arcane files logins,
+        logouts and its own upgrades without an environment, and the
+        per-environment list only returns entries filed under that one.
+        """
         data = await self._get_data(
-            self._url("events", "agent", environment_id),
+            self._url("events"),
             {"sort": "timestamp", "order": "desc", "limit": str(limit)},
         )
         return data if isinstance(data, list) else []
