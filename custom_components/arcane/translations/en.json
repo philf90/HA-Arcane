@@ -10,7 +10,7 @@
           "verify_ssl": "Verify SSL certificate"
         },
         "data_description": {
-          "url": "Full address of the Arcane web interface, for example http://192.168.1.10:3552",
+          "url": "Full address of the Arcane web interface, for example {example_url}",
           "api_key": "An Arcane API key. It needs read access plus permission for the actions you want to control from Home Assistant. Once set up, **Configure > API key permissions** lists exactly which permissions your options need.",
           "verify_ssl": "Turn this off if Arcane uses a self-signed certificate."
         }
@@ -39,7 +39,8 @@
       "invalid_auth": "Arcane rejected the API key.",
       "insufficient_permissions": "The API key is missing the environments:list permission.",
       "unknown": "Unexpected error",
-      "invalid_url": "That is not a valid http:// or https:// address."
+      "invalid_url": "That is not a valid address. It has to start with http or https.",
+      "unsupported_version": "This Arcane instance runs a version older than 3.0. Update Arcane to 3.0 or newer."
     },
     "abort": {
       "already_configured": "This Arcane instance is already configured.",
@@ -309,7 +310,8 @@
     },
     "upgrade_forbidden": {
       "message": "Not allowed to upgrade Arcane on {name}: the Arcane API key is missing the {permission} permission."
-    }
+    },
+    "unsupported_version": "Arcane {version} is not supported. Update Arcane to 3.0 or newer."
   },
   "issues": {
     "missing_permissions": {

@@ -121,9 +121,17 @@ def test_exception_and_issue_keys_translated(path: str) -> None:
         strings["exceptions"]
     )
     source = (BASE / "coordinator.py").read_text(encoding="utf-8")
-    issues = set(re.findall(r'translation_key="(\w+)"', source))
+    keys = set(re.findall(r'translation_key="(\w+)"', source))
+    issues = set(
+        re.findall(
+            r'async_create_issue\([^)]*?translation_key="(\w+)"', source, re.DOTALL
+        )
+    )
     assert issues == {"missing_permissions"}
     assert issues <= set(strings["issues"]), issues - set(strings["issues"])
+    # Alle uebrigen Schluessel im Coordinator sind Fehlermeldungen (UpdateFailed).
+    failures = keys - issues
+    assert failures <= set(strings["exceptions"]), failures - set(strings["exceptions"])
 
 
 @pytest.mark.parametrize("path", FILES)
@@ -132,3 +140,19 @@ def test_selector_keys_translated(path: str) -> None:
     selectors = set(re.findall(r'translation_key="(\w+)"', source))
     assert selectors == {"prune_button"}
     assert selectors <= set(_load(path)["selector"])
+
+
+@pytest.mark.parametrize("path", FILES)
+def test_no_urls_in_texts(path: str) -> None:
+    """hassfest lehnt URLs in Texten ab; sie gehoeren in Platzhalter."""
+    text = (BASE / path).read_text(encoding="utf-8")
+    assert not re.findall(r"https?://", text), path
+
+
+def test_example_url_is_a_placeholder() -> None:
+    """Der Platzhalter im Text wird vom Dialog auch befuellt."""
+    source = (BASE / "config_flow.py").read_text(encoding="utf-8")
+    assert '"example_url": EXAMPLE_URL' in source
+    for path in FILES:
+        url = _load(path)["config"]["step"]["user"]["data_description"]["url"]
+        assert "{example_url}" in url, path

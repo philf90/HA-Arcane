@@ -1,0 +1,2115 @@
+{
+ "arcane": "v3.0.0",
+ "commit": "73b54f7837b9e55f25036b617df74a37b3b09151",
+ "routen": [
+  {
+   "method": "GET",
+   "path": "/agent/mtls/ca",
+   "quelle": "backend/internal/environment/module.go:261"
+  },
+  {
+   "method": "GET",
+   "path": "/agents",
+   "quelle": "backend/internal/environment/module.go:92"
+  },
+  {
+   "method": "POST",
+   "path": "/agents",
+   "quelle": "backend/internal/environment/module.go:102"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/enroll",
+   "quelle": "backend/internal/enrollment/module.go:39"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/pair",
+   "quelle": "backend/internal/environment/module.go:172"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}",
+   "quelle": "backend/internal/environment/module.go:132"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}",
+   "quelle": "backend/internal/environment/module.go:112"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}",
+   "quelle": "backend/internal/environment/module.go:122"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/activities",
+   "quelle": "backend/internal/activity/module.go:47"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/activities/history",
+   "quelle": "backend/internal/activity/module.go:80"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/activities/{activityId}",
+   "quelle": "backend/internal/activity/module.go:58"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/activities/{activityId}",
+   "quelle": "backend/internal/activity/module.go:68",
+   "param": "action",
+   "actions": [
+    "cancel"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/backups/history",
+   "quelle": "backend/internal/system/children/backup/module.go:47"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/backups/{backupId}",
+   "quelle": "backend/internal/system/children/backup/module.go:198"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/backups/{backupId}",
+   "quelle": "backend/internal/system/children/backup/module.go:151"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/backups/{backupId}/files/browse",
+   "quelle": "backend/internal/system/children/backup/module.go:170"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/backups/{backupId}/upload",
+   "quelle": "backend/internal/system/children/backup/module.go:184"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/builds/workspace",
+   "quelle": "backend/internal/build/children/workspace/module.go:20"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/builds/workspace",
+   "quelle": "backend/internal/build/children/workspace/module.go:47"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/builds/workspace/file",
+   "quelle": "backend/internal/build/children/workspace/module.go:29"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/builds/workspace/file/download",
+   "quelle": "backend/internal/build/children/workspace/module.go:38"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/builds/workspace/upload",
+   "quelle": "backend/internal/build/children/workspace/module.go:58"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers",
+   "quelle": "backend/internal/container/module.go:70"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers",
+   "quelle": "backend/internal/container/module.go:91"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/compose",
+   "quelle": "backend/internal/container/module.go:156"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/counts",
+   "quelle": "backend/internal/container/module.go:81"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/containers/{containerId}",
+   "quelle": "backend/internal/container/module.go:186"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/{containerId}",
+   "quelle": "backend/internal/container/module.go:100"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/{containerId}",
+   "quelle": "backend/internal/container/module.go:119",
+   "param": "action",
+   "actions": [
+    "kill",
+    "pause",
+    "restart",
+    "start",
+    "stop",
+    "unpause"
+   ]
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/containers/{containerId}/autoupdate",
+   "quelle": "backend/internal/container/module.go:205"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/{containerId}/commit",
+   "quelle": "backend/internal/container/module.go:136"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/{containerId}/config",
+   "quelle": "backend/internal/container/module.go:166"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/containers/{containerId}/config",
+   "quelle": "backend/internal/container/module.go:176"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/{containerId}/logs/download",
+   "quelle": "backend/internal/container/module.go:195"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/{containerId}/processes",
+   "quelle": "backend/internal/container/module.go:109"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/{containerId}/redeploy",
+   "quelle": "backend/internal/container/module.go:146"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/{containerId}/update",
+   "quelle": "backend/internal/updater/module.go:83"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/deployment",
+   "quelle": "backend/internal/environment/module.go:183"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/deployment/mtls/bundle",
+   "quelle": "backend/internal/environment/module.go:230"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/deployment/mtls/{fileName}",
+   "quelle": "backend/internal/environment/module.go:240"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/diagnostics/actors",
+   "quelle": "backend/api/handlers/diagnostics.go:35"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/diagnostics/goroutines",
+   "quelle": "backend/api/handlers/diagnostics.go:45"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/events/changes",
+   "quelle": "backend/internal/event/module.go:92"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images",
+   "quelle": "backend/internal/image/module.go:103"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/build",
+   "quelle": "backend/internal/image/module.go:195"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/builds",
+   "quelle": "backend/internal/image/module.go:206"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/builds/{buildId}",
+   "quelle": "backend/internal/image/module.go:217"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/counts",
+   "quelle": "backend/internal/image/module.go:114"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/patches/targets",
+   "quelle": "backend/internal/image/children/patch/module.go:21"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/prune",
+   "quelle": "backend/internal/image/module.go:227"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/pull",
+   "quelle": "backend/internal/image/module.go:185"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/search",
+   "quelle": "backend/internal/image/module.go:125"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/check",
+   "quelle": "backend/internal/imageupdate/module.go:58"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/updates/check",
+   "quelle": "backend/internal/imageupdate/module.go:85",
+   "param": "action",
+   "actions": [
+    "all",
+    "batch"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/check/{imageId}",
+   "quelle": "backend/internal/imageupdate/module.go:67"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/updates/check/{imageId}",
+   "quelle": "backend/internal/imageupdate/module.go:76"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/refs",
+   "quelle": "backend/internal/imageupdate/module.go:97"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/releasenotes",
+   "quelle": "backend/internal/imageupdate/children/releasenotes/module.go:14"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/summary",
+   "quelle": "backend/internal/imageupdate/module.go:106"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/upload",
+   "quelle": "backend/internal/image/module.go:237"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/vulnerabilities/summaries",
+   "quelle": "backend/internal/vulnerability/children/query/module.go:36"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/images/{imageId}",
+   "quelle": "backend/internal/image/module.go:175"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{imageId}",
+   "quelle": "backend/internal/image/module.go:165"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{imageId}/vulnerabilities",
+   "quelle": "backend/internal/vulnerability/children/query/module.go:14"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{imageId}/vulnerabilities/list",
+   "quelle": "backend/internal/vulnerability/children/query/module.go:47"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/{imageId}/vulnerabilities/scan",
+   "quelle": "backend/internal/vulnerability/children/scan/module.go:22"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{imageId}/vulnerabilities/summary",
+   "quelle": "backend/internal/vulnerability/children/query/module.go:25"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{name}/attestations",
+   "quelle": "backend/internal/image/children/attestations/module.go:14"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{name}/export",
+   "quelle": "backend/internal/image/module.go:155"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{name}/history",
+   "quelle": "backend/internal/image/module.go:145"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/{name}/tag",
+   "quelle": "backend/internal/image/module.go:135"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/jobs",
+   "quelle": "backend/internal/job/module.go:66"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/jobs/schedules",
+   "quelle": "backend/internal/job/module.go:46"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/jobs/schedules",
+   "quelle": "backend/internal/job/module.go:56"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/jobs/{jobId}",
+   "quelle": "backend/internal/job/module.go:76",
+   "param": "action",
+   "actions": [
+    "restart",
+    "run"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/networks",
+   "quelle": "backend/internal/network/module.go:23"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/networks",
+   "quelle": "backend/internal/network/module.go:43"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/networks/counts",
+   "quelle": "backend/internal/network/module.go:33"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/networks/prune",
+   "quelle": "backend/internal/network/module.go:80"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/networks/topology",
+   "quelle": "backend/internal/network/module.go:52"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/networks/{networkId}",
+   "quelle": "backend/internal/network/module.go:71"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/networks/{networkId}",
+   "quelle": "backend/internal/network/module.go:62"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/networks/{networkId}",
+   "quelle": "backend/internal/network/module.go:89",
+   "param": "action",
+   "actions": [
+    "connect",
+    "disconnect"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/ports",
+   "quelle": "backend/internal/port/module.go:16"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects",
+   "quelle": "backend/internal/project/module.go:83"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/projects",
+   "quelle": "backend/internal/project/module.go:180"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/counts",
+   "quelle": "backend/internal/project/module.go:94"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/directories",
+   "quelle": "backend/internal/project/module.go:105",
+   "param": "view",
+   "actions": [
+    "projects",
+    "settings"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/references",
+   "quelle": "backend/internal/project/module.go:129"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/tags",
+   "quelle": "backend/internal/project/module.go:118"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/projects/{projectId}",
+   "quelle": "backend/internal/project/module.go:245"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}",
+   "quelle": "backend/internal/project/module.go:205"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/projects/{projectId}",
+   "quelle": "backend/internal/project/module.go:255"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/projects/{projectId}",
+   "quelle": "backend/internal/project/module.go:164",
+   "param": "action",
+   "actions": [
+    "archive",
+    "down",
+    "restart",
+    "unarchive",
+    "updateservices"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/projects/{projectId}/build",
+   "quelle": "backend/internal/project/module.go:265"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/compose",
+   "quelle": "backend/internal/project/module.go:215"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/projects/{projectId}/deploy",
+   "quelle": "backend/internal/project/module.go:149",
+   "param": "action",
+   "actions": [
+    "pull",
+    "redeploy",
+    "up"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/runtime",
+   "quelle": "backend/internal/project/module.go:225"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/projects/{projectId}/tags",
+   "quelle": "backend/internal/project/module.go:139"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/updates",
+   "quelle": "backend/internal/project/module.go:235"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/workspace",
+   "quelle": "backend/internal/project/module.go:46"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/projects/{projectId}/workspace",
+   "quelle": "backend/internal/project/module.go:73"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/workspace/file",
+   "quelle": "backend/internal/project/module.go:55"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/workspace/file/download",
+   "quelle": "backend/internal/project/module.go:64"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/settings",
+   "quelle": "backend/internal/settings/module.go:75"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/settings",
+   "quelle": "backend/internal/settings/module.go:85"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/settings/public",
+   "quelle": "backend/internal/settings/module.go:65"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/configs",
+   "quelle": "backend/internal/swarm/children/configs/module.go:16"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/configs",
+   "quelle": "backend/internal/swarm/children/configs/module.go:47"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/configs/{configId}",
+   "quelle": "backend/internal/swarm/children/configs/module.go:77"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/configs/{configId}",
+   "quelle": "backend/internal/swarm/children/configs/module.go:32"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/configs/{configId}",
+   "quelle": "backend/internal/swarm/children/configs/module.go:62"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/info",
+   "quelle": "backend/internal/swarm/module.go:105"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/init",
+   "quelle": "backend/internal/swarm/module.go:120"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/join",
+   "quelle": "backend/internal/swarm/module.go:135"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/join/agents",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:217"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/join/candidates",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:202"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/join/tokens",
+   "quelle": "backend/internal/swarm/module.go:195"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/join/tokens",
+   "quelle": "backend/internal/swarm/module.go:210",
+   "param": "action",
+   "actions": [
+    "rotate"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/leave",
+   "quelle": "backend/internal/swarm/module.go:150"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/nodes",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:16"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/nodes/agents/reconcile",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:62"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:137"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:32"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:122"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:152",
+   "param": "action",
+   "actions": [
+    "demote",
+    "promote"
+   ]
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/agent/binding",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:92"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/agent/binding",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:77"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/agent/deployment",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:107"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/agent/deployment",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:47"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/tasks",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:171"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/secrets",
+   "quelle": "backend/internal/swarm/children/secrets/module.go:16"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/secrets",
+   "quelle": "backend/internal/swarm/children/secrets/module.go:47"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/secrets/{secretId}",
+   "quelle": "backend/internal/swarm/children/secrets/module.go:77"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/secrets/{secretId}",
+   "quelle": "backend/internal/swarm/children/secrets/module.go:32"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/secrets/{secretId}",
+   "quelle": "backend/internal/swarm/children/secrets/module.go:62"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/services",
+   "quelle": "backend/internal/swarm/children/services/module.go:16"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/services",
+   "quelle": "backend/internal/swarm/children/services/module.go:47"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "quelle": "backend/internal/swarm/children/services/module.go:77"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "quelle": "backend/internal/swarm/children/services/module.go:32"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "quelle": "backend/internal/swarm/children/services/module.go:125"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "quelle": "backend/internal/swarm/children/services/module.go:107",
+   "param": "action",
+   "actions": [
+    "rollback"
+   ]
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "quelle": "backend/internal/swarm/children/services/module.go:62"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/services/{serviceId}/tasks",
+   "quelle": "backend/internal/swarm/children/services/module.go:92"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/spec",
+   "quelle": "backend/internal/swarm/module.go:228"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:16"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/stacks",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:32"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/stacks/config/render",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:167"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/stacks/{name}",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:92"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks/{name}",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:47"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/stacks/{name}/down",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:107"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks/{name}/services",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:137"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks/{name}/source",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:62"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/swarm/stacks/{name}/source",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:77"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks/{name}/tasks",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:152"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/stacks/{name}/up",
+   "quelle": "backend/internal/swarm/children/stacks/module.go:122"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/status",
+   "quelle": "backend/internal/swarm/module.go:89"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/tasks",
+   "quelle": "backend/internal/swarm/module.go:72"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/unlock",
+   "quelle": "backend/internal/swarm/module.go:165"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/unlock/key",
+   "quelle": "backend/internal/swarm/module.go:180"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/sync",
+   "quelle": "backend/internal/environment/module.go:162"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/containers",
+   "quelle": "backend/internal/system/module.go:76",
+   "param": "action",
+   "actions": [
+    "startall",
+    "startstopped",
+    "stopall"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/convert",
+   "quelle": "backend/internal/system/module.go:90"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/df",
+   "quelle": "backend/internal/system/children/prune/module.go:24"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/docker/info",
+   "quelle": "backend/internal/system/module.go:66"
+  },
+  {
+   "method": "HEAD",
+   "path": "/agents/{id}/system/health",
+   "quelle": "backend/internal/system/module.go:55"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/prune",
+   "quelle": "backend/internal/system/children/prune/module.go:14"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/upgrade",
+   "quelle": "backend/internal/system/children/upgrade/module.go:27"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/upgrade/check",
+   "quelle": "backend/internal/system/children/upgrade/module.go:17"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/upgrade/jobs",
+   "quelle": "backend/internal/system/children/upgrade/module.go:38"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/upgrade/jobs/current",
+   "quelle": "backend/internal/system/children/upgrade/module.go:49"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/upgrade/progress",
+   "quelle": "backend/internal/system/children/upgrade/module.go:59"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/templates/variables",
+   "quelle": "backend/internal/variable/module.go:114"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/templates/variables",
+   "quelle": "backend/internal/variable/module.go:124"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/test",
+   "quelle": "backend/internal/environment/module.go:142"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/tunnel/restart",
+   "quelle": "backend/internal/environment/module.go:152"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/updater/history",
+   "quelle": "backend/internal/updater/module.go:70"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/updater/projects/{projectId}/check",
+   "quelle": "backend/internal/updater/module.go:42"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/updater/run",
+   "quelle": "backend/internal/updater/module.go:50"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/updater/status",
+   "quelle": "backend/internal/updater/module.go:60"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/uploads/{kind}",
+   "quelle": "backend/internal/upload/module.go:41"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/uploads/{kind}/{uploadId}",
+   "quelle": "backend/internal/upload/module.go:75"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/uploads/{kind}/{uploadId}",
+   "quelle": "backend/internal/upload/module.go:64"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/uploads/{kind}/{uploadId}/chunks/{index}",
+   "quelle": "backend/internal/upload/module.go:52"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/version",
+   "quelle": "backend/internal/environment/module.go:250"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes",
+   "quelle": "backend/internal/volume/module.go:98"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes",
+   "quelle": "backend/internal/volume/module.go:119"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/backups/discover",
+   "quelle": "backend/internal/volume/children/backup/module.go:55"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/volumes/backups/{backupId}",
+   "quelle": "backend/internal/volume/children/backup/module.go:46"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/backups/{backupId}/download",
+   "quelle": "backend/internal/volume/children/backup/module.go:75"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/backups/{backupId}/files",
+   "quelle": "backend/internal/volume/children/backup/children/browser/module.go:23"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/backups/{backupId}/files/browse",
+   "quelle": "backend/internal/volume/children/backup/children/browser/module.go:32"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/backups/{backupId}/files/exists",
+   "quelle": "backend/internal/volume/children/backup/children/browser/module.go:14"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/backups/{backupId}/upload",
+   "quelle": "backend/internal/volume/children/backup/module.go:65"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/counts",
+   "quelle": "backend/internal/volume/module.go:87"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/prune",
+   "quelle": "backend/internal/volume/module.go:149"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/sizes",
+   "quelle": "backend/internal/volume/module.go:169"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/volumes/{volumeName}",
+   "quelle": "backend/internal/volume/module.go:129"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}",
+   "quelle": "backend/internal/volume/module.go:109"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/backups",
+   "quelle": "backend/internal/volume/children/backup/module.go:25"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/{volumeName}/backups",
+   "quelle": "backend/internal/volume/children/backup/module.go:34"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/backups/policy",
+   "quelle": "backend/internal/volume/children/backup/children/policies/module.go:14"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/volumes/{volumeName}/backups/policy",
+   "quelle": "backend/internal/volume/children/backup/children/policies/module.go:23"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/{volumeName}/backups/upload",
+   "quelle": "backend/internal/volume/children/backup/children/restore/module.go:29"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/{volumeName}/backups/{backupId}",
+   "quelle": "backend/internal/volume/children/backup/children/restore/module.go:16",
+   "param": "action",
+   "actions": [
+    "restore",
+    "restorefiles"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/{volumeName}/rename",
+   "quelle": "backend/internal/volume/module.go:139"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/usage",
+   "quelle": "backend/internal/volume/module.go:159"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/all",
+   "quelle": "backend/internal/vulnerability/children/query/module.go:82"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/export",
+   "quelle": "backend/internal/vulnerability/children/query/module.go:94"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/ignored",
+   "quelle": "backend/internal/vulnerability/children/ignores/module.go:50"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/vulnerabilities/ignored",
+   "quelle": "backend/internal/vulnerability/children/ignores/module.go:14"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/vulnerabilities/ignored/bulk",
+   "quelle": "backend/internal/vulnerability/children/ignores/module.go:36",
+   "param": "action",
+   "actions": [
+    "ignore",
+    "unignore"
+   ]
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/vulnerabilities/ignored/{ignoreId}",
+   "quelle": "backend/internal/vulnerability/children/ignores/module.go:25"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/images",
+   "quelle": "backend/internal/vulnerability/children/query/module.go:105"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/overview",
+   "quelle": "backend/internal/vulnerability/children/query/module.go:70"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/scanner",
+   "quelle": "backend/internal/vulnerability/children/scan/children/trivy/module.go:14"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/summary",
+   "quelle": "backend/internal/vulnerability/children/query/module.go:58"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/webhooks",
+   "quelle": "backend/internal/webhook/module.go:51"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/webhooks",
+   "quelle": "backend/internal/webhook/module.go:62"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/webhooks/{webhookId}",
+   "quelle": "backend/internal/webhook/module.go:82"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/webhooks/{webhookId}",
+   "quelle": "backend/internal/webhook/module.go:72"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/ws/containers/stats",
+   "websocket": true,
+   "quelle": "backend/api/ws/proxy_permissions.go:21"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/ws/containers/{containerId}/logs",
+   "websocket": true,
+   "quelle": "backend/api/ws/proxy_permissions.go:27"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/ws/containers/{containerId}/stats",
+   "websocket": true,
+   "quelle": "backend/api/ws/proxy_permissions.go:33"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/ws/containers/{containerId}/terminal",
+   "websocket": true,
+   "quelle": "backend/api/ws/proxy_permissions.go:39"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/ws/projects/{projectId}/logs",
+   "websocket": true,
+   "quelle": "backend/api/ws/proxy_permissions.go:15"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/ws/swarm/services/{serviceId}/logs",
+   "websocket": true,
+   "quelle": "backend/api/ws/proxy_permissions.go:45"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/ws/system/stats",
+   "websocket": true,
+   "quelle": "backend/api/ws/proxy_permissions.go:51"
+  },
+  {
+   "method": "GET",
+   "path": "/apikeys",
+   "quelle": "backend/internal/apikey/module.go:43"
+  },
+  {
+   "method": "POST",
+   "path": "/apikeys",
+   "quelle": "backend/internal/apikey/module.go:53"
+  },
+  {
+   "method": "DELETE",
+   "path": "/apikeys/{id}",
+   "quelle": "backend/internal/apikey/module.go:83"
+  },
+  {
+   "method": "GET",
+   "path": "/apikeys/{id}",
+   "quelle": "backend/internal/apikey/module.go:63"
+  },
+  {
+   "method": "PATCH",
+   "path": "/apikeys/{id}",
+   "quelle": "backend/internal/apikey/module.go:73"
+  },
+  {
+   "method": "DELETE",
+   "path": "/app/images/favicon",
+   "quelle": "backend/internal/appimages/module.go:86"
+  },
+  {
+   "method": "GET",
+   "path": "/app/images/favicon",
+   "quelle": "backend/internal/appimages/module.go:64"
+  },
+  {
+   "method": "PUT",
+   "path": "/app/images/favicon",
+   "quelle": "backend/internal/appimages/module.go:74"
+  },
+  {
+   "method": "GET",
+   "path": "/app/images/logo",
+   "quelle": "backend/internal/appimages/module.go:32"
+  },
+  {
+   "method": "DELETE",
+   "path": "/app/images/logo/{variant}",
+   "quelle": "backend/internal/appimages/module.go:54"
+  },
+  {
+   "method": "PUT",
+   "path": "/app/images/logo/{variant}",
+   "quelle": "backend/internal/appimages/module.go:42"
+  },
+  {
+   "method": "GET",
+   "path": "/app/images/profile",
+   "quelle": "backend/internal/appimages/module.go:96"
+  },
+  {
+   "method": "DELETE",
+   "path": "/app/images/pwa",
+   "quelle": "backend/internal/appimages/module.go:128"
+  },
+  {
+   "method": "PUT",
+   "path": "/app/images/pwa",
+   "quelle": "backend/internal/appimages/module.go:116"
+  },
+  {
+   "method": "GET",
+   "path": "/app/images/pwa/{filename}",
+   "quelle": "backend/internal/appimages/module.go:106"
+  },
+  {
+   "method": "GET",
+   "path": "/app/version",
+   "quelle": "backend/internal/version/module.go:20"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/autologin",
+   "quelle": "backend/internal/auth/handler_buildables.go:34"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/autologin",
+   "quelle": "backend/internal/auth/handler_buildables.go:43"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/bootstrap",
+   "quelle": "backend/internal/auth/module.go:113"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/federated/token",
+   "quelle": "backend/internal/federated/module.go:18"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/login",
+   "quelle": "backend/internal/auth/module.go:83"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/logout",
+   "quelle": "backend/internal/auth/module.go:93"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me",
+   "quelle": "backend/internal/auth/module.go:103"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/apikeys",
+   "quelle": "backend/internal/apikey/module.go:93"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/apikeys",
+   "quelle": "backend/internal/apikey/module.go:106"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/me/apikeys/{id}",
+   "quelle": "backend/internal/apikey/module.go:118"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/me/avatar",
+   "quelle": "backend/internal/auth/module.go:186"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/avatar",
+   "quelle": "backend/internal/auth/module.go:163"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/me/backdrop",
+   "quelle": "backend/internal/auth/module.go:231"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/backdrop",
+   "quelle": "backend/internal/auth/module.go:196"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/backdrop",
+   "quelle": "backend/internal/auth/module.go:206"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/mfa",
+   "quelle": "backend/internal/passkey/module.go:173"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/mfa/disable",
+   "quelle": "backend/internal/passkey/module.go:189"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/mfa/enable",
+   "quelle": "backend/internal/passkey/module.go:181"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/mfa/recovery",
+   "quelle": "backend/internal/passkey/module.go:197"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/passkeys",
+   "quelle": "backend/internal/passkey/module.go:100"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/passkeys/capabilities",
+   "quelle": "backend/internal/passkey/module.go:108"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/reauth/begin",
+   "quelle": "backend/internal/passkey/module.go:148"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/reauth/finish",
+   "quelle": "backend/internal/passkey/module.go:156"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/reauth/password",
+   "quelle": "backend/internal/passkey/module.go:164"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/register/begin",
+   "quelle": "backend/internal/passkey/module.go:116"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/register/finish",
+   "quelle": "backend/internal/passkey/module.go:124"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/me/passkeys/{id}",
+   "quelle": "backend/internal/passkey/module.go:140"
+  },
+  {
+   "method": "PATCH",
+   "path": "/auth/me/passkeys/{id}",
+   "quelle": "backend/internal/passkey/module.go:132"
+  },
+  {
+   "method": "PATCH",
+   "path": "/auth/me/profile",
+   "quelle": "backend/internal/auth/module.go:153"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/mfa/passkey/begin",
+   "quelle": "backend/internal/passkey/module.go:72"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/mfa/passkey/finish",
+   "quelle": "backend/internal/passkey/module.go:81"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/mfa/recovery",
+   "quelle": "backend/internal/passkey/module.go:90"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/passkey/login/availability",
+   "quelle": "backend/internal/passkey/module.go:22"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/passkey/login/begin",
+   "quelle": "backend/internal/passkey/module.go:35"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/passkey/login/finish",
+   "quelle": "backend/internal/passkey/module.go:44"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/passkey/mobile/exchange",
+   "quelle": "backend/internal/passkey/module.go:62"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/passkey/mobile/finish",
+   "quelle": "backend/internal/passkey/module.go:53"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/password",
+   "quelle": "backend/internal/auth/module.go:133"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/refresh",
+   "quelle": "backend/internal/auth/module.go:123"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/sessions",
+   "quelle": "backend/internal/auth/module.go:143"
+  },
+  {
+   "method": "GET",
+   "path": "/backups",
+   "quelle": "backend/internal/system/children/backup/module.go:19"
+  },
+  {
+   "method": "POST",
+   "path": "/backups",
+   "quelle": "backend/internal/system/children/backup/module.go:122"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/discover",
+   "quelle": "backend/internal/system/children/backup/module.go:137"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/history",
+   "quelle": "backend/internal/system/children/backup/module.go:33"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/policies",
+   "quelle": "backend/internal/system/children/backup/module.go:63"
+  },
+  {
+   "method": "PUT",
+   "path": "/backups/policies",
+   "quelle": "backend/internal/system/children/backup/module.go:77"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/recovery/key",
+   "quelle": "backend/internal/system/children/backup/module.go:91"
+  },
+  {
+   "method": "PUT",
+   "path": "/backups/recovery/key",
+   "quelle": "backend/internal/system/children/backup/module.go:108"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/volumes/config",
+   "quelle": "backend/internal/system/children/backup/children/volumes/module.go:15"
+  },
+  {
+   "method": "PUT",
+   "path": "/backups/volumes/config",
+   "quelle": "backend/internal/system/children/backup/children/volumes/module.go:29"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/volumes/options",
+   "quelle": "backend/internal/system/children/backup/children/volumes/module.go:43"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/volumes/run",
+   "quelle": "backend/internal/system/children/backup/children/volumes/module.go:57"
+  },
+  {
+   "method": "GET",
+   "path": "/debug/pprof",
+   "quelle": "backend/api/handlers/diagnostics.go:55"
+  },
+  {
+   "method": "GET",
+   "path": "/debug/pprof/",
+   "quelle": "backend/api/handlers/diagnostics.go:64"
+  },
+  {
+   "method": "GET",
+   "path": "/debug/pprof/cmdline",
+   "quelle": "backend/api/handlers/diagnostics.go:73"
+  },
+  {
+   "method": "GET",
+   "path": "/debug/pprof/profile",
+   "quelle": "backend/api/handlers/diagnostics.go:82"
+  },
+  {
+   "method": "GET",
+   "path": "/debug/pprof/symbol",
+   "quelle": "backend/api/handlers/diagnostics.go:100"
+  },
+  {
+   "method": "POST",
+   "path": "/debug/pprof/symbol",
+   "quelle": "backend/api/handlers/diagnostics.go:91"
+  },
+  {
+   "method": "GET",
+   "path": "/debug/pprof/trace",
+   "quelle": "backend/api/handlers/diagnostics.go:109"
+  },
+  {
+   "method": "GET",
+   "path": "/debug/pprof/{name}",
+   "quelle": "backend/api/handlers/diagnostics.go:118"
+  },
+  {
+   "method": "GET",
+   "path": "/docs",
+   "quelle": "backend/api/api.go:255"
+  },
+  {
+   "method": "GET",
+   "path": "/docs/scalar.js",
+   "quelle": "backend/api/api.go:266"
+  },
+  {
+   "method": "GET",
+   "path": "/enrollment-tokens",
+   "quelle": "backend/internal/environment/module.go:193"
+  },
+  {
+   "method": "POST",
+   "path": "/enrollment-tokens",
+   "quelle": "backend/internal/environment/module.go:202"
+  },
+  {
+   "method": "DELETE",
+   "path": "/enrollment-tokens/{id}",
+   "quelle": "backend/internal/environment/module.go:221"
+  },
+  {
+   "method": "GET",
+   "path": "/enrollment-tokens/{id}/token",
+   "quelle": "backend/internal/environment/module.go:212"
+  },
+  {
+   "method": "GET",
+   "path": "/events",
+   "quelle": "backend/internal/event/module.go:52"
+  },
+  {
+   "method": "POST",
+   "path": "/events",
+   "quelle": "backend/internal/event/module.go:41"
+  },
+  {
+   "method": "GET",
+   "path": "/events/agent/{environmentId}",
+   "quelle": "backend/internal/event/module.go:82"
+  },
+  {
+   "method": "GET",
+   "path": "/events/stats",
+   "quelle": "backend/internal/event/module.go:62"
+  },
+  {
+   "method": "DELETE",
+   "path": "/events/{eventId}",
+   "quelle": "backend/internal/event/module.go:72"
+  },
+  {
+   "method": "GET",
+   "path": "/federated/credentials",
+   "quelle": "backend/internal/federated/module.go:29"
+  },
+  {
+   "method": "POST",
+   "path": "/federated/credentials",
+   "quelle": "backend/internal/federated/module.go:39"
+  },
+  {
+   "method": "DELETE",
+   "path": "/federated/credentials/{id}",
+   "quelle": "backend/internal/federated/module.go:69"
+  },
+  {
+   "method": "GET",
+   "path": "/federated/credentials/{id}",
+   "quelle": "backend/internal/federated/module.go:49"
+  },
+  {
+   "method": "PATCH",
+   "path": "/federated/credentials/{id}",
+   "quelle": "backend/internal/federated/module.go:59"
+  },
+  {
+   "method": "POST",
+   "path": "/gitops/repositories/{id}",
+   "quelle": "backend/internal/gitrepo/module.go:108",
+   "param": "action",
+   "actions": [
+    "test"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/health",
+   "quelle": "backend/internal/health/module.go:22"
+  },
+  {
+   "method": "HEAD",
+   "path": "/health",
+   "quelle": "backend/internal/health/module.go:32"
+  },
+  {
+   "method": "GET",
+   "path": "/health/ready",
+   "quelle": "backend/internal/health/module.go:42"
+  },
+  {
+   "method": "POST",
+   "path": "/notifications/dispatch",
+   "quelle": "backend/internal/notification/module.go:95"
+  },
+  {
+   "method": "GET",
+   "path": "/notifications/settings",
+   "quelle": "backend/internal/notification/module.go:46"
+  },
+  {
+   "method": "POST",
+   "path": "/notifications/settings",
+   "quelle": "backend/internal/notification/module.go:64"
+  },
+  {
+   "method": "DELETE",
+   "path": "/notifications/settings/{provider}",
+   "quelle": "backend/internal/notification/module.go:73"
+  },
+  {
+   "method": "GET",
+   "path": "/notifications/settings/{provider}",
+   "quelle": "backend/internal/notification/module.go:55"
+  },
+  {
+   "method": "POST",
+   "path": "/notifications/settings/{provider}",
+   "quelle": "backend/internal/notification/module.go:82",
+   "param": "action",
+   "actions": [
+    "test"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/callback",
+   "quelle": "backend/internal/oidc/module.go:58"
+  },
+  {
+   "method": "GET",
+   "path": "/oidc/config",
+   "quelle": "backend/internal/oidc/module.go:38"
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/device/code",
+   "quelle": "backend/internal/oidc/module.go:68"
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/device/token",
+   "quelle": "backend/internal/oidc/module.go:78"
+  },
+  {
+   "method": "GET",
+   "path": "/oidc/mappings",
+   "quelle": "backend/internal/oidc/module.go:88"
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/mappings",
+   "quelle": "backend/internal/oidc/module.go:98"
+  },
+  {
+   "method": "DELETE",
+   "path": "/oidc/mappings/{id}",
+   "quelle": "backend/internal/oidc/module.go:116"
+  },
+  {
+   "method": "PATCH",
+   "path": "/oidc/mappings/{id}",
+   "quelle": "backend/internal/oidc/module.go:107"
+  },
+  {
+   "method": "GET",
+   "path": "/oidc/status",
+   "quelle": "backend/internal/oidc/module.go:28"
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/url",
+   "quelle": "backend/internal/oidc/module.go:48"
+  },
+  {
+   "method": "DELETE",
+   "path": "/playwright/apikeys",
+   "quelle": "backend/internal/playwright/handler.go:58"
+  },
+  {
+   "method": "POST",
+   "path": "/playwright/apikeys",
+   "quelle": "backend/internal/playwright/handler.go:49"
+  },
+  {
+   "method": "POST",
+   "path": "/playwright/federated",
+   "quelle": "backend/internal/playwright/handler.go:67"
+  },
+  {
+   "method": "POST",
+   "path": "/playwright/gitops",
+   "quelle": "backend/internal/playwright/handler.go:40"
+  },
+  {
+   "method": "GET",
+   "path": "/registries",
+   "quelle": "backend/internal/registry/module.go:55"
+  },
+  {
+   "method": "POST",
+   "path": "/registries",
+   "quelle": "backend/internal/registry/module.go:65"
+  },
+  {
+   "method": "POST",
+   "path": "/registries/sync",
+   "quelle": "backend/internal/registry/module.go:75"
+  },
+  {
+   "method": "GET",
+   "path": "/registries/usage",
+   "quelle": "backend/internal/registry/module.go:85"
+  },
+  {
+   "method": "DELETE",
+   "path": "/registries/{id}",
+   "quelle": "backend/internal/registry/module.go:115"
+  },
+  {
+   "method": "GET",
+   "path": "/registries/{id}",
+   "quelle": "backend/internal/registry/module.go:95"
+  },
+  {
+   "method": "PATCH",
+   "path": "/registries/{id}",
+   "quelle": "backend/internal/registry/module.go:105"
+  },
+  {
+   "method": "POST",
+   "path": "/registries/{id}",
+   "quelle": "backend/internal/registry/module.go:125",
+   "param": "action",
+   "actions": [
+    "test"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/registries/{id}/repositories",
+   "quelle": "backend/internal/registry/children/browse/module.go:12"
+  },
+  {
+   "method": "DELETE",
+   "path": "/registries/{id}/tags",
+   "quelle": "backend/internal/registry/children/browse/module.go:32"
+  },
+  {
+   "method": "GET",
+   "path": "/registries/{id}/tags",
+   "quelle": "backend/internal/registry/children/browse/module.go:22"
+  },
+  {
+   "method": "GET",
+   "path": "/roles",
+   "quelle": "backend/internal/role/module.go:41"
+  },
+  {
+   "method": "POST",
+   "path": "/roles",
+   "quelle": "backend/internal/role/module.go:60"
+  },
+  {
+   "method": "GET",
+   "path": "/roles/permissions",
+   "quelle": "backend/internal/role/module.go:90"
+  },
+  {
+   "method": "DELETE",
+   "path": "/roles/{id}",
+   "quelle": "backend/internal/role/module.go:80"
+  },
+  {
+   "method": "GET",
+   "path": "/roles/{id}",
+   "quelle": "backend/internal/role/module.go:51"
+  },
+  {
+   "method": "PATCH",
+   "path": "/roles/{id}",
+   "quelle": "backend/internal/role/module.go:70"
+  },
+  {
+   "method": "GET",
+   "path": "/settings",
+   "quelle": "backend/internal/settings/module.go:95"
+  },
+  {
+   "method": "PATCH",
+   "path": "/settings",
+   "quelle": "backend/internal/settings/module.go:105"
+  },
+  {
+   "method": "GET",
+   "path": "/settings/authentication",
+   "quelle": "backend/internal/settings/module.go:115"
+  },
+  {
+   "method": "PATCH",
+   "path": "/settings/authentication",
+   "quelle": "backend/internal/settings/module.go:125"
+  },
+  {
+   "method": "GET",
+   "path": "/settings/categories",
+   "quelle": "backend/internal/settings/module.go:145"
+  },
+  {
+   "method": "POST",
+   "path": "/settings/search",
+   "quelle": "backend/internal/settings/module.go:135"
+  },
+  {
+   "method": "GET",
+   "path": "/stream",
+   "quelle": "backend/api/handlers/stream.go:95"
+  },
+  {
+   "method": "GET",
+   "path": "/swarm/identity",
+   "quelle": "backend/internal/swarm/children/nodes/module.go:186"
+  },
+  {
+   "method": "POST",
+   "path": "/telemetry/{signal}",
+   "quelle": "backend/internal/telemetry/module.go:25"
+  },
+  {
+   "method": "GET",
+   "path": "/templates",
+   "quelle": "backend/internal/template/module.go:49"
+  },
+  {
+   "method": "POST",
+   "path": "/templates",
+   "quelle": "backend/internal/template/module.go:85"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/all",
+   "quelle": "backend/internal/template/module.go:58"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/default",
+   "quelle": "backend/internal/template/module.go:127"
+  },
+  {
+   "method": "POST",
+   "path": "/templates/default",
+   "quelle": "backend/internal/template/module.go:137"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/fetch",
+   "quelle": "backend/internal/template/module.go:39"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/registries",
+   "quelle": "backend/internal/template/module.go:147"
+  },
+  {
+   "method": "POST",
+   "path": "/templates/registries",
+   "quelle": "backend/internal/template/module.go:157"
+  },
+  {
+   "method": "DELETE",
+   "path": "/templates/registries/{id}",
+   "quelle": "backend/internal/template/module.go:177"
+  },
+  {
+   "method": "PATCH",
+   "path": "/templates/registries/{id}",
+   "quelle": "backend/internal/template/module.go:167"
+  },
+  {
+   "method": "DELETE",
+   "path": "/templates/{id}",
+   "quelle": "backend/internal/template/module.go:105"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/{id}",
+   "quelle": "backend/internal/template/module.go:67"
+  },
+  {
+   "method": "PATCH",
+   "path": "/templates/{id}",
+   "quelle": "backend/internal/template/module.go:95"
+  },
+  {
+   "method": "POST",
+   "path": "/templates/{id}",
+   "quelle": "backend/internal/template/module.go:115",
+   "param": "action",
+   "actions": [
+    "download"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/templates/{id}/content",
+   "quelle": "backend/internal/template/module.go:76"
+  },
+  {
+   "method": "POST",
+   "path": "/tunnel/mtls/enroll",
+   "quelle": "backend/internal/enrollment/module.go:50"
+  },
+  {
+   "method": "GET",
+   "path": "/users",
+   "quelle": "backend/internal/user/module.go:42"
+  },
+  {
+   "method": "POST",
+   "path": "/users",
+   "quelle": "backend/internal/user/module.go:52"
+  },
+  {
+   "method": "DELETE",
+   "path": "/users/{userId}",
+   "quelle": "backend/internal/user/module.go:82"
+  },
+  {
+   "method": "GET",
+   "path": "/users/{userId}",
+   "quelle": "backend/internal/user/module.go:62"
+  },
+  {
+   "method": "PATCH",
+   "path": "/users/{userId}",
+   "quelle": "backend/internal/user/module.go:72"
+  },
+  {
+   "method": "GET",
+   "path": "/users/{userId}/avatar",
+   "quelle": "backend/internal/user/module.go:94"
+  },
+  {
+   "method": "GET",
+   "path": "/users/{userId}/roles",
+   "quelle": "backend/internal/role/module.go:100"
+  },
+  {
+   "method": "PUT",
+   "path": "/users/{userId}/roles",
+   "quelle": "backend/internal/role/module.go:110"
+  },
+  {
+   "method": "GET",
+   "path": "/variables",
+   "quelle": "backend/internal/variable/module.go:50"
+  },
+  {
+   "method": "POST",
+   "path": "/variables",
+   "quelle": "backend/internal/variable/module.go:60"
+  },
+  {
+   "method": "GET",
+   "path": "/variables/sync",
+   "quelle": "backend/internal/variable/module.go:100"
+  },
+  {
+   "method": "POST",
+   "path": "/variables/sync",
+   "quelle": "backend/internal/variable/module.go:90"
+  },
+  {
+   "method": "DELETE",
+   "path": "/variables/{id}",
+   "quelle": "backend/internal/variable/module.go:80"
+  },
+  {
+   "method": "PATCH",
+   "path": "/variables/{id}",
+   "quelle": "backend/internal/variable/module.go:70"
+  },
+  {
+   "method": "GET",
+   "path": "/version",
+   "quelle": "backend/internal/version/module.go:10"
+  },
+  {
+   "method": "POST",
+   "path": "/webhooks/trigger/{token}",
+   "quelle": "backend/internal/webhook/module.go:40"
+  }
+ ]
+}

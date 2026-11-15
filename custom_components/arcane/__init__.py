@@ -7,9 +7,10 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_URL, CONF_VERIFY_SSL, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryError
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from .api import ArcaneClient
 from .const import DOMAIN
@@ -48,7 +49,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ArcaneConfigEntry) -> bo
         raise ConfigEntryError(str(err)) from err
 
     coordinator = ArcaneCoordinator(hass, entry, client)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryNotReady as err:
+        # The first refresh wraps the coordinator's error without its
+        # translation. Hand a translated reason on, such as the one naming an
+        # Arcane older than 3.0, so the entry shows it instead of a bare key.
+        cause = err.__cause__
+        if isinstance(cause, UpdateFailed) and cause.translation_key:
+            raise ConfigEntryNotReady(
+                translation_domain=DOMAIN,
+                translation_key=cause.translation_key,
+                translation_placeholders=cause.translation_placeholders,
+            ) from cause
+        raise
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

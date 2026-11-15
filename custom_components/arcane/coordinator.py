@@ -19,6 +19,7 @@ from .api import (
     ArcaneClient,
     ArcaneError,
     ArcanePermissionError,
+    ArcaneUnsupportedVersionError,
 )
 from .const import (
     CONF_ENVIRONMENTS,
@@ -156,6 +157,12 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             environments = await self.client.async_get_environments()
         except ArcaneAuthenticationError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
+        except ArcaneUnsupportedVersionError as err:
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="unsupported_version",
+                translation_placeholders={"version": err.version},
+            ) from err
         except ArcaneError as err:
             raise UpdateFailed(str(err)) from err
 

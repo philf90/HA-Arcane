@@ -22,6 +22,7 @@ from custom_components.arcane.api import (
     ArcaneAuthenticationError,
     ArcaneConnectionError,
     ArcanePermissionError,
+    ArcaneUnsupportedVersionError,
 )
 from custom_components.arcane.const import (
     CONF_ALLOW_CONTROL,
@@ -223,6 +224,23 @@ async def test_auth_error_triggers_reauth(
         flow["context"]["source"] == "reauth"
         for flow in hass.config_entries.flow.async_progress()
     )
+
+
+async def test_arcane_2_retries_with_a_clear_reason(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    """Eine Arcane-2-Instanz laesst den Eintrag mit klarer Meldung warten."""
+    mock_client.async_get_version.side_effect = ArcaneUnsupportedVersionError("2.17.3")
+    mock_config_entry.add_to_hass(hass)
+
+    assert not await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert mock_config_entry.state is ConfigEntryState.SETUP_RETRY
+    assert mock_config_entry.error_reason_translation_key == "unsupported_version"
+    assert mock_config_entry.error_reason_translation_placeholders == {
+        "version": "2.17.3"
+    }
 
 
 async def test_unload(
