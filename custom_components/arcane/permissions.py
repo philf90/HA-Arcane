@@ -86,7 +86,6 @@ POLL_PERMISSIONS: Final[dict[str, str]] = {
     "host": PERM_SYSTEM_READ,
     "version": PERM_ENVIRONMENTS_READ,
     "disk_usage": PERM_SYSTEM_READ,
-    "arcane_events": PERM_EVENTS_LIST,
 }
 
 
