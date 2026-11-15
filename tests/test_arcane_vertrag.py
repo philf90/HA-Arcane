@@ -122,6 +122,8 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
         "0", "nginx:1.27", version="1.28", digest="sha256:" + "a" * 64
     )
     await client.async_check_image_updates("0")
+    await client.async_wait_for_changes("0", epoch="e1", since=4, wait=1)
+    await client.async_get_events("0", limit=100)
     return {
         "async_get_version",
         "async_get_environments",
@@ -140,6 +142,8 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
         "async_get_disk_usage",
         "async_get_release_notes",
         "async_check_image_updates",
+        "async_wait_for_changes",
+        "async_get_events",
     }
 
 
@@ -168,6 +172,8 @@ async def test_every_call_hits_an_arcane_3_route(arcane3) -> None:
     assert ("GET", "/agents/{id}/system/df", None) in calls
     assert ("GET", "/agents/{id}/images/updates/releasenotes", None) in calls
     assert ("POST", "/agents/{id}/images/updates/check", "all") in calls
+    assert ("GET", "/agents/{id}/events/changes", None) in calls
+    assert ("GET", "/events/agent/{environmentId}", None) in calls
 
 
 async def test_actions_match_arcane(arcane3) -> None:

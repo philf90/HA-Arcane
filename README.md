@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.7.1.
+[Herkunft](#herkunft). Version 0.8.0.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -66,6 +66,7 @@ vorher ein Backup anlegen.
 - [Optionen](#optionen)
 - [Updates](#updates)
 - [Ereignisse](#ereignisse)
+- [Sofort aktualisieren](#sofort-aktualisieren)
 - [Abfragen](#abfragen)
 - [Gut zu wissen](#gut-zu-wissen)
 - [Herkunft](#herkunft)
@@ -104,6 +105,7 @@ ausgeschaltete Option nimmt ihre Rechte aus der Liste.
 | Versionshinweise der Container-Updates | `image-updates:read` |
 | Button „Nach Updates suchen“ | `image-updates:check` |
 | Freigebbarer Speicher (Option) | `system:read` |
+| Bei Änderungen sofort aktualisieren, Arcane-Ereignisprotokoll (Optionen) | `events:list` |
 
 Pflicht ist nur `environments:list`. Ein Schlüssel ohne die übrigen richtet sich
 trotzdem ein; was er nicht erreicht, bleibt leer, und Aktionen scheitern mit einer
@@ -166,10 +168,12 @@ Integration öffnen → **Konfigurieren**.
 
 - **Abfrage:** Intervall (30 s, 10 bis 3600), welche Umgebungen, ob Container,
   Compose-Projekte, Zähler, Hoststatistik und freigebbarer Speicher überhaupt
-  abgefragt werden; interne und versteckte Container nur auf Wunsch. Eine ausgeschaltete Option stoppt auch die
+  abgefragt werden, ob bei Änderungen sofort aktualisiert wird (siehe
+  [Sofort aktualisieren](#sofort-aktualisieren)); interne und versteckte Container
+  nur auf Wunsch. Eine ausgeschaltete Option stoppt auch die
   Abfragen dahinter.
 - **Entitäten:** Update-Entitäten, Health-Sensoren, Art vor dem Gerätenamen,
-  Container unter ihrem Projekt, Ereignisse.
+  Container unter ihrem Projekt, Ereignisse, Arcane-Ereignisprotokoll auf dem Bus.
 - **Steuerung:** ob Home Assistant überhaupt steuern darf, dazu Redeploy- und
   Prune-Buttons (beide standardmäßig aus).
 
@@ -238,6 +242,49 @@ erzwingt, endet ebenfalls mit 137. Nach einem Neustart von Home Assistant und f�
 neue Container feuert nichts. Ein Container, der innerhalb eines Abfrageintervalls
 abstürzt und neu startet, erscheint nicht.
 
+### Arcane-Ereignisprotokoll
+
+Mit der Option **Arcane-Ereignisprotokoll auf dem Bus** (standardmäßig aus) liest
+die Integration bei jeder Aktualisierung die neuesten 100 Einträge aus Arcanes
+eigenem Ereignisprotokoll und feuert für jeden neuen Eintrag `arcane_event`:
+
+| Ereignis | Daten |
+|---|---|
+| `arcane_event` | `type`, `severity`, `title`, `description`, `resource_type`, `resource_id`, `resource_name`, `username`, `timestamp`, `metadata`, `event_id`, `environment`, `environment_id` |
+
+Arcane schreibt dort Aktionen aus seiner Oberfläche und Ereignisse des
+Docker-Daemons hinein, etwa `container.oom` (Schwere `error`), `container.die`
+(`warning` bei Exit-Code ungleich 0), `container.unhealthy`, `image.pull`,
+`project.deploy`, `system.auto_update` oder `user.login`. `metadata` enthält bei
+Daemon-Ereignissen unter anderem `exitCode`, `signal`, `composeProject` und
+`composeService`. Anders als `oom_killed`, das aus Exit-Code 137 geschlossen wird,
+kommt `container.oom` direkt von Docker.
+
+Jeder Eintrag wird einmal gemeldet, älteste zuerst. Der erste Abruf nach dem Start
+markiert nur, was schon da ist; ein Neustart von Home Assistant spielt das
+Protokoll also nicht erneut ab. Kommen zwischen zwei Abrufen mehr als 100 Einträge
+dazu, fehlen die ältesten davon. Mit [Sofort aktualisieren](#sofort-aktualisieren)
+kommt ein neuer Eintrag nach wenigen Sekunden, sonst mit der nächsten Abfrage.
+
+## Sofort aktualisieren
+
+Mit der Option **Bei Änderungen sofort aktualisieren** (standardmäßig aus) hält die
+Integration je Umgebung eine Anfrage an `events/changes` offen. Arcane beantwortet
+sie, sobald sich in der Umgebung etwas ändert, spätestens nach 50 Sekunden; dann
+fragt die Integration sofort neu ab, statt auf das Intervall zu warten. Mehrere
+Änderungen kurz hintereinander enden in einer Aktualisierung (höchstens eine alle
+10 Sekunden). Die regelmäßige Abfrage läuft weiter; das Intervall kann mit der
+Option größer werden.
+
+- Fortschrittsmeldungen laufender Aktionen lösen keine Aktualisierung aus.
+- Nach einem Neustart von Arcane fragt die Integration einmal neu ab.
+- Fehlt das Recht `events:list` oder kennt Arcane den Pfad nicht, hört die
+  Überwachung auf, bis die Integration neu geladen wird; ein fehlendes Recht
+  erscheint als Reparatur. Bei anderen Fehlern versucht sie es nach 5 Sekunden
+  wieder, danach mit doppelter Pause bis höchstens 5 Minuten.
+- Die Diagnose zeigt unter `instant_updates` je Umgebung den Stand: Epoche,
+  Revision, Zahl der ausgelösten Aktualisierungen, letzte Änderung, Fehler.
+
 ## Abfragen
 
 Alle Pfade unter `<Adresse>/api/`, Schlüssel im Header `X-Api-Key`. Listen werden
@@ -266,14 +313,18 @@ dahinter.
 | `agents/{environment}/system/df` | GET | Option freigebbarer Speicher, höchstens alle 15 Minuten im Hintergrund, dazu sofort nach einem Prune | `system:read` |
 | `agents/{environment}/images/updates/releasenotes` | GET `?imageRef=…&digest=…`, bei neuem Tag `&version=…` | Update-Dialog geöffnet | `image-updates:read` |
 | `agents/{environment}/images/updates/check` | POST `?action=all` | Button „Nach Updates suchen“ | `image-updates:check` |
+| `agents/{environment}/events/changes` | GET `?epoch=…&since=…&wait=50`, bleibt bis zu 50 s offen | Option sofort aktualisieren, dauerhaft im Hintergrund | `events:list` |
+| `events/agent/{environment}` | GET `?sort=timestamp&order=desc&limit=100` | Option Arcane-Ereignisprotokoll, jede Abfrage | `events:list` |
 
 Die lokale Umgebung hat die ID `0`; ihre Arcane-Version kommt aus `app/version`
 und kostet keine eigene Abfrage. Welche Pfade Arcane 3.0.0 anbietet, steht mit
 Fundstelle im Quelltext in `tests/fixtures/arcane_routen_v3.0.0.json`, abgeglichen
 mit der OpenAPI-Datei einer laufenden Arcane-3.0.0-Instanz
-(`tests/fixtures/arcane_openapi_v3.0.0.json`). Mit allen Abfrage-Optionen an sind das je
-Durchlauf und Umgebung neun Anfragen, dazu höchstens alle 15 Minuten und nach jedem
-Prune `system/df`.
+(`tests/fixtures/arcane_openapi_v3.0.0.json`). Arcane 3.0.1 bietet dieselben 474
+Routen mit denselben Aktionen (Skript gegen Tag `v3.0.1` laufen lassen und
+verglichen). Mit allen Abfrage-Optionen an sind das je Durchlauf und Umgebung zehn
+Anfragen, dazu höchstens alle 15 Minuten und nach jedem Prune `system/df` und mit
+der Option sofort aktualisieren eine dauerhaft offene Anfrage.
 
 ## Gut zu wissen
 
@@ -322,6 +373,17 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
+- **0.8.x:** 207 automatische Tests. 0.8.0: 19 neue Tests in
+  `test_sofort_und_ereignisse.py`: Änderung löst sofort eine Aktualisierung aus,
+  die erste Antwort nicht, Fortschrittsmeldungen nicht, ein Neustart von Arcane
+  schon; fehlendes Recht und fehlender Pfad beenden die Überwachung, andere Fehler
+  führen zu wachsenden Pausen, eine Antwort ohne Epoche gilt als Fehler, schnelle
+  Antworten ohne Neuigkeiten zu einer kurzen Pause; die Überwachung folgt den
+  Umgebungen und endet mit dem Entladen; neue Einträge des Ereignisprotokolls
+  einmal und älteste zuerst, nicht beim ersten Abruf, keine verspäteten alten,
+  fehlerhafte übersprungen, nach einem Fehler nichts verloren. Gegenprobe: 16
+  Schutzmaßnahmen einzeln ausgebaut, jedes Mal schlug ein Test fehl.
+  **Nicht live geprüft.**
 - **0.7.x:** 188 automatische Tests. 0.7.1: 6 neue Tests in `test_speicher.py`:
   neuer Bericht sofort nach dem Prune, danach wieder das Intervall; ein Bericht,
   der vor dem Prune begann, bekommt einen zweiten; `report_started_at` ist der

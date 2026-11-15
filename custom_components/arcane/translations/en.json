@@ -69,6 +69,7 @@
           "monitor_resources": "Images, volumes and networks",
           "host_stats": "Host CPU, memory and disk",
           "disk_usage": "Reclaimable disk space",
+          "instant_updates": "Update instantly on changes",
           "include_internal": "Include internal containers",
           "include_hidden": "Include hidden containers"
         },
@@ -80,6 +81,7 @@
           "monitor_resources": "Poll the image, volume and network counts and the Docker version.",
           "host_stats": "Take one sample per update over a short lived WebSocket. Off by default because it is an extra connection per update.",
           "disk_usage": "Ask in the background, at most every 15 minutes, how much space unused images, stopped containers, unused volumes and the build cache hold. Off by default because Docker sizes every volume for it, which can take a while on large volumes.",
+          "instant_updates": "Keep one request per environment open that Arcane answers as soon as something changes, then update right away instead of waiting for the next interval. Polling continues as before.",
           "include_internal": "Also expose containers Arcane marks as internal.",
           "include_hidden": "Also expose containers hidden in the Arcane interface."
         }
@@ -91,14 +93,16 @@
           "health_sensors": "Health binary sensors",
           "entity_prefix": "Prefix device names with their kind",
           "nest_containers": "Nest containers under their project",
-          "events": "Fire events on the Home Assistant bus"
+          "events": "Fire events on the Home Assistant bus",
+          "arcane_events": "Arcane event log on the bus"
         },
         "data_description": {
           "update_entities": "Offer an update entity per container that redeploys it onto the newer image and shows release notes where Arcane finds them, plus a button per environment that checks for updates right away. An update Arcane holds back cannot be installed.",
           "health_sensors": "Add a Healthy sensor to containers that define a health check.",
           "entity_prefix": "Name devices Container x and Project x so a container and a project of the same name do not collide. Entity IDs that already exist keep their current name.",
           "nest_containers": "Show a container as a child device of the Compose project it belongs to.",
-          "events": "Fire arcane_container_state_changed, arcane_container_health_changed and arcane_project_state_changed so automations can react to crashes and health changes."
+          "events": "Fire arcane_container_state_changed, arcane_container_health_changed and arcane_project_state_changed so automations can react to crashes and health changes.",
+          "arcane_events": "Read Arcane's own event log on every update and fire arcane_event for each new entry, such as a container that ran out of memory, an image pull or a login."
         }
       },
       "control": {

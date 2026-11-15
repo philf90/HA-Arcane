@@ -32,6 +32,8 @@ async def async_get_config_entry_diagnostics(
             "missing": coordinator.missing_permissions,
         },
         "version": data.version,
+        "instant_updates": coordinator.change_watcher.diagnostics(),
+        "arcane_events": coordinator.arcane_events_diagnostics(),
         "environments": [
             {
                 "id": environment.id,

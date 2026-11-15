@@ -27,6 +27,8 @@ CONF_EVENTS: Final = "events"
 CONF_REDEPLOY_BUTTONS: Final = "redeploy_buttons"
 CONF_PRUNE_BUTTON: Final = "prune_button"
 CONF_DISK_USAGE: Final = "disk_usage"
+CONF_INSTANT_UPDATES: Final = "instant_updates"
+CONF_ARCANE_EVENTS: Final = "arcane_events"
 
 # Values of the prune button option. Containers and volumes are deliberately
 # never pruned: both destroy data that cannot be pulled back.
@@ -43,6 +45,26 @@ MAX_SCAN_INTERVAL: Final = 3600
 # answers it with a Docker disk usage report that sizes every volume, which can
 # take a while on a host with large volumes, and the figures change slowly.
 DISK_USAGE_INTERVAL: Final = 900
+
+# Arcane holds a request to ``events/changes`` open until something changes in
+# the environment, for at most 55 seconds (60 s proxy timeout minus 5 s). The
+# integration asks for a little less, so Arcane always answers before the
+# request times out on this side.
+CHANGES_WAIT: Final = 50
+# Seconds to wait before asking again after a failed request, doubled on every
+# further failure up to the maximum.
+CHANGES_RETRY_MIN: Final = 5
+CHANGES_RETRY_MAX: Final = 300
+# A reply that comes back sooner than this without news is followed by a pause
+# of that length, so a misbehaving server cannot make the loop spin.
+CHANGES_MIN_LOOP: Final = 1.0
+# Kinds of change that do not show up in any entity. Arcane reports the progress
+# of background activities as changes too, many per deploy.
+CHANGES_IGNORED_KINDS: Final = frozenset({"activity"})
+# Arcane events fetched per refresh and environment; Arcane's maximum page size.
+ARCANE_EVENTS_PAGE: Final = 100
+# Event IDs remembered per environment, so an event is never announced twice.
+ARCANE_EVENTS_SEEN: Final = 1000
 
 DEFAULT_OPTIONS: Final[dict[str, object]] = {
     "scan_interval": DEFAULT_SCAN_INTERVAL,
@@ -62,6 +84,8 @@ DEFAULT_OPTIONS: Final[dict[str, object]] = {
     CONF_REDEPLOY_BUTTONS: False,
     CONF_PRUNE_BUTTON: PRUNE_OFF,
     CONF_DISK_USAGE: False,
+    CONF_INSTANT_UPDATES: False,
+    CONF_ARCANE_EVENTS: False,
 }
 
 # Reserved ID of the environment Arcane manages directly.
@@ -106,6 +130,8 @@ HEALTH_STARTING: Final = "starting"
 EVENT_CONTAINER_STATE: Final = "arcane_container_state_changed"
 EVENT_CONTAINER_HEALTH: Final = "arcane_container_health_changed"
 EVENT_PROJECT_STATE: Final = "arcane_project_state_changed"
+# Every new entry of Arcane's own event log, with the option of the same name.
+EVENT_ARCANE: Final = "arcane_event"
 
 # Exit code Docker reports when the kernel OOM killer or a SIGKILL ended the
 # main process. It is the usual fingerprint of an out of memory kill.

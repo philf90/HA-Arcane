@@ -45,6 +45,7 @@ from .api import (
 )
 from .const import (
     CONF_ALLOW_CONTROL,
+    CONF_ARCANE_EVENTS,
     CONF_DISK_USAGE,
     CONF_ENTITY_PREFIX,
     CONF_ENVIRONMENTS,
@@ -53,6 +54,7 @@ from .const import (
     CONF_HOST_STATS,
     CONF_INCLUDE_HIDDEN,
     CONF_INCLUDE_INTERNAL,
+    CONF_INSTANT_UPDATES,
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
@@ -401,6 +403,7 @@ class ArcaneOptionsFlow(OptionsFlow):
                     vol.Required(CONF_MONITOR_RESOURCES): bool,
                     vol.Required(CONF_HOST_STATS): bool,
                     vol.Required(CONF_DISK_USAGE): bool,
+                    vol.Required(CONF_INSTANT_UPDATES): bool,
                     vol.Required(CONF_INCLUDE_INTERNAL): bool,
                     vol.Required(CONF_INCLUDE_HIDDEN): bool,
                 }
@@ -423,6 +426,7 @@ class ArcaneOptionsFlow(OptionsFlow):
                     vol.Required(CONF_ENTITY_PREFIX): bool,
                     vol.Required(CONF_NEST_CONTAINERS): bool,
                     vol.Required(CONF_EVENTS): bool,
+                    vol.Required(CONF_ARCANE_EVENTS): bool,
                 }
             ),
         )

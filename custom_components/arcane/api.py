@@ -510,6 +510,41 @@ class ArcaneClient:
         )
         return data if isinstance(data, dict) else {}
 
+    async def async_wait_for_changes(
+        self,
+        environment_id: str,
+        *,
+        epoch: str | None,
+        since: int,
+        wait: int,
+    ) -> dict[str, Any]:
+        """Wait until something changes in an environment, then say what.
+
+        Arcane answers at once when ``epoch`` differs from its own (it was
+        restarted, or this is the first call) or a kind of resource has a
+        revision above ``since``; otherwise it holds the request for up to
+        ``wait`` seconds and answers with the revisions as they are.
+        """
+        params = {"since": str(since), "wait": str(wait)}
+        if epoch:
+            params["epoch"] = epoch
+        data = await self._get_data(
+            self._url(AGENTS, environment_id, "events", "changes"),
+            params,
+            timeout=wait + 20,
+        )
+        return data if isinstance(data, dict) else {}
+
+    async def async_get_events(
+        self, environment_id: str, *, limit: int = 100
+    ) -> list[dict[str, Any]]:
+        """Return the newest entries of Arcane's event log for an environment."""
+        data = await self._get_data(
+            self._url("events", "agent", environment_id),
+            {"sort": "timestamp", "order": "desc", "limit": str(limit)},
+        )
+        return data if isinstance(data, list) else []
+
     async def async_check_image_updates(self, environment_id: str) -> None:
         """Ask Arcane to check every image for an update right now.
 
