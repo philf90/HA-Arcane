@@ -232,6 +232,75 @@
   },
   {
    "method": "GET",
+   "path": "/agents/{id}/gitops/syncs",
+   "quelle": "backend/internal/gitops/module.go:47"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/gitops/syncs",
+   "quelle": "backend/internal/gitops/module.go:61"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/gitops/syncs/import",
+   "quelle": "backend/internal/gitops/module.go:75"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/gitops/syncs/{syncId}",
+   "quelle": "backend/internal/gitops/module.go:104"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}",
+   "quelle": "backend/internal/gitops/module.go:87"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/gitops/syncs/{syncId}",
+   "quelle": "backend/internal/gitops/module.go:90"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/gitops/syncs/{syncId}",
+   "quelle": "backend/internal/gitops/module.go:118",
+   "param": "action",
+   "actions": [
+    "sync"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/backup/history",
+   "quelle": "backend/internal/gitops/module.go:176"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/backup/history/{commit}",
+   "quelle": "backend/internal/gitops/module.go:190"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/backup/preview",
+   "quelle": "backend/internal/gitops/module.go:162"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/backup/resolve",
+   "quelle": "backend/internal/gitops/module.go:204"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/files",
+   "quelle": "backend/internal/gitops/module.go:149"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/status",
+   "quelle": "backend/internal/gitops/module.go:136"
+  },
+  {
+   "method": "GET",
    "path": "/agents/{id}/images",
    "quelle": "backend/internal/image/module.go:103"
   },
@@ -254,6 +323,11 @@
    "method": "GET",
    "path": "/agents/{id}/images/counts",
    "quelle": "backend/internal/image/module.go:114"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/patches",
+   "quelle": "backend/internal/image/children/patch/module.go:19"
   },
   {
    "method": "GET",
@@ -336,6 +410,11 @@
    "quelle": "backend/internal/image/module.go:165"
   },
   {
+   "method": "POST",
+   "path": "/agents/{id}/images/{imageId}/patch",
+   "quelle": "backend/internal/image/children/patch/module.go:31"
+  },
+  {
    "method": "GET",
    "path": "/agents/{id}/images/{imageId}/vulnerabilities",
    "quelle": "backend/internal/vulnerability/children/query/module.go:14"
@@ -402,6 +481,27 @@
   },
   {
    "method": "GET",
+   "path": "/agents/{id}/jobs/{jobId}/runs",
+   "quelle": "backend/internal/job/module.go:93"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/jobs/{jobId}/runs/{runId}",
+   "quelle": "backend/internal/job/module.go:105"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/jobs/{jobId}/runs/{runId}",
+   "quelle": "backend/internal/job/module.go:117",
+   "param": "action",
+   "actions": [
+    "ack",
+    "cancel",
+    "retry"
+   ]
+  },
+  {
+   "method": "GET",
    "path": "/agents/{id}/networks",
    "quelle": "backend/internal/network/module.go:23"
   },
@@ -444,6 +544,151 @@
     "connect",
     "disconnect"
    ]
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/autoupdate",
+   "quelle": "backend/internal/podman/module.go:52"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/info",
+   "quelle": "backend/internal/podman/module.go:49"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/kube/down",
+   "quelle": "backend/internal/podman/children/kube/module.go:22"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/kube/generate",
+   "quelle": "backend/internal/podman/children/kube/module.go:25"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/kube/play",
+   "quelle": "backend/internal/podman/children/kube/module.go:19"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/pods",
+   "quelle": "backend/internal/podman/children/pods/module.go:19"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/pods",
+   "quelle": "backend/internal/podman/children/pods/module.go:29"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/pods/prune",
+   "quelle": "backend/internal/podman/children/pods/module.go:32"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/pods/stats",
+   "quelle": "backend/internal/podman/children/pods/module.go:35"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/podman/pods/{podId}",
+   "quelle": "backend/internal/podman/children/pods/module.go:60"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/pods/{podId}",
+   "quelle": "backend/internal/podman/children/pods/module.go:38"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/pods/{podId}",
+   "quelle": "backend/internal/podman/children/pods/module.go:43",
+   "param": "action",
+   "actions": [
+    "kill",
+    "pause",
+    "restart",
+    "start",
+    "stop",
+    "unpause"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/pods/{podId}/top",
+   "quelle": "backend/internal/podman/children/pods/module.go:41"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/quadlets",
+   "quelle": "backend/internal/podman/children/quadlets/module.go:19"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/quadlets",
+   "quelle": "backend/internal/podman/children/quadlets/module.go:29"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/podman/quadlets/{name}",
+   "quelle": "backend/internal/podman/children/quadlets/module.go:41"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/quadlets/{name}",
+   "quelle": "backend/internal/podman/children/quadlets/module.go:32"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/quadlets/{name}",
+   "quelle": "backend/internal/podman/children/quadlets/module.go:43",
+   "param": "action",
+   "actions": [
+    "restart",
+    "start",
+    "stop"
+   ]
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/podman/quadlets/{name}",
+   "quelle": "backend/internal/podman/children/quadlets/module.go:38"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/quadlets/{name}/file",
+   "quelle": "backend/internal/podman/children/quadlets/module.go:35"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/secrets",
+   "quelle": "backend/internal/podman/children/secrets/module.go:18"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/secrets",
+   "quelle": "backend/internal/podman/children/secrets/module.go:27"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/podman/secrets/{secretId}",
+   "quelle": "backend/internal/podman/children/secrets/module.go:36"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/secrets/{secretId}",
+   "quelle": "backend/internal/podman/children/secrets/module.go:30"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/podman/secrets/{secretId}",
+   "quelle": "backend/internal/podman/children/secrets/module.go:33"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/status",
+   "quelle": "backend/internal/podman/module.go:39"
   },
   {
    "method": "GET",
@@ -1110,6 +1355,26 @@
   },
   {
    "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/workspace",
+   "quelle": "backend/internal/volume/children/workspace/module.go:15"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/volumes/{volumeName}/workspace",
+   "quelle": "backend/internal/volume/children/workspace/module.go:42"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/workspace/file",
+   "quelle": "backend/internal/volume/children/workspace/module.go:18"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/workspace/file/download",
+   "quelle": "backend/internal/volume/children/workspace/module.go:31"
+  },
+  {
+   "method": "GET",
    "path": "/agents/{id}/vulnerabilities/all",
    "quelle": "backend/internal/vulnerability/children/query/module.go:82"
   },
@@ -1251,6 +1516,36 @@
    "quelle": "backend/internal/apikey/module.go:73"
   },
   {
+   "method": "POST",
+   "path": "/apns/devices",
+   "quelle": "backend/internal/apns/module.go:59"
+  },
+  {
+   "method": "DELETE",
+   "path": "/apns/devices/{id}",
+   "quelle": "backend/internal/apns/module.go:61"
+  },
+  {
+   "method": "PATCH",
+   "path": "/apns/devices/{id}",
+   "quelle": "backend/internal/apns/module.go:60"
+  },
+  {
+   "method": "POST",
+   "path": "/apns/devices/{id}",
+   "quelle": "backend/internal/apns/module.go:62"
+  },
+  {
+   "method": "POST",
+   "path": "/apns/pairing",
+   "quelle": "backend/internal/apns/module.go:50"
+  },
+  {
+   "method": "GET",
+   "path": "/apns/status",
+   "quelle": "backend/internal/apns/module.go:39"
+  },
+  {
    "method": "DELETE",
    "path": "/app/images/favicon",
    "quelle": "backend/internal/appimages/module.go:86"
@@ -1308,12 +1603,14 @@
   {
    "method": "GET",
    "path": "/auth/autologin",
-   "quelle": "backend/internal/auth/handler_buildables.go:34"
+   "quelle": "backend/internal/auth/handler_buildables.go:34",
+   "versteckt": true
   },
   {
    "method": "POST",
    "path": "/auth/autologin",
-   "quelle": "backend/internal/auth/handler_buildables.go:43"
+   "quelle": "backend/internal/auth/handler_buildables.go:43",
+   "versteckt": true
   },
   {
    "method": "GET",
@@ -1323,7 +1620,8 @@
   {
    "method": "POST",
    "path": "/auth/federated/token",
-   "quelle": "backend/internal/federated/module.go:18"
+   "quelle": "backend/internal/federated/module.go:18",
+   "versteckt": true
   },
   {
    "method": "POST",
@@ -1547,6 +1845,60 @@
   },
   {
    "method": "GET",
+   "path": "/backups/s3",
+   "quelle": "backend/internal/s3/module.go:44"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/s3",
+   "quelle": "backend/internal/s3/module.go:77"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/s3/options",
+   "quelle": "backend/internal/s3/module.go:54"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/s3/sync",
+   "quelle": "backend/internal/s3/module.go:64"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/s3/test",
+   "quelle": "backend/internal/s3/module.go:83"
+  },
+  {
+   "method": "DELETE",
+   "path": "/backups/s3/{id}",
+   "quelle": "backend/internal/s3/module.go:118"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/s3/{id}",
+   "quelle": "backend/internal/s3/module.go:74"
+  },
+  {
+   "method": "PATCH",
+   "path": "/backups/s3/{id}",
+   "quelle": "backend/internal/s3/module.go:80"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/s3/{id}",
+   "quelle": "backend/internal/s3/module.go:93",
+   "param": "action",
+   "actions": [
+    "test"
+   ]
+  },
+  {
+   "method": "GET",
+   "path": "/backups/s3/{id}/usage",
+   "quelle": "backend/internal/s3/module.go:108"
+  },
+  {
+   "method": "GET",
    "path": "/backups/volumes/config",
    "quelle": "backend/internal/system/children/backup/children/volumes/module.go:15"
   },
@@ -1568,52 +1920,62 @@
   {
    "method": "GET",
    "path": "/debug/pprof",
-   "quelle": "backend/api/handlers/diagnostics.go:55"
+   "quelle": "backend/api/handlers/diagnostics.go:55",
+   "versteckt": true
   },
   {
    "method": "GET",
    "path": "/debug/pprof/",
-   "quelle": "backend/api/handlers/diagnostics.go:64"
+   "quelle": "backend/api/handlers/diagnostics.go:64",
+   "versteckt": true
   },
   {
    "method": "GET",
    "path": "/debug/pprof/cmdline",
-   "quelle": "backend/api/handlers/diagnostics.go:73"
+   "quelle": "backend/api/handlers/diagnostics.go:73",
+   "versteckt": true
   },
   {
    "method": "GET",
    "path": "/debug/pprof/profile",
-   "quelle": "backend/api/handlers/diagnostics.go:82"
+   "quelle": "backend/api/handlers/diagnostics.go:82",
+   "versteckt": true
   },
   {
    "method": "GET",
    "path": "/debug/pprof/symbol",
-   "quelle": "backend/api/handlers/diagnostics.go:100"
+   "quelle": "backend/api/handlers/diagnostics.go:100",
+   "versteckt": true
   },
   {
    "method": "POST",
    "path": "/debug/pprof/symbol",
-   "quelle": "backend/api/handlers/diagnostics.go:91"
+   "quelle": "backend/api/handlers/diagnostics.go:91",
+   "versteckt": true
   },
   {
    "method": "GET",
    "path": "/debug/pprof/trace",
-   "quelle": "backend/api/handlers/diagnostics.go:109"
+   "quelle": "backend/api/handlers/diagnostics.go:109",
+   "versteckt": true
   },
   {
    "method": "GET",
    "path": "/debug/pprof/{name}",
-   "quelle": "backend/api/handlers/diagnostics.go:118"
+   "quelle": "backend/api/handlers/diagnostics.go:118",
+   "versteckt": true
   },
   {
    "method": "GET",
    "path": "/docs",
-   "quelle": "backend/api/api.go:255"
+   "quelle": "backend/api/api.go:255",
+   "versteckt": true
   },
   {
    "method": "GET",
    "path": "/docs/scalar.js",
-   "quelle": "backend/api/api.go:266"
+   "quelle": "backend/api/api.go:266",
+   "versteckt": true
   },
   {
    "method": "GET",
@@ -1643,7 +2005,8 @@
   {
    "method": "POST",
    "path": "/events",
-   "quelle": "backend/internal/event/module.go:41"
+   "quelle": "backend/internal/event/module.go:41",
+   "versteckt": true
   },
   {
    "method": "GET",
@@ -1687,12 +2050,52 @@
   },
   {
    "method": "POST",
+   "path": "/git/repositories/sync",
+   "quelle": "backend/internal/gitrepo/module.go:151"
+  },
+  {
+   "method": "GET",
+   "path": "/gitops/repositories",
+   "quelle": "backend/internal/gitrepo/module.go:43"
+  },
+  {
+   "method": "POST",
+   "path": "/gitops/repositories",
+   "quelle": "backend/internal/gitrepo/module.go:56"
+  },
+  {
+   "method": "DELETE",
+   "path": "/gitops/repositories/{id}",
+   "quelle": "backend/internal/gitrepo/module.go:95"
+  },
+  {
+   "method": "GET",
+   "path": "/gitops/repositories/{id}",
+   "quelle": "backend/internal/gitrepo/module.go:69"
+  },
+  {
+   "method": "PATCH",
+   "path": "/gitops/repositories/{id}",
+   "quelle": "backend/internal/gitrepo/module.go:82"
+  },
+  {
+   "method": "POST",
    "path": "/gitops/repositories/{id}",
    "quelle": "backend/internal/gitrepo/module.go:108",
    "param": "action",
    "actions": [
     "test"
    ]
+  },
+  {
+   "method": "GET",
+   "path": "/gitops/repositories/{id}/branches",
+   "quelle": "backend/internal/gitrepo/module.go:125"
+  },
+  {
+   "method": "GET",
+   "path": "/gitops/repositories/{id}/files",
+   "quelle": "backend/internal/gitrepo/module.go:138"
   },
   {
    "method": "GET",
@@ -1796,22 +2199,26 @@
   {
    "method": "DELETE",
    "path": "/playwright/apikeys",
-   "quelle": "backend/internal/playwright/handler.go:58"
+   "quelle": "backend/internal/playwright/handler.go:58",
+   "versteckt": true
   },
   {
    "method": "POST",
    "path": "/playwright/apikeys",
-   "quelle": "backend/internal/playwright/handler.go:49"
+   "quelle": "backend/internal/playwright/handler.go:49",
+   "versteckt": true
   },
   {
    "method": "POST",
    "path": "/playwright/federated",
-   "quelle": "backend/internal/playwright/handler.go:67"
+   "quelle": "backend/internal/playwright/handler.go:67",
+   "versteckt": true
   },
   {
    "method": "POST",
    "path": "/playwright/gitops",
-   "quelle": "backend/internal/playwright/handler.go:40"
+   "quelle": "backend/internal/playwright/handler.go:40",
+   "versteckt": true
   },
   {
    "method": "GET",
@@ -1945,7 +2352,8 @@
   {
    "method": "POST",
    "path": "/telemetry/{signal}",
-   "quelle": "backend/internal/telemetry/module.go:25"
+   "quelle": "backend/internal/telemetry/module.go:25",
+   "versteckt": true
   },
   {
    "method": "GET",
@@ -2029,7 +2437,8 @@
   {
    "method": "POST",
    "path": "/tunnel/mtls/enroll",
-   "quelle": "backend/internal/enrollment/module.go:50"
+   "quelle": "backend/internal/enrollment/module.go:50",
+   "versteckt": true
   },
   {
    "method": "GET",
@@ -2109,7 +2518,8 @@
   {
    "method": "POST",
    "path": "/webhooks/trigger/{token}",
-   "quelle": "backend/internal/webhook/module.go:40"
+   "quelle": "backend/internal/webhook/module.go:40",
+   "versteckt": true
   }
  ]
 }
