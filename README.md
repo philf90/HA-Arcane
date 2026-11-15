@@ -230,7 +230,9 @@ dahinter.
 
 Die lokale Umgebung hat die ID `0`; ihre Arcane-Version kommt aus `app/version`
 und kostet keine eigene Abfrage. Welche Pfade Arcane 3.0.0 anbietet, steht mit
-Fundstelle im Quelltext in `tests/fixtures/arcane_routen_v3.0.0.json`. Mit allen Abfrage-Optionen an sind das je
+Fundstelle im Quelltext in `tests/fixtures/arcane_routen_v3.0.0.json`, abgeglichen
+mit der OpenAPI-Datei einer laufenden Arcane-3.0.0-Instanz
+(`tests/fixtures/arcane_openapi_v3.0.0.json`). Mit allen Abfrage-Optionen an sind das je
 Durchlauf und Umgebung neun Anfragen.
 
 ## Gut zu wissen
@@ -276,9 +278,18 @@ Versionen 0.1.0 bis 0.4.0 hatten kein Release; ihre Einträge stehen in
 ## Teststand
 
 Automatische Tests laufen gegen Home Assistant 2026.2.3, die Pfade gegen die
-Routen von Arcane 3.0.0. Live geprüft ist im Fork noch nichts.
+Routen von Arcane 3.0.0. Live geprüft mit Arcane 3.0.0 und Home Assistant 2026.11.1:
+Einrichtung und alle lesenden Abfragen; die schreibenden Aktionen (Start, Stop,
+Neustart, Redeploy, Prune, Arcane-Update) nur im Vertragstest.
 
-- **0.6.x:** 154 automatische Tests. 0.6.1: 5 neue Tests (Geräte ohne das
+- **0.6.x:** 161 automatische Tests. Nach 0.6.1: 7 neue Tests in
+  `test_arcane_routen.py`; die Routen aus dem Arcane-Quelltext sind dieselben wie
+  in der OpenAPI-Datei einer laufenden Arcane-3.0.0-Instanz (bis auf WebSocket-,
+  versteckte und reine Agent-Routen), ebenso die erlaubten Werte von `?action=`,
+  und das Skript löst Pfad-Konstanten und Hilfsfunktionen auf. Bis dahin fehlten
+  in der Routenliste 72 Operationen. Gegenprobe: alte Routenliste, eine Aktion
+  gestrichen, Markierung „versteckt“ entfernt, Konstanten bzw. Hilfsfunktionen im
+  Skript abgeschaltet; jedes Mal schlug ein Test fehl. 0.6.1: 5 neue Tests (Geräte ohne das
   veraltete `via_device`, Suche über `async_get_device_by_identifier` mit
   Rückfall für ältere Home-Assistant-Versionen, Zertifikatswarnung nur bei
   `https://`); Gegenprobe: jede der drei Korrekturen einzeln zurückgenommen,
@@ -316,7 +327,10 @@ hat und dass jeder Pfad des API-Clients unter [Abfragen](#abfragen) steht.
 `test_arcane_vertrag.py` lässt den Client gegen einen Stub laufen, der nur die
 Routen von Arcane 3.0.0 kennt (`tests/fixtures/arcane_routen_v3.0.0.json`, erzeugt
 mit `python3 .github/scripts/arcane_routen.py <arcane-clone> v3.0.0`; das Skript
-liest den Go-Quelltext nur als Text). `test_entitaets_ids.py` hält `unique_id`s,
+liest den Go-Quelltext nur als Text). `test_arcane_routen.py` vergleicht diese
+Routen mit der Kurzfassung der OpenAPI-Datei, die Arcane ohne Anmeldung unter
+`<url>/api/openapi.json` ausliefert (`tests/fixtures/arcane_openapi_v3.0.0.json`,
+erzeugt mit `python3 .github/scripts/arcane_openapi.py openapi.json`). `test_entitaets_ids.py` hält `unique_id`s,
 Gerätemodelle, deutsche Entitätsnamen und Ereignisnamen fest, auf die Dashboards
 bauen.
 `test_translations.py` prüft, dass jeder Schlüssel aus Dialogen, Entitäten und

@@ -1,0 +1,2391 @@
+{
+ "arcane": "3.0.0",
+ "openapi": "3.1.0",
+ "operationen": [
+  {
+   "method": "GET",
+   "path": "/agent/mtls/ca",
+   "operationId": "downloadAgentMTLSCA"
+  },
+  {
+   "method": "GET",
+   "path": "/agents",
+   "operationId": "listEnvironments"
+  },
+  {
+   "method": "POST",
+   "path": "/agents",
+   "operationId": "createEnvironment"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/enroll",
+   "operationId": "enroll-agent"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/pair",
+   "operationId": "pairEnvironment"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}",
+   "operationId": "deleteEnvironment"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}",
+   "operationId": "getEnvironment"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}",
+   "operationId": "updateEnvironment"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/activities",
+   "operationId": "list-activities"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/activities/history",
+   "operationId": "clear-activity-history"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/activities/{activityId}",
+   "operationId": "get-activity"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/activities/{activityId}",
+   "operationId": "activity-action",
+   "query_enums": {
+    "action": [
+     "cancel"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/backups/history",
+   "operationId": "list-environment-backup-history"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/backups/{backupId}",
+   "operationId": "delete-system-backup"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/backups/{backupId}",
+   "operationId": "system-backup-action",
+   "query_enums": {
+    "action": [
+     "restore",
+     "restorefiles"
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/backups/{backupId}/files/browse",
+   "operationId": "browse-system-backup-files"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/backups/{backupId}/upload",
+   "operationId": "upload-system-backup"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/builds/workspace",
+   "operationId": "get-build-workspace"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/builds/workspace",
+   "operationId": "update-build-workspace"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/builds/workspace/file",
+   "operationId": "get-build-workspace-file"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/builds/workspace/file/download",
+   "operationId": "download-build-workspace-file"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/builds/workspace/upload",
+   "operationId": "upload-build-workspace-file"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers",
+   "operationId": "list-containers"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers",
+   "operationId": "create-container"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/compose",
+   "operationId": "generate-compose"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/counts",
+   "operationId": "container-status-counts"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/containers/{containerId}",
+   "operationId": "delete-container"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/{containerId}",
+   "operationId": "get-container"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/{containerId}",
+   "operationId": "container-action",
+   "query_enums": {
+    "action": [
+     "kill",
+     "pause",
+     "restart",
+     "start",
+     "stop",
+     "unpause"
+    ]
+   }
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/containers/{containerId}/autoupdate",
+   "operationId": "set-container-auto-update"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/{containerId}/commit",
+   "operationId": "commit-container"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/{containerId}/config",
+   "operationId": "get-container-edit-config"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/containers/{containerId}/config",
+   "operationId": "edit-container"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/{containerId}/logs/download",
+   "operationId": "download-container-logs"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/containers/{containerId}/processes",
+   "operationId": "get-container-processes"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/{containerId}/redeploy",
+   "operationId": "redeploy-container"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/containers/{containerId}/update",
+   "operationId": "update-container"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/deployment",
+   "operationId": "getDeploymentSnippets"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/deployment/mtls/bundle",
+   "operationId": "downloadEnvironmentMTLSBundle"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/deployment/mtls/{fileName}",
+   "operationId": "downloadEnvironmentMTLSFile"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/diagnostics/actors",
+   "operationId": "get-environment-actor-diagnostics"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/diagnostics/goroutines",
+   "operationId": "get-environment-goroutine-diagnostics"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/events/changes",
+   "operationId": "waitForEnvironmentChanges"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs",
+   "operationId": "listGitOpsSyncs"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/gitops/syncs",
+   "operationId": "createGitOpsSync"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/gitops/syncs/import",
+   "operationId": "importGitOpsSyncs"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/gitops/syncs/{syncId}",
+   "operationId": "deleteGitOpsSync"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}",
+   "operationId": "getGitOpsSync"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/gitops/syncs/{syncId}",
+   "operationId": "updateGitOpsSync"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/gitops/syncs/{syncId}",
+   "operationId": "gitOpsSyncAction",
+   "query_enums": {
+    "action": [
+     "sync"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/backup/history",
+   "operationId": "listGitOpsBackupHistory"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/backup/history/{commit}",
+   "operationId": "getGitOpsBackupRevision"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/backup/preview",
+   "operationId": "previewGitOpsBackup"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/backup/resolve",
+   "operationId": "resolveGitOpsBackupConflict"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/files",
+   "operationId": "browseGitOpsSyncFiles"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/gitops/syncs/{syncId}/status",
+   "operationId": "getGitOpsSyncStatus"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images",
+   "operationId": "list-images"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/build",
+   "operationId": "build-image"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/builds",
+   "operationId": "list-image-builds"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/builds/{buildId}",
+   "operationId": "get-image-build"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/counts",
+   "operationId": "get-image-usage-counts"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/patches",
+   "operationId": "list-image-patches"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/patches/targets",
+   "operationId": "list-image-patch-targets"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/prune",
+   "operationId": "prune-images"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/pull",
+   "operationId": "pull-image"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/search",
+   "operationId": "search-images"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/check",
+   "operationId": "check-image-update"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/updates/check",
+   "operationId": "check-images",
+   "query_enums": {
+    "action": [
+     "all",
+     "batch"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/check/{imageId}",
+   "operationId": "check-image-update-by-id"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/updates/check/{imageId}",
+   "operationId": "check-image-update-by-id-post"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/refs",
+   "operationId": "get-update-info-by-refs"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/releasenotes",
+   "operationId": "get-image-release-notes"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/updates/summary",
+   "operationId": "get-update-summary"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/upload",
+   "operationId": "upload-image"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/vulnerabilities/summaries",
+   "operationId": "get-image-vulnerability-summaries"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/images/{imageId}",
+   "operationId": "remove-image"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{imageId}",
+   "operationId": "get-image"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/{imageId}/patch",
+   "operationId": "patch-image"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{imageId}/vulnerabilities",
+   "operationId": "get-image-vulnerabilities"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{imageId}/vulnerabilities/list",
+   "operationId": "list-image-vulnerabilities"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/{imageId}/vulnerabilities/scan",
+   "operationId": "scan-image-vulnerabilities"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{imageId}/vulnerabilities/summary",
+   "operationId": "get-image-vulnerability-summary"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{name}/attestations",
+   "operationId": "get-image-attestations"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{name}/export",
+   "operationId": "export-image"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/images/{name}/history",
+   "operationId": "get-image-history"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/images/{name}/tag",
+   "operationId": "tag-image"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/jobs",
+   "operationId": "list-jobs"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/jobs/schedules",
+   "operationId": "get-job-schedules"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/jobs/schedules",
+   "operationId": "update-job-schedules"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/jobs/{jobId}",
+   "operationId": "job-action",
+   "query_enums": {
+    "action": [
+     "restart",
+     "run"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/jobs/{jobId}/runs",
+   "operationId": "list-job-runs"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/jobs/{jobId}/runs/{runId}",
+   "operationId": "get-job-run"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/jobs/{jobId}/runs/{runId}",
+   "operationId": "job-run-action",
+   "query_enums": {
+    "action": [
+     "ack",
+     "cancel",
+     "retry"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/networks",
+   "operationId": "list-networks"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/networks",
+   "operationId": "create-network"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/networks/counts",
+   "operationId": "network-counts"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/networks/prune",
+   "operationId": "prune-networks"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/networks/topology",
+   "operationId": "get-network-topology"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/networks/{networkId}",
+   "operationId": "delete-network"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/networks/{networkId}",
+   "operationId": "get-network"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/networks/{networkId}",
+   "operationId": "network-container-action",
+   "query_enums": {
+    "action": [
+     "connect",
+     "disconnect"
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/autoupdate",
+   "operationId": "run-podman-autoupdate"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/info",
+   "operationId": "get-podman-info"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/kube/down",
+   "operationId": "down-podman-kube"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/kube/generate",
+   "operationId": "generate-podman-kube"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/kube/play",
+   "operationId": "play-podman-kube"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/pods",
+   "operationId": "list-podman-pods"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/pods",
+   "operationId": "create-podman-pod"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/pods/prune",
+   "operationId": "prune-podman-pods"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/pods/stats",
+   "operationId": "get-podman-pod-stats"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/podman/pods/{podId}",
+   "operationId": "delete-podman-pod"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/pods/{podId}",
+   "operationId": "get-podman-pod"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/pods/{podId}",
+   "operationId": "podman-pod-action",
+   "query_enums": {
+    "action": [
+     "kill",
+     "pause",
+     "restart",
+     "start",
+     "stop",
+     "unpause"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/pods/{podId}/top",
+   "operationId": "get-podman-pod-top"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/quadlets",
+   "operationId": "list-podman-quadlets"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/quadlets",
+   "operationId": "install-podman-quadlet"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/podman/quadlets/{name}",
+   "operationId": "delete-podman-quadlet"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/quadlets/{name}",
+   "operationId": "get-podman-quadlet"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/quadlets/{name}",
+   "operationId": "podman-quadlet-action",
+   "query_enums": {
+    "action": [
+     "restart",
+     "start",
+     "stop"
+    ]
+   }
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/podman/quadlets/{name}",
+   "operationId": "update-podman-quadlet"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/quadlets/{name}/file",
+   "operationId": "get-podman-quadlet-file"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/secrets",
+   "operationId": "list-podman-secrets"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/podman/secrets",
+   "operationId": "create-podman-secret"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/podman/secrets/{secretId}",
+   "operationId": "delete-podman-secret"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/secrets/{secretId}",
+   "operationId": "get-podman-secret"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/podman/secrets/{secretId}",
+   "operationId": "update-podman-secret"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/podman/status",
+   "operationId": "get-podman-status"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/ports",
+   "operationId": "list-ports"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects",
+   "operationId": "list-projects"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/projects",
+   "operationId": "create-project"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/counts",
+   "operationId": "get-project-status-counts"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/directories",
+   "operationId": "list-project-directories",
+   "query_enums": {
+    "view": [
+     "projects",
+     "settings"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/references",
+   "operationId": "list-project-references"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/tags",
+   "operationId": "list-project-tags"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/projects/{projectId}",
+   "operationId": "destroy-project"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}",
+   "operationId": "get-project"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/projects/{projectId}",
+   "operationId": "update-project"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/projects/{projectId}",
+   "operationId": "project-action",
+   "query_enums": {
+    "action": [
+     "archive",
+     "down",
+     "restart",
+     "unarchive",
+     "updateservices"
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/projects/{projectId}/build",
+   "operationId": "build-project-images"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/compose",
+   "operationId": "get-project-compose"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/projects/{projectId}/deploy",
+   "operationId": "deploy-project",
+   "query_enums": {
+    "action": [
+     "pull",
+     "redeploy",
+     "up"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/runtime",
+   "operationId": "get-project-runtime"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/projects/{projectId}/tags",
+   "operationId": "update-project-tag"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/updates",
+   "operationId": "get-project-updates"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/workspace",
+   "operationId": "get-project-workspace"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/projects/{projectId}/workspace",
+   "operationId": "update-project-workspace"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/workspace/file",
+   "operationId": "get-project-workspace-file"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/projects/{projectId}/workspace/file/download",
+   "operationId": "download-project-workspace-file"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/settings",
+   "operationId": "get-environment-settings"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/settings",
+   "operationId": "update-environment-settings"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/settings/public",
+   "operationId": "get-public-settings"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/configs",
+   "operationId": "list-swarm-configs"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/configs",
+   "operationId": "create-swarm-config"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/configs/{configId}",
+   "operationId": "delete-swarm-config"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/configs/{configId}",
+   "operationId": "get-swarm-config"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/configs/{configId}",
+   "operationId": "update-swarm-config"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/info",
+   "operationId": "get-swarm-info"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/init",
+   "operationId": "init-swarm"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/join",
+   "operationId": "join-swarm"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/join/agents",
+   "operationId": "join-swarm-environments"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/join/candidates",
+   "operationId": "get-swarm-join-candidates"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/join/tokens",
+   "operationId": "get-swarm-join-tokens"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/join/tokens",
+   "operationId": "swarm-join-tokens-action",
+   "query_enums": {
+    "action": [
+     "rotate"
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/leave",
+   "operationId": "leave-swarm"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/nodes",
+   "operationId": "list-swarm-nodes"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/nodes/agents/reconcile",
+   "operationId": "reconcile-swarm-node-agents"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}",
+   "operationId": "delete-swarm-node"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}",
+   "operationId": "get-swarm-node"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}",
+   "operationId": "update-swarm-node"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}",
+   "operationId": "swarm-node-action",
+   "query_enums": {
+    "action": [
+     "demote",
+     "promote"
+    ]
+   }
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/agent/binding",
+   "operationId": "delete-swarm-node-agent-binding"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/agent/binding",
+   "operationId": "put-swarm-node-agent-binding"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/agent/deployment",
+   "operationId": "delete-swarm-node-agent-deployment"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/agent/deployment",
+   "operationId": "get-swarm-node-agent-deployment"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/nodes/{nodeId}/tasks",
+   "operationId": "list-swarm-node-tasks"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/secrets",
+   "operationId": "list-swarm-secrets"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/secrets",
+   "operationId": "create-swarm-secret"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/secrets/{secretId}",
+   "operationId": "delete-swarm-secret"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/secrets/{secretId}",
+   "operationId": "get-swarm-secret"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/secrets/{secretId}",
+   "operationId": "update-swarm-secret"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/services",
+   "operationId": "list-swarm-services"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/services",
+   "operationId": "create-swarm-service"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "operationId": "delete-swarm-service"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "operationId": "get-swarm-service"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "operationId": "scale-swarm-service"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "operationId": "swarm-service-action",
+   "query_enums": {
+    "action": [
+     "rollback"
+    ]
+   }
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/services/{serviceId}",
+   "operationId": "update-swarm-service"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/services/{serviceId}/tasks",
+   "operationId": "list-swarm-service-tasks"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/swarm/spec",
+   "operationId": "update-swarm-spec"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks",
+   "operationId": "list-swarm-stacks"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/stacks",
+   "operationId": "deploy-swarm-stack"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/stacks/config/render",
+   "operationId": "render-swarm-stack-config"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/swarm/stacks/{name}",
+   "operationId": "delete-swarm-stack"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks/{name}",
+   "operationId": "get-swarm-stack"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/stacks/{name}/down",
+   "operationId": "down-swarm-stack"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks/{name}/services",
+   "operationId": "list-swarm-stack-services"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks/{name}/source",
+   "operationId": "get-swarm-stack-source"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/swarm/stacks/{name}/source",
+   "operationId": "update-swarm-stack-source"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/stacks/{name}/tasks",
+   "operationId": "list-swarm-stack-tasks"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/stacks/{name}/up",
+   "operationId": "up-swarm-stack"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/status",
+   "operationId": "get-swarm-status"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/tasks",
+   "operationId": "list-swarm-tasks"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/swarm/unlock",
+   "operationId": "unlock-swarm"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/swarm/unlock/key",
+   "operationId": "get-swarm-unlock-key"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/sync",
+   "operationId": "syncEnvironment"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/containers",
+   "operationId": "system-containers-action",
+   "query_enums": {
+    "action": [
+     "startall",
+     "startstopped",
+     "stopall"
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/convert",
+   "operationId": "convert-docker-run"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/df",
+   "operationId": "df"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/docker/info",
+   "operationId": "get-docker-info"
+  },
+  {
+   "method": "HEAD",
+   "path": "/agents/{id}/system/health",
+   "operationId": "system-health"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/prune",
+   "operationId": "prune-all"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/upgrade",
+   "operationId": "trigger-upgrade"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/upgrade/check",
+   "operationId": "check-upgrade"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/system/upgrade/jobs",
+   "operationId": "start-upgrade-job"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/upgrade/jobs/current",
+   "operationId": "get-current-upgrade-job"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/system/upgrade/progress",
+   "operationId": "stream-upgrade-progress"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/test",
+   "operationId": "testConnection"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/tunnel/restart",
+   "operationId": "restartEnvironmentTunnel"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/updater/history",
+   "operationId": "get-updater-history"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/updater/projects/{projectId}/check",
+   "operationId": "check-project-updates"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/updater/run",
+   "operationId": "run-updater"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/updater/status",
+   "operationId": "get-updater-status"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/uploads/{kind}",
+   "operationId": "create-upload-session"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/uploads/{kind}/{uploadId}",
+   "operationId": "delete-upload-session"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/uploads/{kind}/{uploadId}",
+   "operationId": "get-upload-session"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/uploads/{kind}/{uploadId}/chunks/{index}",
+   "operationId": "upload-chunk"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/version",
+   "operationId": "getEnvironmentVersion"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes",
+   "operationId": "list-volumes"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes",
+   "operationId": "create-volume"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/backups/discover",
+   "operationId": "discover-volume-backups"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/volumes/backups/{backupId}",
+   "operationId": "delete-volume-backup"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/backups/{backupId}/download",
+   "operationId": "download-volume-backup"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/backups/{backupId}/files",
+   "operationId": "list-backup-files"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/backups/{backupId}/files/browse",
+   "operationId": "browse-volume-backup-files"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/backups/{backupId}/files/exists",
+   "operationId": "backup-has-path"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/backups/{backupId}/upload",
+   "operationId": "upload-retained-volume-backup-to-s3"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/counts",
+   "operationId": "get-volume-usage-counts"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/prune",
+   "operationId": "prune-volumes"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/sizes",
+   "operationId": "get-volume-sizes"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/volumes/{volumeName}",
+   "operationId": "remove-volume"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}",
+   "operationId": "get-volume"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/backups",
+   "operationId": "list-volume-backups"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/{volumeName}/backups",
+   "operationId": "create-volume-backup"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/backups/policy",
+   "operationId": "get-volume-backup-policy"
+  },
+  {
+   "method": "PUT",
+   "path": "/agents/{id}/volumes/{volumeName}/backups/policy",
+   "operationId": "update-volume-backup-policy"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/{volumeName}/backups/upload",
+   "operationId": "upload-volume-backup"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/{volumeName}/backups/{backupId}",
+   "operationId": "volume-backup-action",
+   "query_enums": {
+    "action": [
+     "restore",
+     "restorefiles"
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/volumes/{volumeName}/rename",
+   "operationId": "rename-volume"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/usage",
+   "operationId": "get-volume-usage"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/workspace",
+   "operationId": "get-volume-workspace"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/volumes/{volumeName}/workspace",
+   "operationId": "update-volume-workspace"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/workspace/file",
+   "operationId": "get-volume-workspace-file"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/volumes/{volumeName}/workspace/file/download",
+   "operationId": "download-volume-workspace-file"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/all",
+   "operationId": "list-environment-vulnerabilities"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/export",
+   "operationId": "export-environment-vulnerabilities"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/ignored",
+   "operationId": "list-ignored-vulnerabilities"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/vulnerabilities/ignored",
+   "operationId": "ignore-vulnerability"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/vulnerabilities/ignored/bulk",
+   "operationId": "bulk-ignored-vulnerabilities-action",
+   "query_enums": {
+    "action": [
+     "ignore",
+     "unignore"
+    ]
+   }
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/vulnerabilities/ignored/{ignoreId}",
+   "operationId": "unignore-vulnerability"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/images",
+   "operationId": "list-environment-vulnerability-image-options"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/overview",
+   "operationId": "get-environment-vulnerability-overview"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/scanner",
+   "operationId": "get-vulnerability-scanner-status"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/vulnerabilities/summary",
+   "operationId": "get-environment-vulnerability-summary"
+  },
+  {
+   "method": "GET",
+   "path": "/agents/{id}/webhooks",
+   "operationId": "list-webhooks"
+  },
+  {
+   "method": "POST",
+   "path": "/agents/{id}/webhooks",
+   "operationId": "create-webhook"
+  },
+  {
+   "method": "DELETE",
+   "path": "/agents/{id}/webhooks/{webhookId}",
+   "operationId": "delete-webhook"
+  },
+  {
+   "method": "PATCH",
+   "path": "/agents/{id}/webhooks/{webhookId}",
+   "operationId": "update-webhook"
+  },
+  {
+   "method": "GET",
+   "path": "/apikeys",
+   "operationId": "list-api-keys"
+  },
+  {
+   "method": "POST",
+   "path": "/apikeys",
+   "operationId": "create-api-key"
+  },
+  {
+   "method": "DELETE",
+   "path": "/apikeys/{id}",
+   "operationId": "delete-api-key"
+  },
+  {
+   "method": "GET",
+   "path": "/apikeys/{id}",
+   "operationId": "get-api-key"
+  },
+  {
+   "method": "PATCH",
+   "path": "/apikeys/{id}",
+   "operationId": "update-api-key"
+  },
+  {
+   "method": "POST",
+   "path": "/apns/devices",
+   "operationId": "register-apns-device"
+  },
+  {
+   "method": "DELETE",
+   "path": "/apns/devices/{id}",
+   "operationId": "delete-apns-device"
+  },
+  {
+   "method": "PATCH",
+   "path": "/apns/devices/{id}",
+   "operationId": "update-apns-device"
+  },
+  {
+   "method": "POST",
+   "path": "/apns/devices/{id}",
+   "operationId": "apns-device-action",
+   "query_enums": {
+    "action": [
+     "test"
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/apns/pairing",
+   "operationId": "create-apns-pairing-token"
+  },
+  {
+   "method": "GET",
+   "path": "/apns/status",
+   "operationId": "get-apns-status"
+  },
+  {
+   "method": "DELETE",
+   "path": "/app/images/favicon",
+   "operationId": "delete-favicon"
+  },
+  {
+   "method": "GET",
+   "path": "/app/images/favicon",
+   "operationId": "get-favicon"
+  },
+  {
+   "method": "PUT",
+   "path": "/app/images/favicon",
+   "operationId": "upload-favicon"
+  },
+  {
+   "method": "GET",
+   "path": "/app/images/logo",
+   "operationId": "get-logo"
+  },
+  {
+   "method": "DELETE",
+   "path": "/app/images/logo/{variant}",
+   "operationId": "delete-logo"
+  },
+  {
+   "method": "PUT",
+   "path": "/app/images/logo/{variant}",
+   "operationId": "upload-logo"
+  },
+  {
+   "method": "GET",
+   "path": "/app/images/profile",
+   "operationId": "get-default-profile"
+  },
+  {
+   "method": "DELETE",
+   "path": "/app/images/pwa",
+   "operationId": "delete-pwa-icon"
+  },
+  {
+   "method": "PUT",
+   "path": "/app/images/pwa",
+   "operationId": "upload-pwa-icon"
+  },
+  {
+   "method": "GET",
+   "path": "/app/images/pwa/{filename}",
+   "operationId": "get-pwa-icon"
+  },
+  {
+   "method": "GET",
+   "path": "/app/version",
+   "operationId": "getAppVersion"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/bootstrap",
+   "operationId": "get-session-bootstrap"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/login",
+   "operationId": "login"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/logout",
+   "operationId": "logout"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me",
+   "operationId": "get-current-user"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/apikeys",
+   "operationId": "list-my-api-keys"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/apikeys",
+   "operationId": "create-my-api-key"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/me/apikeys/{id}",
+   "operationId": "delete-my-api-key"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/me/avatar",
+   "operationId": "delete-my-avatar"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/avatar",
+   "operationId": "upload-my-avatar"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/me/backdrop",
+   "operationId": "delete-my-backdrop"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/backdrop",
+   "operationId": "get-my-backdrop"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/backdrop",
+   "operationId": "upload-my-backdrop"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/mfa",
+   "operationId": "get-passkey-mfa-status"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/mfa/disable",
+   "operationId": "disable-passkey-mfa"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/mfa/enable",
+   "operationId": "enable-passkey-mfa"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/mfa/recovery",
+   "operationId": "regenerate-passkey-recovery-codes",
+   "query_enums": {
+    "action": [
+     "regenerate"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/passkeys",
+   "operationId": "list-my-passkeys"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/me/passkeys/capabilities",
+   "operationId": "get-passkey-capabilities"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/reauth/begin",
+   "operationId": "begin-passkey-step-up"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/reauth/finish",
+   "operationId": "finish-passkey-step-up"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/reauth/password",
+   "operationId": "password-step-up"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/register/begin",
+   "operationId": "begin-passkey-registration"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/me/passkeys/register/finish",
+   "operationId": "finish-passkey-registration"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/me/passkeys/{id}",
+   "operationId": "delete-my-passkey"
+  },
+  {
+   "method": "PATCH",
+   "path": "/auth/me/passkeys/{id}",
+   "operationId": "rename-my-passkey"
+  },
+  {
+   "method": "PATCH",
+   "path": "/auth/me/profile",
+   "operationId": "update-my-profile"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/mfa/passkey/begin",
+   "operationId": "begin-passkey-mfa"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/mfa/passkey/finish",
+   "operationId": "finish-passkey-mfa"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/mfa/recovery",
+   "operationId": "use-passkey-recovery-code"
+  },
+  {
+   "method": "GET",
+   "path": "/auth/passkey/login/availability",
+   "operationId": "get-passkey-login-availability"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/passkey/login/begin",
+   "operationId": "begin-passkey-login"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/passkey/login/finish",
+   "operationId": "finish-passkey-login"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/passkey/mobile/exchange",
+   "operationId": "exchange-mobile-passkey-login"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/passkey/mobile/finish",
+   "operationId": "finish-mobile-passkey-login"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/password",
+   "operationId": "change-password"
+  },
+  {
+   "method": "POST",
+   "path": "/auth/refresh",
+   "operationId": "refresh-token"
+  },
+  {
+   "method": "DELETE",
+   "path": "/auth/sessions",
+   "operationId": "logout-all-other-sessions"
+  },
+  {
+   "method": "GET",
+   "path": "/backups",
+   "operationId": "list-system-backups"
+  },
+  {
+   "method": "POST",
+   "path": "/backups",
+   "operationId": "create-system-backup"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/discover",
+   "operationId": "discover-system-backups"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/history",
+   "operationId": "list-backup-history"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/policies",
+   "operationId": "get-system-backup-policies"
+  },
+  {
+   "method": "PUT",
+   "path": "/backups/policies",
+   "operationId": "update-system-backup-policies"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/recovery/key",
+   "operationId": "generate-system-backup-recovery-key",
+   "query_enums": {
+    "action": [
+     "generate"
+    ]
+   }
+  },
+  {
+   "method": "PUT",
+   "path": "/backups/recovery/key",
+   "operationId": "set-system-backup-recovery-key"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/s3",
+   "operationId": "list-s3-destinations"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/s3",
+   "operationId": "create-s3-destination"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/s3/options",
+   "operationId": "list-all-s3-destinations"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/s3/sync",
+   "operationId": "sync-s3-destinations"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/s3/test",
+   "operationId": "test-s3-destination-configuration"
+  },
+  {
+   "method": "DELETE",
+   "path": "/backups/s3/{id}",
+   "operationId": "delete-s3-destination"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/s3/{id}",
+   "operationId": "get-s3-destination"
+  },
+  {
+   "method": "PATCH",
+   "path": "/backups/s3/{id}",
+   "operationId": "update-s3-destination"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/s3/{id}",
+   "operationId": "s3-destination-action",
+   "query_enums": {
+    "action": [
+     "test"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/backups/s3/{id}/usage",
+   "operationId": "get-s3-destination-usage"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/volumes/config",
+   "operationId": "get-system-volume-backup-config"
+  },
+  {
+   "method": "PUT",
+   "path": "/backups/volumes/config",
+   "operationId": "update-system-volume-backup-config"
+  },
+  {
+   "method": "GET",
+   "path": "/backups/volumes/options",
+   "operationId": "list-system-volume-backup-options"
+  },
+  {
+   "method": "POST",
+   "path": "/backups/volumes/run",
+   "operationId": "run-system-volume-backups"
+  },
+  {
+   "method": "GET",
+   "path": "/enrollment-tokens",
+   "operationId": "list-enrollment-tokens"
+  },
+  {
+   "method": "POST",
+   "path": "/enrollment-tokens",
+   "operationId": "create-enrollment-token"
+  },
+  {
+   "method": "DELETE",
+   "path": "/enrollment-tokens/{id}",
+   "operationId": "delete-enrollment-token"
+  },
+  {
+   "method": "GET",
+   "path": "/enrollment-tokens/{id}/token",
+   "operationId": "get-enrollment-token-secret"
+  },
+  {
+   "method": "GET",
+   "path": "/events",
+   "operationId": "listEvents"
+  },
+  {
+   "method": "GET",
+   "path": "/events/agent/{environmentId}",
+   "operationId": "getEventsByEnvironment"
+  },
+  {
+   "method": "GET",
+   "path": "/events/stats",
+   "operationId": "getEventStats"
+  },
+  {
+   "method": "DELETE",
+   "path": "/events/{eventId}",
+   "operationId": "deleteEvent"
+  },
+  {
+   "method": "GET",
+   "path": "/federated/credentials",
+   "operationId": "list-federated-credentials"
+  },
+  {
+   "method": "POST",
+   "path": "/federated/credentials",
+   "operationId": "create-federated-credential"
+  },
+  {
+   "method": "DELETE",
+   "path": "/federated/credentials/{id}",
+   "operationId": "delete-federated-credential"
+  },
+  {
+   "method": "GET",
+   "path": "/federated/credentials/{id}",
+   "operationId": "get-federated-credential"
+  },
+  {
+   "method": "PATCH",
+   "path": "/federated/credentials/{id}",
+   "operationId": "update-federated-credential"
+  },
+  {
+   "method": "POST",
+   "path": "/git/repositories/sync",
+   "operationId": "syncGitRepositories"
+  },
+  {
+   "method": "GET",
+   "path": "/gitops/repositories",
+   "operationId": "listGitRepositories"
+  },
+  {
+   "method": "POST",
+   "path": "/gitops/repositories",
+   "operationId": "createGitRepository"
+  },
+  {
+   "method": "DELETE",
+   "path": "/gitops/repositories/{id}",
+   "operationId": "deleteGitRepository"
+  },
+  {
+   "method": "GET",
+   "path": "/gitops/repositories/{id}",
+   "operationId": "getGitRepository"
+  },
+  {
+   "method": "PATCH",
+   "path": "/gitops/repositories/{id}",
+   "operationId": "updateGitRepository"
+  },
+  {
+   "method": "POST",
+   "path": "/gitops/repositories/{id}",
+   "operationId": "gitRepositoryAction",
+   "query_enums": {
+    "action": [
+     "test"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/gitops/repositories/{id}/branches",
+   "operationId": "listGitRepositoryBranches"
+  },
+  {
+   "method": "GET",
+   "path": "/gitops/repositories/{id}/files",
+   "operationId": "browseGitRepositoryFiles"
+  },
+  {
+   "method": "GET",
+   "path": "/health",
+   "operationId": "health-check"
+  },
+  {
+   "method": "HEAD",
+   "path": "/health",
+   "operationId": "health-check-head"
+  },
+  {
+   "method": "GET",
+   "path": "/health/ready",
+   "operationId": "health-ready"
+  },
+  {
+   "method": "POST",
+   "path": "/notifications/dispatch",
+   "operationId": "dispatch-notification"
+  },
+  {
+   "method": "GET",
+   "path": "/notifications/settings",
+   "operationId": "get-all-notification-settings"
+  },
+  {
+   "method": "POST",
+   "path": "/notifications/settings",
+   "operationId": "create-or-update-notification-settings"
+  },
+  {
+   "method": "DELETE",
+   "path": "/notifications/settings/{provider}",
+   "operationId": "delete-notification-settings"
+  },
+  {
+   "method": "GET",
+   "path": "/notifications/settings/{provider}",
+   "operationId": "get-notification-settings"
+  },
+  {
+   "method": "POST",
+   "path": "/notifications/settings/{provider}",
+   "operationId": "notification-settings-action",
+   "query_enums": {
+    "action": [
+     "test"
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/callback",
+   "operationId": "handle-oidc-callback"
+  },
+  {
+   "method": "GET",
+   "path": "/oidc/config",
+   "operationId": "get-oidc-config"
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/device/code",
+   "operationId": "initiate-oidc-device-auth"
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/device/token",
+   "operationId": "exchange-oidc-device-token"
+  },
+  {
+   "method": "GET",
+   "path": "/oidc/mappings",
+   "operationId": "list-oidc-role-mappings"
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/mappings",
+   "operationId": "create-oidc-role-mapping"
+  },
+  {
+   "method": "DELETE",
+   "path": "/oidc/mappings/{id}",
+   "operationId": "delete-oidc-role-mapping"
+  },
+  {
+   "method": "PATCH",
+   "path": "/oidc/mappings/{id}",
+   "operationId": "update-oidc-role-mapping"
+  },
+  {
+   "method": "GET",
+   "path": "/oidc/status",
+   "operationId": "get-oidc-status"
+  },
+  {
+   "method": "POST",
+   "path": "/oidc/url",
+   "operationId": "get-oidc-auth-url"
+  },
+  {
+   "method": "GET",
+   "path": "/registries",
+   "operationId": "listContainerRegistries"
+  },
+  {
+   "method": "POST",
+   "path": "/registries",
+   "operationId": "createContainerRegistry"
+  },
+  {
+   "method": "POST",
+   "path": "/registries/sync",
+   "operationId": "syncContainerRegistries"
+  },
+  {
+   "method": "GET",
+   "path": "/registries/usage",
+   "operationId": "getContainerRegistryPullUsage"
+  },
+  {
+   "method": "DELETE",
+   "path": "/registries/{id}",
+   "operationId": "deleteContainerRegistry"
+  },
+  {
+   "method": "GET",
+   "path": "/registries/{id}",
+   "operationId": "getContainerRegistry"
+  },
+  {
+   "method": "PATCH",
+   "path": "/registries/{id}",
+   "operationId": "updateContainerRegistry"
+  },
+  {
+   "method": "POST",
+   "path": "/registries/{id}",
+   "operationId": "containerRegistryAction",
+   "query_enums": {
+    "action": [
+     "test"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/registries/{id}/repositories",
+   "operationId": "listContainerRegistryRepositories"
+  },
+  {
+   "method": "DELETE",
+   "path": "/registries/{id}/tags",
+   "operationId": "deleteContainerRegistryTag"
+  },
+  {
+   "method": "GET",
+   "path": "/registries/{id}/tags",
+   "operationId": "listContainerRegistryTags"
+  },
+  {
+   "method": "GET",
+   "path": "/roles",
+   "operationId": "list-roles"
+  },
+  {
+   "method": "POST",
+   "path": "/roles",
+   "operationId": "create-role"
+  },
+  {
+   "method": "GET",
+   "path": "/roles/permissions",
+   "operationId": "get-permissions-manifest"
+  },
+  {
+   "method": "DELETE",
+   "path": "/roles/{id}",
+   "operationId": "delete-role"
+  },
+  {
+   "method": "GET",
+   "path": "/roles/{id}",
+   "operationId": "get-role"
+  },
+  {
+   "method": "PATCH",
+   "path": "/roles/{id}",
+   "operationId": "update-role"
+  },
+  {
+   "method": "GET",
+   "path": "/settings",
+   "operationId": "get-settings"
+  },
+  {
+   "method": "PATCH",
+   "path": "/settings",
+   "operationId": "update-settings"
+  },
+  {
+   "method": "GET",
+   "path": "/settings/authentication",
+   "operationId": "get-authentication-settings"
+  },
+  {
+   "method": "PATCH",
+   "path": "/settings/authentication",
+   "operationId": "update-authentication-settings"
+  },
+  {
+   "method": "GET",
+   "path": "/settings/categories",
+   "operationId": "get-settings-categories"
+  },
+  {
+   "method": "POST",
+   "path": "/settings/search",
+   "operationId": "search-settings"
+  },
+  {
+   "method": "GET",
+   "path": "/stream",
+   "operationId": "streamClient"
+  },
+  {
+   "method": "GET",
+   "path": "/swarm/identity",
+   "operationId": "get-swarm-node-identity"
+  },
+  {
+   "method": "GET",
+   "path": "/templates",
+   "operationId": "listTemplatesPaginated"
+  },
+  {
+   "method": "POST",
+   "path": "/templates",
+   "operationId": "createTemplate"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/all",
+   "operationId": "getAllTemplates"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/default",
+   "operationId": "getDefaultTemplates"
+  },
+  {
+   "method": "POST",
+   "path": "/templates/default",
+   "operationId": "saveDefaultTemplates"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/fetch",
+   "operationId": "fetchTemplateRegistry"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/registries",
+   "operationId": "getTemplateRegistries"
+  },
+  {
+   "method": "POST",
+   "path": "/templates/registries",
+   "operationId": "createTemplateRegistry"
+  },
+  {
+   "method": "DELETE",
+   "path": "/templates/registries/{id}",
+   "operationId": "deleteTemplateRegistry"
+  },
+  {
+   "method": "PATCH",
+   "path": "/templates/registries/{id}",
+   "operationId": "updateTemplateRegistry"
+  },
+  {
+   "method": "DELETE",
+   "path": "/templates/{id}",
+   "operationId": "deleteTemplate"
+  },
+  {
+   "method": "GET",
+   "path": "/templates/{id}",
+   "operationId": "getTemplate"
+  },
+  {
+   "method": "PATCH",
+   "path": "/templates/{id}",
+   "operationId": "updateTemplate"
+  },
+  {
+   "method": "POST",
+   "path": "/templates/{id}",
+   "operationId": "templateAction",
+   "query_enums": {
+    "action": [
+     "download"
+    ]
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/templates/{id}/content",
+   "operationId": "getTemplateContent"
+  },
+  {
+   "method": "GET",
+   "path": "/users",
+   "operationId": "listUsers"
+  },
+  {
+   "method": "POST",
+   "path": "/users",
+   "operationId": "createUser"
+  },
+  {
+   "method": "DELETE",
+   "path": "/users/{userId}",
+   "operationId": "deleteUser"
+  },
+  {
+   "method": "GET",
+   "path": "/users/{userId}",
+   "operationId": "getUser"
+  },
+  {
+   "method": "PATCH",
+   "path": "/users/{userId}",
+   "operationId": "updateUser"
+  },
+  {
+   "method": "GET",
+   "path": "/users/{userId}/avatar",
+   "operationId": "getUserAvatar"
+  },
+  {
+   "method": "GET",
+   "path": "/users/{userId}/roles",
+   "operationId": "list-user-role-assignments"
+  },
+  {
+   "method": "PUT",
+   "path": "/users/{userId}/roles",
+   "operationId": "set-user-role-assignments"
+  },
+  {
+   "method": "GET",
+   "path": "/variables",
+   "operationId": "listVariables"
+  },
+  {
+   "method": "POST",
+   "path": "/variables",
+   "operationId": "createVariable"
+  },
+  {
+   "method": "GET",
+   "path": "/variables/sync",
+   "operationId": "getVariableSyncStatus"
+  },
+  {
+   "method": "POST",
+   "path": "/variables/sync",
+   "operationId": "syncVariables"
+  },
+  {
+   "method": "DELETE",
+   "path": "/variables/{id}",
+   "operationId": "deleteVariable"
+  },
+  {
+   "method": "PATCH",
+   "path": "/variables/{id}",
+   "operationId": "updateVariable"
+  },
+  {
+   "method": "GET",
+   "path": "/version",
+   "operationId": "getVersion"
+  }
+ ]
+}
