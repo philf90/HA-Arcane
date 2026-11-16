@@ -97,7 +97,8 @@
           "events": "Events auf dem Home Assistant Bus auslösen",
           "arcane_events": "Arcane Ereignisprotokoll auf dem Bus",
           "updater": "Arcane Updater",
-          "jobs": "Arcane Hintergrund-Jobs"
+          "jobs": "Arcane Hintergrund-Jobs",
+          "ports": "Veröffentlichte Ports"
         },
         "data_description": {
           "update_entities": "Für jeden Container eine Update Entität, die das neuere Image über Arcanes Updater installiert und Versionshinweise zeigt, wo Arcane welche findet, dazu je Environment ein Button, der sofort nach Updates sucht. Ein Update, das Arcane zurückhält, lässt sich nicht installieren.",
@@ -108,7 +109,8 @@
           "events": "Löst arcane_container_state_changed, arcane_container_health_changed und arcane_project_state_changed aus, damit Automatisierungen auf Abstürze und Health Wechsel reagieren können.",
           "arcane_events": "Bei jeder Aktualisierung Arcanes eigenes Ereignisprotokoll lesen und für jeden neuen Eintrag arcane_event feuern, etwa für einen Container ohne Speicher, einen Image Pull oder eine Anmeldung.",
           "updater": "Je Environment ein Button, der alle ausstehenden Updates so installiert wie Arcanes geplante Updates, ein Sensor, der zeigt, dass Updates installiert werden, und einer mit dem letzten Update, das Arcane eingespielt hat.",
-          "jobs": "Je Hintergrund-Job von Arcane, etwa die automatischen Updates oder die Suche nach Image-Updates, ein Sensor mit dem Ergebnis des letzten Laufs, dem nächsten Lauf und dem letzten Fehler. Ist Steuerung erlaubt, dazu je Job ein Button, der ihn sofort ausführt."
+          "jobs": "Je Hintergrund-Job von Arcane, etwa die automatischen Updates oder die Suche nach Image-Updates, ein Sensor mit dem Ergebnis des letzten Laufs, dem nächsten Lauf und dem letzten Fehler. Ist Steuerung erlaubt, dazu je Job ein Button, der ihn sofort ausführt.",
+          "ports": "Jeder Container bekommt einen Diagnose-Sensor Ports mit seinen veröffentlichten Ports, etwa 8080→80/tcp, jedes Environment einen Sensor mit der Zahl der belegten Host-Ports und ihrer Liste samt Container. Braucht keine zusätzliche Abfrage; Docker nennt Ports nur bei laufenden Containern."
         }
       },
       "control": {
@@ -431,6 +433,25 @@
         "state_attributes": {
           "reason": {
             "name": "Grund"
+          }
+        }
+      },
+      "container_ports": {
+        "name": "Ports",
+        "state_attributes": {
+          "published": {
+            "name": "Veröffentlicht"
+          },
+          "exposed": {
+            "name": "Nur freigegeben"
+          }
+        }
+      },
+      "host_ports": {
+        "name": "Belegte Host-Ports",
+        "state_attributes": {
+          "ports": {
+            "name": "Ports"
           }
         }
       }

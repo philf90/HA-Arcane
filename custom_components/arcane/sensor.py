@@ -14,6 +14,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    MAX_LENGTH_STATE_STATE,
     PERCENTAGE,
     EntityCategory,
     UnitOfInformation,
@@ -33,6 +34,7 @@ from .const import (
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
+    CONF_PORTS,
     CONF_UPDATER,
     CONTAINER_STATES,
     JOB_RUN_STATUSES,
@@ -58,6 +60,9 @@ class ArcaneEnvironmentSensorDescription(SensorEntityDescription):
     value_fn: Callable[[ArcaneEnvironment], StateType]
     #: Option that has to be on for this sensor to have anything to report.
     requires: str
+    #: Whether the sensor also needs the containers, which only come with
+    #: the option to monitor them.
+    requires_containers: bool = False
     #: State attributes, if the sensor has any.
     attributes_fn: Callable[[ArcaneEnvironment], dict[str, Any] | None] | None = None
 
@@ -77,6 +82,8 @@ class ArcaneContainerSensorDescription(SensorEntityDescription):
     """Describes an Arcane container sensor."""
 
     value_fn: Callable[[ArcaneContainer], StateType | datetime]
+    #: State attributes, if the sensor has any.
+    attributes_fn: Callable[[ArcaneContainer], dict[str, Any] | None] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -127,6 +134,44 @@ def _reclaimable(key: str) -> ArcaneEnvironmentSensorDescription:
 
 
 # Sensor key suffix and the field of Arcane's ``system/df`` reply it reports.
+#: State of the ports sensor of a container that publishes no port. A dash
+#: needs no translation, which a sensor's free text state cannot have.
+NO_PUBLISHED_PORTS = "–"
+
+
+def _ports_text(container: ArcaneContainer) -> str:
+    """Return the published ports of a container, e.g. 8080→80/tcp, 53→53/udp."""
+    text = ", ".join(str(port) for port in container.published_ports)
+    if len(text) > MAX_LENGTH_STATE_STATE:
+        # Home Assistant refuses longer states; the full list is an attribute.
+        text = text[: MAX_LENGTH_STATE_STATE - 1] + "…"
+    return text or NO_PUBLISHED_PORTS
+
+
+def _ports_attributes(container: ArcaneContainer) -> dict[str, Any]:
+    """Return the published and the only exposed ports of a container."""
+    return {
+        "published": [str(port) for port in container.published_ports],
+        "exposed": [str(port) for port in container.ports if not port.published],
+    }
+
+
+def _host_ports_attributes(environment: ArcaneEnvironment) -> dict[str, Any]:
+    """Return every port bound on the host with the container holding it."""
+    return {
+        "ports": [
+            {
+                "host_port": port.host_port,
+                "protocol": port.protocol,
+                "host_ip": port.host_ip,
+                "container": name,
+                "container_port": port.container_port,
+            }
+            for port, name in environment.host_ports
+        ]
+    }
+
+
 RECLAIMABLE_FIELDS: dict[str, str] = {
     "images": "unusedImagesBytes",
     "containers": "stoppedContainersBytes",
@@ -307,6 +352,15 @@ ENVIRONMENT_SENSORS: tuple[ArcaneEnvironmentSensorDescription, ...] = (
         value_fn=lambda environment: _host(environment, "disk_used"),
     ),
     *(_reclaimable(key) for key in RECLAIMABLE_FIELDS),
+    ArcaneEnvironmentSensorDescription(
+        key="host_ports",
+        requires=CONF_PORTS,
+        requires_containers=True,
+        translation_key="host_ports",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda environment: len(environment.host_ports),
+        attributes_fn=_host_ports_attributes,
+    ),
 )
 
 CONTAINER_SENSORS: tuple[ArcaneContainerSensorDescription, ...] = (
@@ -337,6 +391,14 @@ CONTAINER_SENSORS: tuple[ArcaneContainerSensorDescription, ...] = (
         entity_registry_enabled_default=False,
         value_fn=lambda container: container.created,
     ),
+)
+
+CONTAINER_PORTS_SENSOR = ArcaneContainerSensorDescription(
+    key="ports",
+    translation_key="container_ports",
+    entity_category=EntityCategory.DIAGNOSTIC,
+    value_fn=_ports_text,
+    attributes_fn=_ports_attributes,
 )
 
 ARCANE_VERSION_SENSOR = SensorEntityDescription(
@@ -437,6 +499,10 @@ async def async_setup_entry(
                 ArcaneEnvironmentSensor(coordinator, environment_id, description)
                 for description in ENVIRONMENT_SENSORS
                 if coordinator.option(description.requires)
+                and (
+                    not description.requires_containers
+                    or coordinator.option(CONF_MONITOR_CONTAINERS)
+                )
             ),
             ArcaneVersionSensor(coordinator, environment_id, ARCANE_VERSION_SENSOR),
             *(
@@ -456,7 +522,10 @@ async def async_setup_entry(
         ],
         containers=lambda environment_id, name: [
             ArcaneContainerSensor(coordinator, environment_id, name, description)
-            for description in CONTAINER_SENSORS
+            for description in (
+                *CONTAINER_SENSORS,
+                *((CONTAINER_PORTS_SENSOR,) if coordinator.option(CONF_PORTS) else ()),
+            )
         ],
         projects=lambda environment_id, project_id: [
             ArcaneProjectSensor(coordinator, environment_id, project_id, description)
@@ -522,6 +591,14 @@ class ArcaneContainerSensor(ArcaneContainerEntity, SensorEntity):
         if (container := self.container) is None:
             return None
         return self.entity_description.value_fn(container)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the state attributes, if the sensor has any."""
+        attributes_fn = self.entity_description.attributes_fn
+        if attributes_fn is None or (container := self.container) is None:
+            return None
+        return attributes_fn(container)
 
 
 class ArcaneProjectSensor(ArcaneProjectEntity, SensorEntity):

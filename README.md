@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.11.1.
+[Herkunft](#herkunft). Version 0.12.0.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -66,6 +66,7 @@ vorher ein Backup anlegen.
 - [Optionen](#optionen)
 - [Updates](#updates)
 - [Hintergrund-Jobs](#hintergrund-jobs)
+- [Ports](#ports)
 - [Mehrere Hosts](#mehrere-hosts)
 - [Ereignisse](#ereignisse)
 - [Sofort aktualisieren](#sofort-aktualisieren)
@@ -147,6 +148,7 @@ Namen wie auf einer deutschen Instanz; die Entity-IDs bildet Home Assistant dara
 | Alle Updates installieren | Button | Option Arcane Updater, mit Steuerung |
 | Job …, je Job von Arcane (etwa „Job Auto Update“) | Sensor | Option Arcane Hintergrund-Jobs, Diagnose; siehe [Hintergrund-Jobs](#hintergrund-jobs) |
 | Job … ausführen | Button | Option Arcane Hintergrund-Jobs, mit Steuerung, nur für Jobs, die Arcane von Hand starten lässt |
+| Belegte Host-Ports | Sensor | Option Veröffentlichte Ports; Anzahl, Attribut `ports` mit Port, Protokoll, Adresse und Container; siehe [Ports](#ports) |
 
 ### Container
 
@@ -159,6 +161,7 @@ Namen wie auf einer deutschen Instanz; die Entity-IDs bildet Home Assistant dara
 | Healthy | Binärsensor | nur mit Healthcheck |
 | Zustand, Status | Sensor | `running`, `exited`, `paused` usw. |
 | Image, Erstellt | Sensor | Diagnose |
+| Ports | Sensor | Option Veröffentlichte Ports, Diagnose; etwa `8080→80/tcp`, Attribute `published`, `exposed` |
 | Neustarten | Button | |
 | Redeploy | Button | standardmäßig aus |
 
@@ -189,8 +192,9 @@ Integration öffnen → **Konfigurieren**.
   Abfragen dahinter.
 - **Entitäten:** Update-Entitäten, Health-Sensoren, Art vor dem Gerätenamen,
   Environment im Gerätenamen, Container unter ihrem Projekt, Ereignisse,
-  Arcane-Ereignisprotokoll auf dem Bus, Arcane Updater und Arcane Hintergrund-Jobs
-  (Environment im Gerätenamen und die letzten drei standardmäßig aus).
+  Arcane-Ereignisprotokoll auf dem Bus, Arcane Updater, Arcane Hintergrund-Jobs und
+  Veröffentlichte Ports (Environment im Gerätenamen und die letzten vier
+  standardmäßig aus).
 - **Steuerung:** ob Home Assistant überhaupt steuern darf, dazu Redeploy- und
   Prune-Buttons und Auto-Update-Schalter (alle standardmäßig aus).
 
@@ -318,6 +322,30 @@ auf den Zustand `failed` reagieren oder darauf, dass `next_run` lange vorbei ist
 ohne dass ein neuer Lauf kam. Jobs, die Arcane unter einem anderen auflistet (etwa
 einer je GitOps-Sync oder Volume-Backup), bekommen keine eigenen Entitäten.
 
+## Ports
+
+Mit der Option **Veröffentlichte Ports** (unter **Entitäten**, standardmäßig aus)
+zeigt Home Assistant, welche Ports die Container auf dem Host belegen. Die Angaben
+stecken schon in der Container-Liste (`agents/{id}/containers`, Feld `ports`), die
+jede Abfrage holt; die Option kostet keine Anfrage und kein Recht, braucht aber die
+Abfrage der Container.
+
+- **Sensor „Ports“ je Container** (Diagnose): die veröffentlichten Ports als
+  `Host-Port→Container-Port/Protokoll`, etwa `8080→80/tcp, 53→53/udp`. Ein Port, der
+  nur an eine Adresse gebunden ist, steht mit ihr davor (`127.0.0.1:5683→5683/udp`).
+  Ohne veröffentlichten Port zeigt der Sensor `–`. Attribute: `published` (die
+  Liste) und `exposed` (nur freigegebene Ports ohne Host-Port, etwa `1883/tcp`).
+  Längere Listen als 255 Zeichen kürzt der Zustand mit `…`; das Attribut bleibt
+  vollständig.
+- **Sensor „Belegte Host-Ports“ je Umgebung:** Anzahl der belegten Host-Ports,
+  Attribut `ports` mit `host_port`, `protocol`, `host_ip` (leer heißt alle
+  Adressen), `container` und `container_port`, sortiert nach Host-Port. Hilft, für
+  einen neuen Container einen freien Port zu finden.
+- Meldet Docker einen Port, der auf allen Adressen veröffentlicht ist, je einmal
+  für IPv4 (`0.0.0.0`) und IPv6 (`::`), fasst die Integration beides zusammen.
+- Docker nennt veröffentlichte Ports nur für laufende Container. Ein gestoppter
+  Container belegt keinen Port und zeigt `–`.
+
 ## Mehrere Hosts
 
 Arcane bindet weitere Docker-Hosts über den Arcane-Agenten an. Jeder gekoppelte
@@ -435,7 +463,7 @@ dahinter.
 | `app/version` | GET | jede Abfrage, Einrichtung | keins |
 | `app-version` | GET | nur wenn `app/version` mit 404 antwortet: erkennt Arcane 2.x | keins |
 | `agents` | GET | jede Abfrage, Einrichtung, Optionen | `environments:list` |
-| `agents/{environment}/containers` | GET | Option Container | `containers:list` |
+| `agents/{environment}/containers` | GET | Option Container; liefert auch die Ports | `containers:list` |
 | `agents/{environment}/projects` | GET | Option Compose-Projekte | `projects:list` |
 | `agents/{environment}/images/counts` | GET | Option Images, Volumes und Netzwerke | `images:list` |
 | `agents/{environment}/volumes/counts` | GET | Option Images, Volumes und Netzwerke | `volumes:list` |
@@ -524,6 +552,15 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
+- **0.12.x:** 304 automatische Tests. 0.12.0: 10 neue Tests in `test_ports.py`:
+  Ports aus der Container-Liste, IPv4 und IPv6 zusammengefasst, feste Adressen
+  behalten, ungültige Einträge übersprungen; Sensor je Container mit Attributen und
+  `–` ohne Port, Sensor je Umgebung mit sortierter Liste, Nachziehen bei neuem Port,
+  Kürzen auf 255 Zeichen; ohne Option keine Sensoren, ohne Container-Abfrage kein
+  Umgebungssensor; keine zusätzliche Anfrage, kein zusätzliches Recht; getrennter
+  Agent; Option im Dialog. Gegenprobe: 13 Schutzmaßnahmen einzeln ausgebaut, jedes
+  Mal schlug ein Test fehl; dabei gefunden und mit einem Test geschlossen: die
+  Sortierung nach Host-Port war ungetestet. **Nicht live geprüft.**
 - **0.11.x:** 294 automatische Tests. 0.11.1: 3 neue Tests in `test_agenten.py`:
   bei getrenntem Agenten Zähler, Hoststatistik, Speicherwerte, Prune-Button,
   „verbunden seit“ und Latenz nicht verfügbar, Online, letzter Kontakt und letzte

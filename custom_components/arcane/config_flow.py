@@ -62,6 +62,7 @@ from .const import (
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
     CONF_NEST_CONTAINERS,
+    CONF_PORTS,
     CONF_PRUNE_BUTTON,
     CONF_REDEPLOY_BUTTONS,
     CONF_UPDATE_ENTITIES,
@@ -434,6 +435,7 @@ class ArcaneOptionsFlow(OptionsFlow):
                     vol.Required(CONF_ARCANE_EVENTS): bool,
                     vol.Required(CONF_UPDATER): bool,
                     vol.Required(CONF_JOBS): bool,
+                    vol.Required(CONF_PORTS): bool,
                 }
             ),
         )
