@@ -422,8 +422,12 @@ kommt `container.oom` direkt von Docker.
 
 Anmeldungen, Abmeldungen und Upgrades von Arcane legt Arcane ohne Umgebung ab; sie
 kommen mit `environment_id: null` und `environment: null`. Einträge einer
-Umgebung, der die Integration nicht folgt (Option **Environments**), werden nicht
-gemeldet.
+Umgebung, die unter **Environments** abgewählt ist, werden nicht gemeldet, ebenso
+Einträge einer Umgebung, die Arcane nicht listet und die die Integration nie kannte;
+von ihr kommen nur Einträge `environment.*` über die Umgebung selbst, mit dem Namen
+aus dem Eintrag. Fehlt eine bekannte Umgebung nur gerade in Arcanes Liste, etwa
+während sie bearbeitet wird oder ausgeschaltet ist, kommen ihre Einträge weiter, mit
+ihrem bisherigen Namen.
 
 Jeder Eintrag wird einmal gemeldet, älteste zuerst. Der erste Abruf nach dem Start
 markiert nur, was schon da ist; ein Neustart von Home Assistant spielt das
@@ -552,7 +556,7 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
-- **0.12.x:** 304 automatische Tests. 0.12.0: 10 neue Tests in `test_ports.py`:
+- **0.12.x:** 307 automatische Tests. 0.12.0: 10 neue Tests in `test_ports.py`:
   Ports aus der Container-Liste, IPv4 und IPv6 zusammengefasst, feste Adressen
   behalten, ungültige Einträge übersprungen; Sensor je Container mit Attributen und
   `–` ohne Port, Sensor je Umgebung mit sortierter Liste, Nachziehen bei neuem Port,
@@ -561,7 +565,13 @@ Arcane-Update) nur im Vertragstest.
   Agent; Option im Dialog. Gegenprobe: 13 Schutzmaßnahmen einzeln ausgebaut, jedes
   Mal schlug ein Test fehl; dabei gefunden und mit einem Test geschlossen: die
   Sortierung nach Host-Port war ungetestet. **Nicht live geprüft.**
-- **0.11.x:** 294 automatische Tests. 0.11.1: 3 neue Tests in `test_agenten.py`:
+- **0.11.x:** 297 automatische Tests. 0.11.2: 3 neue Tests in
+  `test_sofort_und_ereignisse.py`: Einträge einer bekannten Umgebung, die Arcane
+  gerade nicht listet, kommen mit ihrem bisherigen Namen; `environment.*` einer
+  unbekannten Umgebung kommt mit dem Namen aus dem Eintrag; abgewählte Umgebung
+  bleibt stumm, auch für `environment.*`. Gegenprobe: 7 Schutzmaßnahmen einzeln
+  ausgebaut, jedes Mal schlug ein Test fehl. Live gefunden am 16.11.2026.
+  0.11.1: 3 neue Tests in `test_agenten.py`:
   bei getrenntem Agenten Zähler, Hoststatistik, Speicherwerte, Prune-Button,
   „verbunden seit“ und Latenz nicht verfügbar, Online, letzter Kontakt und letzte
   Trennung verfügbar, lokales Environment unberührt, alles zurück nach der
@@ -578,8 +588,8 @@ Arcane-Update) nur im Vertragstest.
   nicht für ausgeschaltete, weg nach Verschwinden und Entladen, keine ohne Auswahl;
   das Modell liest Arcanes Felder. Gegenprobe: 18 Schutzmaßnahmen einzeln ausgebaut,
   jedes Mal schlug ein Test fehl. Live geprüft am 16.11.2026: Agent-Daten, Gerät,
-  Namen, getrennter Agent (dabei die Fehler gefunden, die 0.11.1 behebt); die
-  Reparatur für nicht ausgewählte Environments nicht.
+  Namen, getrennter Agent (dabei die Fehler gefunden, die 0.11.1 behebt) und die
+  Reparatur für nicht ausgewählte Environments.
 - **0.10.x:** 276 automatische Tests. 0.10.1: 11 neue Tests in
   `test_aufraeumen.py`: Bericht und Zähler erst nach dem Ende des Prunes und vor
   dem Ende des Drucks, auch während der Abklingzeit des Coordinators;

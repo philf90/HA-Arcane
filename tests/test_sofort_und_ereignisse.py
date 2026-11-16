@@ -29,6 +29,7 @@ from custom_components.arcane.api import (
 )
 from custom_components.arcane.const import (
     CONF_ARCANE_EVENTS,
+    CONF_ENVIRONMENTS,
     CONF_INSTANT_UPDATES,
     DOMAIN,
     EVENT_ARCANE,
@@ -575,6 +576,107 @@ async def test_entries_of_unfollowed_environments_are_skipped(
     ]
     await mock_config_entry.runtime_data.async_refresh()
     await hass.async_block_till_done()
+    assert fired == []
+
+
+async def test_entries_of_an_environment_missing_for_a_moment_are_announced(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    """Live am 16.11.2026: Waehrend die Umgebung in Arcane bearbeitet wurde, fehlte
+    sie in der Liste, und ihr environment.disconnect ging verloren."""
+    fired = _recorder(hass)
+    both = [
+        {"id": "0", "name": "Local", "status": "online", "enabled": True},
+        {"id": "3", "name": "Remote", "status": "online", "enabled": True},
+    ]
+    mock_client.async_get_environments.return_value = both
+    mock_client.async_get_events.return_value = [OLD]
+    await _setup(hass, mock_config_entry, {CONF_ARCANE_EVENTS: True})
+
+    # Arcane listet "3" gerade nicht (bearbeitet oder ausgeschaltet).
+    mock_client.async_get_environments.return_value = both[:1]
+    gone = _event(
+        "e-gone",
+        "2026-11-15T17:08:00Z",
+        environmentId="3",
+        type="environment.disconnect",
+        resourceType="environment",
+        resourceName="Umbenannt",
+    )
+    stopped = _event(
+        "e-stop", "2026-11-15T17:08:01Z", environmentId="3", type="container.stop"
+    )
+    mock_client.async_get_events.return_value = [stopped, gone, OLD]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert [event.data["event_id"] for event in fired] == ["e-gone", "e-stop"]
+    # Der Name, den die Integration kennt, nicht der aus dem Eintrag.
+    assert [event.data["environment"] for event in fired] == ["Remote", "Remote"]
+    assert {event.data["environment_id"] for event in fired} == {"3"}
+
+
+async def test_environment_entries_of_an_unknown_environment_are_announced(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    fired = _recorder(hass)
+    mock_client.async_get_events.return_value = [OLD]
+    await _setup(hass, mock_config_entry, {CONF_ARCANE_EVENTS: True})
+
+    created = _event(
+        "e-new",
+        "2026-11-15T17:09:00Z",
+        environmentId="7",
+        type="environment.create",
+        severity="success",
+        resourceType="environment",
+        resourceId="7",
+        resourceName="Neu",
+    )
+    mock_client.async_get_events.return_value = [created, OLD]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert len(fired) == 1
+    assert fired[0].data["type"] == "environment.create"
+    assert fired[0].data["environment_id"] == "7"
+    assert fired[0].data["environment"] == "Neu"
+
+
+async def test_entries_of_deselected_environments_stay_skipped(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    fired = _recorder(hass)
+    mock_client.async_get_environments.return_value = [
+        {"id": "0", "name": "Local", "status": "online", "enabled": True},
+        {"id": "3", "name": "Remote", "status": "online", "enabled": True},
+    ]
+    mock_client.async_get_events.return_value = [OLD]
+    await _setup(hass, mock_config_entry, {CONF_ARCANE_EVENTS: True})
+
+    # "3" war bekannt und wird abgewaehlt.
+    hass.config_entries.async_update_entry(
+        mock_config_entry,
+        options={**mock_config_entry.options, CONF_ENVIRONMENTS: ["0"]},
+    )
+    await hass.async_block_till_done()
+    fired.clear()
+    entries = [
+        _event("e-d1", "2026-11-15T17:10:00Z", environmentId="3"),
+        _event(
+            "e-d2",
+            "2026-11-15T17:10:01Z",
+            environmentId="3",
+            type="environment.disconnect",
+            resourceType="environment",
+            resourceName="Remote",
+        ),
+        OLD,
+    ]
+    mock_client.async_get_events.return_value = entries
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
     assert fired == []
 
 
