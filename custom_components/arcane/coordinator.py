@@ -30,6 +30,7 @@ from .const import (
     ARCANE_EVENTS_PAGE,
     ARCANE_EVENTS_SEEN,
     CONF_ARCANE_EVENTS,
+    CONF_CONTAINER_RESOURCES,
     CONF_DISK_USAGE,
     CONF_ENVIRONMENTS,
     CONF_EVENTS,
@@ -43,6 +44,7 @@ from .const import (
     CONF_MONITOR_RESOURCES,
     CONF_UPDATE_ENTITIES,
     CONF_UPDATER,
+    CONF_VOLUME_SIZES,
     DEFAULT_OPTIONS,
     DEFAULT_SCAN_INTERVAL,
     DISK_USAGE_INTERVAL,
@@ -65,10 +67,13 @@ from .models import (
     ArcaneJob,
     ArcaneProject,
     ArcaneVersion,
+    ArcaneVolumeSize,
 )
 from .permissions import (
+    PERM_CONTAINERS_READ,
     PERM_EVENTS_LIST,
     PERM_SYSTEM_READ,
+    PERM_VOLUMES_LIST,
     POLL_PERMISSIONS,
     RequiredPermissions,
     format_permissions,
@@ -124,6 +129,9 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         # Environments whose running report started before a prune and so has
         # to be followed by another one.
         self._disk_usage_again: set[str] = set()
+        # Size of every volume per environment, measured with the disk usage
+        # report: Docker walks every volume for both.
+        self._volume_sizes: dict[str, dict[str, ArcaneVolumeSize]] = {}
         # Waits for changes in the background, with the option for it.
         self.change_watcher = ArcaneChangeWatcher(self)
         # Environments with an updater run started from the button, so a
@@ -346,11 +354,7 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         """
         calls: dict[str, Any] = {}
         if self.option(CONF_MONITOR_CONTAINERS):
-            calls["containers"] = self.client.async_get_containers(
-                environment_id,
-                include_internal=self.option(CONF_INCLUDE_INTERNAL),
-                include_hidden=self.option(CONF_INCLUDE_HIDDEN),
-            )
+            calls["containers"] = self._async_get_containers(environment_id)
         if self.option(CONF_MONITOR_PROJECTS):
             calls["projects"] = self.client.async_get_projects(environment_id)
         if self.option(CONF_MONITOR_RESOURCES):
@@ -374,6 +378,43 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         if self.option(CONF_JOBS):
             calls["jobs"] = self.client.async_get_jobs(environment_id)
         return calls
+
+    async def _async_get_containers(self, environment_id: str) -> list[dict[str, Any]]:
+        """Fetch the containers, with resource samples when the option asks.
+
+        Arcane refuses the samples to a key that may list but not read
+        containers. The list itself is still wanted then, so it is asked for
+        again without them and the missing permission is named.
+        """
+        include_internal = self.option(CONF_INCLUDE_INTERNAL)
+        include_hidden = self.option(CONF_INCLUDE_HIDDEN)
+        if not self.option(CONF_CONTAINER_RESOURCES):
+            return await self.client.async_get_containers(
+                environment_id,
+                include_internal=include_internal,
+                include_hidden=include_hidden,
+            )
+        try:
+            return await self.client.async_get_containers(
+                environment_id,
+                include_internal=include_internal,
+                include_hidden=include_hidden,
+                resources=True,
+            )
+        except ArcanePermissionError:
+            containers = await self.client.async_get_containers(
+                environment_id,
+                include_internal=include_internal,
+                include_hidden=include_hidden,
+            )
+            # Only once the plain list worked: had it been refused as well,
+            # the key would lack containers:list, not containers:read.
+            self._denied_polling.add(PERM_CONTAINERS_READ)
+            return containers
+
+    def _report_wanted(self) -> bool:
+        """Return whether a background report (disk usage, volume sizes) is on."""
+        return bool(self.option(CONF_DISK_USAGE) or self.option(CONF_VOLUME_SIZES))
 
     def _note_denied_polling(self, results: dict[str, Any]) -> None:
         """Remember the permissions this refresh was refused."""
@@ -490,8 +531,10 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         if self.option(CONF_DISK_USAGE):
             environment.disk_usage = self._disk_usage.get(environment_id, {})
             environment.disk_usage_at = self._disk_usage_at.get(environment_id)
-            if not environment.agent_disconnected:
-                self._async_schedule_disk_usage(environment)
+        if self.option(CONF_VOLUME_SIZES):
+            environment.volume_sizes = self._volume_sizes.get(environment_id, {})
+        if self._report_wanted() and not environment.agent_disconnected:
+            self._async_schedule_disk_usage(environment)
         if self.option(CONF_UPDATE_ENTITIES):
             version = (
                 version_info
@@ -527,7 +570,7 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         showing it. A report already running was asked for before the prune,
         so another one follows it.
         """
-        if not self.option(CONF_DISK_USAGE):
+        if not self._report_wanted():
             return
         self._disk_usage_asked.pop(environment_id, None)
         if environment_id in self._disk_usage_running:
@@ -547,16 +590,47 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         """
         environment_id = environment.id
         usage: dict[str, Any] | None = None
+        sizes: dict[str, ArcaneVolumeSize] | None = None
         try:
-            usage = await self.client.async_get_disk_usage(environment_id)
-        except ArcanePermissionError:
-            self.async_note_denied(PERM_SYSTEM_READ)
-        except ArcaneError as err:
-            _LOGGER.debug(
-                "No disk usage report for environment %s: %s", environment_id, err
-            )
+            if self.option(CONF_DISK_USAGE):
+                try:
+                    usage = await self.client.async_get_disk_usage(environment_id)
+                except ArcanePermissionError:
+                    self.async_note_denied(PERM_SYSTEM_READ)
+                except ArcaneError as err:
+                    _LOGGER.debug(
+                        "No disk usage report for environment %s: %s",
+                        environment_id,
+                        err,
+                    )
+            if self.option(CONF_VOLUME_SIZES):
+                # One after the other: both make Docker walk every volume.
+                try:
+                    sizes = {
+                        item.name: item
+                        for item in (
+                            ArcaneVolumeSize.from_api(entry)
+                            for entry in await self.client.async_get_volume_sizes(
+                                environment_id
+                            )
+                        )
+                        if item is not None
+                    }
+                except ArcanePermissionError:
+                    self.async_note_denied(PERM_VOLUMES_LIST)
+                except ArcaneError as err:
+                    _LOGGER.debug(
+                        "No volume sizes for environment %s: %s", environment_id, err
+                    )
         finally:
             self._disk_usage_running.discard(environment_id)
+        if sizes is not None:
+            self._volume_sizes[environment_id] = sizes
+            environment.volume_sizes = sizes
+            if self.data and (shown := self.data.environments.get(environment_id)):
+                shown.volume_sizes = sizes
+            if usage is None:
+                self.async_update_listeners()
         if usage is not None:
             self._disk_usage[environment_id] = usage
             self._disk_usage_at[environment_id] = asked_at

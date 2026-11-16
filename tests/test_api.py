@@ -24,6 +24,7 @@ async def arcane_server(aiohttp_client, socket_enabled):
     async def containers(request: web.Request) -> web.Response:
         seen["api_key"] = request.headers.get("X-Api-Key", "")
         seen["limit"] = request.query.get("limit", "")
+        seen["sort"] = request.query.get("sort", "")
         return web.json_response(
             {"success": True, "data": [{"id": "abc", "names": ["/nginx"]}]}
         )
@@ -149,6 +150,11 @@ async def test_get_containers(arcane_server) -> None:
     assert containers == [{"id": "abc", "names": ["/nginx"]}]
     assert seen["api_key"] == "secret"
     assert seen["limit"] == "-1"
+    assert seen["sort"] == ""
+
+    # Only a resource sort makes Arcane add the samples (0.13.0).
+    await client.async_get_containers("0", resources=True)
+    assert seen["sort"] == "cpuUsage"
 
 
 async def test_unauthorized(arcane_server) -> None:

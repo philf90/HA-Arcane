@@ -71,7 +71,9 @@
           "disk_usage": "Reclaimable disk space",
           "instant_updates": "Update instantly on changes",
           "include_internal": "Include internal containers",
-          "include_hidden": "Include hidden containers"
+          "include_hidden": "Include hidden containers",
+          "container_resources": "CPU and memory per container",
+          "volume_sizes": "Volume sizes"
         },
         "data_description": {
           "scan_interval": "How often Arcane is polled, in seconds.",
@@ -83,7 +85,9 @@
           "disk_usage": "Ask in the background, at most every 15 minutes, how much space unused images, stopped containers, unused volumes and the build cache hold. Off by default because Docker sizes every volume for it, which can take a while on large volumes.",
           "instant_updates": "Keep one request per environment open that Arcane answers as soon as something changes, then update right away instead of waiting for the next interval. Polling continues as before.",
           "include_internal": "Also expose containers Arcane marks as internal.",
-          "include_hidden": "Also expose containers hidden in the Arcane interface."
+          "include_hidden": "Also expose containers hidden in the Arcane interface.",
+          "container_resources": "Each running container gets a CPU sensor (percent, mean since the last update) and a memory sensor, with the memory limit and network and disk I/O as attributes. Arcane then reads Docker's statistics of every running container on each update, which loads the Docker host. Needs the permission containers:read.",
+          "volume_sizes": "Each container gets a sensor with the space of the volumes it mounts, each environment one with all volumes, largest first. Docker measures every volume for this, so it runs in the background at most every 15 minutes and right after a prune."
         }
       },
       "entities": {
@@ -452,6 +456,48 @@
         "state_attributes": {
           "ports": {
             "name": "Ports"
+          }
+        }
+      },
+      "container_cpu": {
+        "name": "CPU"
+      },
+      "container_memory": {
+        "name": "Memory",
+        "state_attributes": {
+          "memory_limit": {
+            "name": "Memory limit"
+          },
+          "network_rx": {
+            "name": "Network received"
+          },
+          "network_tx": {
+            "name": "Network sent"
+          },
+          "block_read": {
+            "name": "Disk read"
+          },
+          "block_write": {
+            "name": "Disk written"
+          },
+          "pids": {
+            "name": "Processes"
+          }
+        }
+      },
+      "container_volume_size": {
+        "name": "Volume space",
+        "state_attributes": {
+          "volumes": {
+            "name": "Volumes"
+          }
+        }
+      },
+      "volumes_size_total": {
+        "name": "Volume space total",
+        "state_attributes": {
+          "volumes": {
+            "name": "Volumes"
           }
         }
       }

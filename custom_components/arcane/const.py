@@ -33,6 +33,8 @@ CONF_AUTO_UPDATE_SWITCHES: Final = "auto_update_switches"
 CONF_UPDATER: Final = "updater"
 CONF_JOBS: Final = "jobs"
 CONF_PORTS: Final = "ports"
+CONF_CONTAINER_RESOURCES: Final = "container_resources"
+CONF_VOLUME_SIZES: Final = "volume_sizes"
 CONF_ENVIRONMENT_IN_NAME: Final = "environment_in_name"
 
 # Values of the prune button option. Containers and volumes are deliberately
@@ -95,6 +97,8 @@ DEFAULT_OPTIONS: Final[dict[str, object]] = {
     CONF_UPDATER: False,
     CONF_JOBS: False,
     CONF_PORTS: False,
+    CONF_CONTAINER_RESOURCES: False,
+    CONF_VOLUME_SIZES: False,
     CONF_ENVIRONMENT_IN_NAME: False,
 }
 

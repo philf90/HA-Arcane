@@ -27,6 +27,7 @@ from homeassistant.util import dt as dt_util
 
 from . import ArcaneConfigEntry
 from .const import (
+    CONF_CONTAINER_RESOURCES,
     CONF_DISK_USAGE,
     CONF_HEALTH_SENSORS,
     CONF_HOST_STATS,
@@ -36,6 +37,7 @@ from .const import (
     CONF_MONITOR_RESOURCES,
     CONF_PORTS,
     CONF_UPDATER,
+    CONF_VOLUME_SIZES,
     CONTAINER_STATES,
     JOB_RUN_STATUSES,
     LOCAL_ENVIRONMENT_ID,
@@ -168,6 +170,42 @@ def _host_ports_attributes(environment: ArcaneEnvironment) -> dict[str, Any]:
                 "container_port": port.container_port,
             }
             for port, name in environment.host_ports
+        ]
+    }
+
+
+#: Attributes of the memory sensor that change on every refresh. Kept out of
+#: the recorder, which would otherwise store a new attributes row each time.
+RESOURCE_COUNTER_ATTRIBUTES = frozenset(
+    {"network_rx", "network_tx", "block_read", "block_write", "pids"}
+)
+
+
+def _memory_attributes(container: ArcaneContainer) -> dict[str, Any] | None:
+    """Return the limit and the I/O counters Arcane sampled with the memory."""
+    if (sample := container.resources) is None:
+        return None
+    return {
+        "memory_limit": sample.memory_limit,
+        "network_rx": sample.network_rx,
+        "network_tx": sample.network_tx,
+        "block_read": sample.block_read,
+        "block_write": sample.block_write,
+        "pids": sample.pids,
+    }
+
+
+def _volumes_attributes(environment: ArcaneEnvironment) -> dict[str, Any] | None:
+    """Return every measured volume, largest first."""
+    if not environment.volume_sizes:
+        return None
+    return {
+        "volumes": [
+            {"name": item.name, "size": item.size, "ref_count": item.ref_count}
+            for item in sorted(
+                environment.volume_sizes.values(),
+                key=lambda item: (-(item.size or 0), item.name),
+            )
         ]
     }
 
@@ -353,6 +391,18 @@ ENVIRONMENT_SENSORS: tuple[ArcaneEnvironmentSensorDescription, ...] = (
     ),
     *(_reclaimable(key) for key in RECLAIMABLE_FIELDS),
     ArcaneEnvironmentSensorDescription(
+        key="volumes_size_total",
+        requires=CONF_VOLUME_SIZES,
+        translation_key="volumes_size_total",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.BYTES,
+        suggested_unit_of_measurement=UnitOfInformation.GIGABYTES,
+        suggested_display_precision=2,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda environment: environment.volumes_size_total,
+        attributes_fn=_volumes_attributes,
+    ),
+    ArcaneEnvironmentSensorDescription(
         key="host_ports",
         requires=CONF_PORTS,
         requires_containers=True,
@@ -399,6 +449,42 @@ CONTAINER_PORTS_SENSOR = ArcaneContainerSensorDescription(
     entity_category=EntityCategory.DIAGNOSTIC,
     value_fn=_ports_text,
     attributes_fn=_ports_attributes,
+)
+
+CONTAINER_RESOURCE_SENSORS: tuple[ArcaneContainerSensorDescription, ...] = (
+    ArcaneContainerSensorDescription(
+        key="cpu_usage",
+        translation_key="container_cpu",
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=1,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda container: (
+            container.resources.cpu_percent if container.resources else None
+        ),
+    ),
+    ArcaneContainerSensorDescription(
+        key="memory_usage",
+        translation_key="container_memory",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.BYTES,
+        suggested_unit_of_measurement=UnitOfInformation.MEGABYTES,
+        suggested_display_precision=0,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda container: (
+            container.resources.memory_usage if container.resources else None
+        ),
+        attributes_fn=_memory_attributes,
+    ),
+)
+
+CONTAINER_VOLUME_SENSOR = SensorEntityDescription(
+    key="volume_size",
+    translation_key="container_volume_size",
+    device_class=SensorDeviceClass.DATA_SIZE,
+    native_unit_of_measurement=UnitOfInformation.BYTES,
+    suggested_unit_of_measurement=UnitOfInformation.MEGABYTES,
+    suggested_display_precision=1,
+    state_class=SensorStateClass.MEASUREMENT,
 )
 
 ARCANE_VERSION_SENSOR = SensorEntityDescription(
@@ -521,11 +607,33 @@ async def async_setup_entry(
             ),
         ],
         containers=lambda environment_id, name: [
-            ArcaneContainerSensor(coordinator, environment_id, name, description)
-            for description in (
-                *CONTAINER_SENSORS,
-                *((CONTAINER_PORTS_SENSOR,) if coordinator.option(CONF_PORTS) else ()),
-            )
+            *(
+                ArcaneContainerSensor(coordinator, environment_id, name, description)
+                for description in (
+                    *CONTAINER_SENSORS,
+                    *(
+                        (CONTAINER_PORTS_SENSOR,)
+                        if coordinator.option(CONF_PORTS)
+                        else ()
+                    ),
+                )
+            ),
+            *(
+                ArcaneContainerResourceSensor(
+                    coordinator, environment_id, name, description
+                )
+                for description in CONTAINER_RESOURCE_SENSORS
+                if coordinator.option(CONF_CONTAINER_RESOURCES)
+            ),
+            *(
+                [
+                    ArcaneContainerVolumeSensor(
+                        coordinator, environment_id, name, CONTAINER_VOLUME_SENSOR
+                    )
+                ]
+                if coordinator.option(CONF_VOLUME_SIZES)
+                else []
+            ),
         ],
         projects=lambda environment_id, project_id: [
             ArcaneProjectSensor(coordinator, environment_id, project_id, description)
@@ -599,6 +707,46 @@ class ArcaneContainerSensor(ArcaneContainerEntity, SensorEntity):
         if attributes_fn is None or (container := self.container) is None:
             return None
         return attributes_fn(container)
+
+
+class ArcaneContainerResourceSensor(ArcaneContainerSensor):
+    """CPU or memory of a container, from Arcane's resource sample."""
+
+    _unrecorded_attributes = RESOURCE_COUNTER_ATTRIBUTES
+
+
+class ArcaneContainerVolumeSensor(ArcaneContainerEntity, SensorEntity):
+    """Disk space of the volumes a container mounts."""
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the summed size of the container's volumes."""
+        container = self.container
+        environment = self.coordinator.data.environments.get(self.environment_id)
+        if container is None or environment is None:
+            return None
+        return environment.container_volume_size(container)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return each mounted volume with its size."""
+        container = self.container
+        environment = self.coordinator.data.environments.get(self.environment_id)
+        if container is None or environment is None:
+            return None
+        return {
+            "volumes": [
+                {
+                    "name": name,
+                    "size": (
+                        item.size
+                        if (item := environment.volume_sizes.get(name))
+                        else None
+                    ),
+                }
+                for name in container.volume_names
+            ]
+        }
 
 
 class ArcaneProjectSensor(ArcaneProjectEntity, SensorEntity):

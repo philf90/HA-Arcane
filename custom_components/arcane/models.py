@@ -229,6 +229,94 @@ def _ports(payload: Any) -> tuple[ArcanePort, ...]:
     )
 
 
+def _counter(value: Any) -> int | None:
+    """Return a non-negative whole number from Arcane, or None for anything else."""
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    return None
+
+
+@dataclass(frozen=True, slots=True)
+class ArcaneResourceSample:
+    """CPU, memory and I/O of a running container, as Arcane sampled them.
+
+    Arcane takes the CPU share against its previous sample of the container,
+    kept up to a minute (container/children/stats/service.go), so it is the
+    mean since the last refresh rather than a single moment.
+    """
+
+    cpu_percent: float | None = None
+    memory_usage: int | None = None
+    memory_limit: int | None = None
+    network_rx: int | None = None
+    network_tx: int | None = None
+    block_read: int | None = None
+    block_write: int | None = None
+    pids: int | None = None
+
+    @classmethod
+    def from_api(cls, payload: Any) -> ArcaneResourceSample | None:
+        """Read ``resourceSample`` of a container summary; None without one."""
+        if not isinstance(payload, dict):
+            return None
+        cpu = payload.get("cpuPercent")
+        return cls(
+            cpu_percent=(
+                float(cpu)
+                if isinstance(cpu, (int, float)) and not isinstance(cpu, bool)
+                else None
+            ),
+            memory_usage=_counter(payload.get("memoryUsageBytes")),
+            memory_limit=_counter(payload.get("memoryLimitBytes")),
+            network_rx=_counter(payload.get("networkRxBytes")),
+            network_tx=_counter(payload.get("networkTxBytes")),
+            block_read=_counter(payload.get("blockReadBytes")),
+            block_write=_counter(payload.get("blockWriteBytes")),
+            pids=_counter(payload.get("pids")),
+        )
+
+
+def _volume_names(payload: Any) -> tuple[str, ...]:
+    """Return the names of the named volumes a container mounts.
+
+    Bind mounts and tmpfs have no volume and no size Arcane could report.
+    """
+    names: list[str] = []
+    for mount in payload if isinstance(payload, list) else []:
+        if (
+            isinstance(mount, dict)
+            and mount.get("type") == "volume"
+            and (name := _version(mount.get("name")))
+            and name not in names
+        ):
+            names.append(name)
+    return tuple(names)
+
+
+@dataclass(frozen=True, slots=True)
+class ArcaneVolumeSize:
+    """The disk space of one volume, as Docker measured it."""
+
+    name: str
+    size: int | None
+    ref_count: int | None
+
+    @classmethod
+    def from_api(cls, payload: Any) -> ArcaneVolumeSize | None:
+        """Read one entry of ``volumes/sizes``; None without a name.
+
+        Docker reports -1 when it could not measure a volume, which is kept as
+        unknown instead of a negative size.
+        """
+        if not isinstance(payload, dict) or not (name := _version(payload.get("name"))):
+            return None
+        return cls(
+            name=name,
+            size=_counter(payload.get("size")),
+            ref_count=_counter(payload.get("refCount")),
+        )
+
+
 @dataclass(slots=True)
 class ArcaneContainer:
     """A single Docker container as reported by Arcane."""
@@ -263,6 +351,11 @@ class ArcaneContainer:
     auto_update_label_disabled: bool = False
     #: Published and exposed ports, published ones first by host port.
     ports: tuple[ArcanePort, ...] = ()
+    #: CPU and memory with the option for them; None when Arcane sent no
+    #: sample, which it never does for a container that is not running.
+    resources: ArcaneResourceSample | None = None
+    #: Names of the volumes the container mounts.
+    volume_names: tuple[str, ...] = ()
 
     @property
     def published_ports(self) -> tuple[ArcanePort, ...]:
@@ -317,6 +410,8 @@ class ArcaneContainer:
             ),
             auto_update_label_disabled=_label_disables_updater(labels),
             ports=_ports(payload.get("ports")),
+            resources=ArcaneResourceSample.from_api(payload.get("resourceSample")),
+            volume_names=_volume_names(payload.get("mounts")),
         )
 
 
@@ -647,6 +742,9 @@ class ArcaneEnvironment:
     disk_usage: dict[str, Any] = field(default_factory=dict)
     #: When the report in ``disk_usage`` was asked for; None until one is in.
     disk_usage_at: datetime | None = None
+    #: Size of every volume by name, with the option; empty until the first
+    #: measurement is in. Fetched in the background with the disk usage report.
+    volume_sizes: dict[str, ArcaneVolumeSize] = field(default_factory=dict)
     #: Arcane's background jobs by ID, with the option for them. Jobs Arcane
     #: lists below another one, such as one per GitOps sync, are left out.
     jobs: dict[str, ArcaneJob] = field(default_factory=dict)
@@ -706,6 +804,33 @@ class ArcaneEnvironment:
     def containers_unhealthy(self) -> int:
         """Return the number of containers reporting an unhealthy check."""
         return sum(1 for item in self.containers.values() if item.is_healthy is False)
+
+    def container_volume_size(self, container: ArcaneContainer) -> int | None:
+        """Return the disk space of the volumes a container mounts.
+
+        None until the volumes have been measured, and when none of the
+        container's volumes could be; a volume Docker did not measure (another
+        driver, or a size of -1) counts as unknown and is left out of the sum.
+        A container without volumes takes no space in them.
+        """
+        if not self.volume_sizes:
+            return None
+        sizes = [
+            item.size
+            for name in container.volume_names
+            if (item := self.volume_sizes.get(name)) is not None
+            and item.size is not None
+        ]
+        if container.volume_names and not sizes:
+            return None
+        return sum(sizes)
+
+    @property
+    def volumes_size_total(self) -> int | None:
+        """Return the disk space of all measured volumes; None before a report."""
+        if not self.volume_sizes:
+            return None
+        return sum(item.size or 0 for item in self.volume_sizes.values())
 
     @property
     def host_ports(self) -> list[tuple[ArcanePort, str]]:

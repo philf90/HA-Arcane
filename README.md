@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.12.0.
+[Herkunft](#herkunft). Version 0.13.0.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -67,6 +67,7 @@ vorher ein Backup anlegen.
 - [Updates](#updates)
 - [Hintergrund-Jobs](#hintergrund-jobs)
 - [Ports](#ports)
+- [Ressourcen und Volumes](#ressourcen-und-volumes)
 - [Mehrere Hosts](#mehrere-hosts)
 - [Ereignisse](#ereignisse)
 - [Sofort aktualisieren](#sofort-aktualisieren)
@@ -114,6 +115,8 @@ ausgeschaltete Option nimmt ihre Rechte aus der Liste.
 | Versionshinweise der Container-Updates | `image-updates:read` |
 | Button „Nach Updates suchen“ | `image-updates:check` |
 | Freigebbarer Speicher (Option) | `system:read` |
+| CPU und Arbeitsspeicher je Container (Option) | `containers:read` |
+| Volume-Größen (Option) | `volumes:list` |
 | Bei Änderungen sofort aktualisieren, Arcane-Ereignisprotokoll (Optionen) | `events:list` |
 
 Pflicht ist nur `environments:list`. Ein Schlüssel ohne die übrigen richtet sich
@@ -148,6 +151,7 @@ Namen wie auf einer deutschen Instanz; die Entity-IDs bildet Home Assistant dara
 | Alle Updates installieren | Button | Option Arcane Updater, mit Steuerung |
 | Job …, je Job von Arcane (etwa „Job Auto Update“) | Sensor | Option Arcane Hintergrund-Jobs, Diagnose; siehe [Hintergrund-Jobs](#hintergrund-jobs) |
 | Job … ausführen | Button | Option Arcane Hintergrund-Jobs, mit Steuerung, nur für Jobs, die Arcane von Hand starten lässt |
+| Volume-Speicher gesamt | Sensor | Option Volume-Größen; Attribut `volumes` mit Name, Größe und Zahl der Container, das größte zuerst; siehe [Ressourcen und Volumes](#ressourcen-und-volumes) |
 | Belegte Host-Ports | Sensor | Option Veröffentlichte Ports; Anzahl, Attribut `ports` mit Port, Protokoll, Adresse und Container; siehe [Ports](#ports) |
 
 ### Container
@@ -161,6 +165,8 @@ Namen wie auf einer deutschen Instanz; die Entity-IDs bildet Home Assistant dara
 | Healthy | Binärsensor | nur mit Healthcheck |
 | Zustand, Status | Sensor | `running`, `exited`, `paused` usw. |
 | Image, Erstellt | Sensor | Diagnose |
+| CPU, Arbeitsspeicher | Sensor | Option CPU und Arbeitsspeicher je Container; Arbeitsspeicher mit Attributen `memory_limit`, `network_rx`, `network_tx`, `block_read`, `block_write`, `pids` |
+| Volume-Speicher | Sensor | Option Volume-Größen; Summe der eingebundenen Volumes, Attribut `volumes` |
 | Ports | Sensor | Option Veröffentlichte Ports, Diagnose; etwa `8080→80/tcp`, Attribute `published`, `exposed` |
 | Neustarten | Button | |
 | Redeploy | Button | standardmäßig aus |
@@ -185,8 +191,9 @@ während Home Assistant läuft.
 Integration öffnen → **Konfigurieren**.
 
 - **Abfrage:** Intervall (30 s, 10 bis 3600), welche Umgebungen, ob Container,
-  Compose-Projekte, Zähler, Hoststatistik und freigebbarer Speicher überhaupt
-  abgefragt werden, ob bei Änderungen sofort aktualisiert wird (siehe
+  Compose-Projekte, Zähler, Hoststatistik, freigebbarer Speicher, CPU und
+  Arbeitsspeicher je Container und Volume-Größen überhaupt abgefragt werden (die
+  letzten drei standardmäßig aus), ob bei Änderungen sofort aktualisiert wird (siehe
   [Sofort aktualisieren](#sofort-aktualisieren)); interne und versteckte Container
   nur auf Wunsch. Eine ausgeschaltete Option stoppt auch die
   Abfragen dahinter.
@@ -346,6 +353,46 @@ Abfrage der Container.
 - Docker nennt veröffentlichte Ports nur für laufende Container. Ein gestoppter
   Container belegt keinen Port und zeigt `–`.
 
+## Ressourcen und Volumes
+
+Zwei Optionen unter **Konfigurieren → Abfrage**, beide standardmäßig aus.
+
+**CPU und Arbeitsspeicher je Container.** Die Integration fragt die Container-Liste
+dann sortiert nach CPU-Last ab (`?sort=cpuUsage`); nur so legt Arcane jedem laufenden
+Container eine Probe bei (`resourceSample`). Es bleibt bei einer Anfrage, aber Arcane
+liest dafür bei jeder Aktualisierung die Docker-Statistik aller laufenden Container,
+höchstens 16 gleichzeitig. Das belastet den Docker-Host; vorher und nachher auf die
+Host-CPU schauen.
+
+- **Sensor „CPU“** je Container, in Prozent. Arcane rechnet gegen seine vorige Probe
+  (bis zu einer Minute alt); bei 30 s Intervall ist der Wert also das Mittel der
+  letzten 30 s, kein Momentwert.
+- **Sensor „Arbeitsspeicher“** je Container, mit dem Speicherlimit und den Zählern
+  für Netzwerk und Datenträger als Attribute. Die Zähler ändern sich ständig und
+  landen deshalb nicht in der Datenbank.
+- Ein gestoppter Container hat keine Probe; beide Sensoren sind dann unbekannt.
+- Braucht das Recht `containers:read`. Fehlt es, lehnt Arcane die sortierte Liste
+  ab; die Integration holt die Liste dann ohne Probe und meldet das Recht als
+  Reparatur.
+- Bei vielen Containern entstehen viele Sensoren, die sich alle 30 s ändern. Wer die
+  Datenbank klein halten will, schließt sie im Recorder aus; die Langzeitstatistik
+  bleibt.
+
+**Volume-Größen.** Die Integration fragt `volumes/sizes` ab. Docker misst dafür
+jedes Volume aus, deshalb läuft die Abfrage im Hintergrund zusammen mit dem
+Speicherbericht: höchstens alle 15 Minuten und sofort nach einem Prune, je
+Umgebung eine Anfrage.
+
+- **Sensor „Volume-Speicher“** je Container: Summe der Volumes, die der Container
+  einbindet (`mounts` mit Typ `volume`), Attribut `volumes` mit Name und Größe.
+  Bind-Mounts zählen nicht. Ein Container ohne Volumes zeigt 0.
+- **Sensor „Volume-Speicher gesamt“** je Umgebung: alle gemessenen Volumes,
+  Attribut `volumes` mit Name, Größe und Zahl der Container (`ref_count`), das
+  größte zuerst. Volumes ohne Container (`ref_count` 0) stehen mit drin.
+- Meldet Docker für ein Volume -1 (nicht gemessen, etwa bei einem anderen
+  Treiber), ist seine Größe unbekannt und fehlt in der Summe; hat ein Container
+  nur solche Volumes, ist sein Sensor unbekannt.
+
 ## Mehrere Hosts
 
 Arcane bindet weitere Docker-Hosts über den Arcane-Agenten an. Jeder gekoppelte
@@ -467,7 +514,7 @@ dahinter.
 | `app/version` | GET | jede Abfrage, Einrichtung | keins |
 | `app-version` | GET | nur wenn `app/version` mit 404 antwortet: erkennt Arcane 2.x | keins |
 | `agents` | GET | jede Abfrage, Einrichtung, Optionen | `environments:list` |
-| `agents/{environment}/containers` | GET | Option Container; liefert auch die Ports | `containers:list` |
+| `agents/{environment}/containers` | GET | Option Container; liefert auch die Ports; mit der Option CPU und Arbeitsspeicher `?sort=cpuUsage` | `containers:list`, für die Proben `containers:read` |
 | `agents/{environment}/projects` | GET | Option Compose-Projekte | `projects:list` |
 | `agents/{environment}/images/counts` | GET | Option Images, Volumes und Netzwerke | `images:list` |
 | `agents/{environment}/volumes/counts` | GET | Option Images, Volumes und Netzwerke | `volumes:list` |
@@ -490,6 +537,7 @@ dahinter.
 | `agents/{environment}/activities/{activity}` | GET `?limit=1`, alle 2 s bis zum Ende, höchstens 15 Minuten | nach dem Prune | `activities:read` |
 | `agents/{environment}/system/upgrade` | POST | Arcane-Update installieren | `system:upgrade` |
 | `agents/{environment}/system/df` | GET | Option freigebbarer Speicher, höchstens alle 15 Minuten im Hintergrund, dazu sofort nach einem Prune | `system:read` |
+| `agents/{environment}/volumes/sizes` | GET | Option Volume-Größen, im Hintergrund zusammen mit dem Speicherbericht: höchstens alle 15 Minuten und sofort nach einem Prune | `volumes:list` |
 | `agents/{environment}/images/updates/releasenotes` | GET `?imageRef=…&digest=…`, bei neuem Tag `&version=…` | Update-Dialog geöffnet | `image-updates:read` |
 | `agents/{environment}/images/updates/check` | POST `?action=all` | Button „Nach Updates suchen“ | `image-updates:check` |
 | `agents/{environment}/events/changes` | GET `?epoch=…&since=…&wait=50`, bleibt bis zu 50 s offen | Option sofort aktualisieren, dauerhaft im Hintergrund | `events:list` |
@@ -505,8 +553,10 @@ verglichen). Mit allen Abfrage-Optionen an sind das je Durchlauf und Umgebung ne
 Anfragen, mit der Option Arcane Updater zwei mehr, mit Arcane Hintergrund-Jobs eine
 mehr, und eine für das Ereignisprotokoll (ein entferntes Environment mit getrenntem
 Agenten gar keine), dazu höchstens alle 15 Minuten und nach
-jedem Prune `system/df` und mit der Option sofort aktualisieren je Umgebung eine
-dauerhaft offene Anfrage.
+jedem Prune `system/df` und mit der Option Volume-Größen `volumes/sizes` und mit der
+Option sofort aktualisieren je Umgebung eine dauerhaft offene Anfrage. Die Option CPU
+und Arbeitsspeicher kostet keine zusätzliche Anfrage, aber Arbeit für Arcane und
+Docker (siehe [Ressourcen und Volumes](#ressourcen-und-volumes)).
 
 ## Gut zu wissen
 
@@ -556,6 +606,16 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
+- **0.13.x:** 320 automatische Tests. 0.13.0: 13 neue Tests in `test_ressourcen.py`:
+  Probe aus `resourceSample`, ungültige Werte übersprungen; ohne Option keine
+  Sortierung und keine Sensoren; CPU und Arbeitsspeicher mit Attributen, gestoppter
+  Container unbekannt; Zähler nicht in der Datenbank; abgelehnte Proben behalten die
+  Liste und nennen `containers:read`, eine abgelehnte Liste nennt `containers:list`;
+  Volumes aus `mounts`, Größe -1 unbekannt; Volume-Speicher je Container (Summe, 0
+  ohne Volumes, unbekannt ohne Messung) und je Umgebung (sortiert); höchstens alle
+  15 Minuten, zusammen mit dem Speicherbericht; abgelehnte Messung nennt
+  `volumes:list`; nach dem Prune neu gemessen; Optionen im Dialog. **Nicht live
+  geprüft.**
 - **0.12.x:** 307 automatische Tests. 0.12.0: 10 neue Tests in `test_ports.py`:
   Ports aus der Container-Liste, IPv4 und IPv6 zusammengefasst, feste Adressen
   behalten, ungültige Einträge übersprungen; Sensor je Container mit Attributen und
