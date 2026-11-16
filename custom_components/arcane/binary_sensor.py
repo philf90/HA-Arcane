@@ -36,6 +36,8 @@ class ArcaneEnvironmentBinarySensorDescription(BinarySensorEntityDescription):
     value_fn: Callable[[ArcaneEnvironment], bool]
     #: State attributes, if the sensor has any.
     attributes_fn: Callable[[ArcaneEnvironment], dict[str, Any] | None] | None = None
+    #: Whether the sensor stays available while a remote agent is disconnected.
+    available_while_disconnected: bool = False
 
 
 def _agent_attributes(environment: ArcaneEnvironment) -> dict[str, Any] | None:
@@ -95,6 +97,7 @@ ENVIRONMENT_BINARY_SENSORS: tuple[ArcaneEnvironmentBinarySensorDescription, ...]
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda environment: environment.is_online,
         attributes_fn=_agent_attributes,
+        available_while_disconnected=True,
     ),
 )
 

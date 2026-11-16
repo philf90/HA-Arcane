@@ -47,7 +47,6 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DISK_USAGE_INTERVAL,
     DOMAIN,
-    ENVIRONMENT_STATUS_ONLINE,
     EVENT_ARCANE,
     EVENT_CONTAINER_HEALTH,
     EVENT_CONTAINER_STATE,
@@ -323,7 +322,7 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
                 {
                     environment_id
                     for environment_id, environment in data.environments.items()
-                    if not self._agent_disconnected(environment)
+                    if not environment.agent_disconnected
                 }
             )
         self._async_update_permission_issue()
@@ -405,9 +404,11 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
 
         if environment.is_remote:
             environment.agent = ArcaneAgent.from_api(payload)
+            previous = self.data.environments.get(environment_id) if self.data else None
+            environment.agent.keep_later_contact(previous.agent if previous else None)
 
         results: dict[str, Any] = {}
-        if self._agent_disconnected(environment):
+        if environment.agent_disconnected:
             # Arcane would hold every request up to 4 s waiting for the agent's
             # tunnel and then answer 503 "Agent is not connected".
             environment.reachable = False
@@ -431,15 +432,6 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
 
         self._apply_results(environment, results, version_info)
         return environment
-
-    @staticmethod
-    def _agent_disconnected(environment: ArcaneEnvironment) -> bool:
-        """Return whether a remote environment's agent is not connected now.
-
-        Arcane reports a remote environment ``online`` exactly while the
-        agent's tunnel is up (environment/lister.go ApplyRuntimeState).
-        """
-        return environment.is_remote and environment.status != ENVIRONMENT_STATUS_ONLINE
 
     def _apply_results(
         self,
@@ -488,7 +480,7 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         if self.option(CONF_DISK_USAGE):
             environment.disk_usage = self._disk_usage.get(environment_id, {})
             environment.disk_usage_at = self._disk_usage_at.get(environment_id)
-            if not self._agent_disconnected(environment):
+            if not environment.agent_disconnected:
                 self._async_schedule_disk_usage(environment)
         if self.option(CONF_UPDATE_ENTITIES):
             version = (

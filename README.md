@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.11.0.
+[Herkunft](#herkunft). Version 0.11.1.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -334,15 +334,19 @@ beim lokalen.
   Integration die Version am Gerät nach.
 - **Zustand des Agenten:** Arcane liefert ihn in derselben Liste mit, ohne eigene
   Abfrage: Diagnose-Sensoren „Agent letzter Kontakt“ (letzter Heartbeat, sonst
-  `lastSeen`), „Agent verbunden seit“, „Agent-Latenz“ (ms) und „Agent letzte
+  `lastSeen`; springt nie hinter einen schon gemeldeten Wert zurück), „Agent
+  verbunden seit“, „Agent-Latenz“ (ms) und „Agent letzte
   Trennung“ (mit Grund). Hostname, Versionen und Verbindung stehen als Attribute am
   Binärsensor „Online“.
 - **Getrennter Agent:** Arcane meldet ein entferntes Environment nur `online`,
   solange der Tunnel des Agenten steht. Ist es `offline` oder noch `pending`, fragt
   die Integration es in diesem Durchlauf nicht ab; Arcane würde jede Anfrage bis zu
-  4 s halten und dann mit 503 ablehnen. „Online“ ist dann aus, die Container-Entitäten
-  sind nicht verfügbar, letzter Kontakt und letzte Trennung bleiben sichtbar. Sobald
-  der Agent wieder verbunden ist, geht es mit dem nächsten Durchlauf weiter.
+  4 s halten und dann mit 503 ablehnen. „Online“ ist dann aus; „Agent letzter
+  Kontakt“ und „Agent letzte Trennung“ bleiben sichtbar. Alle übrigen Entitäten des
+  Environments sind nicht verfügbar, auch Zähler, Hoststatistik, Speicherwerte und
+  Buttons: Sie hätten nur alte oder falsche Werte gezeigt (etwa 0 Container) bzw.
+  eine Anfrage ausgelöst, die Arcane ablehnt. Sobald der Agent wieder verbunden ist,
+  geht es mit dem nächsten Durchlauf weiter.
 - **Jobs**, die nur die Hauptinstanz ausführt (`managerOnly`, etwa „Environment
   Health“), bekommen bei entfernten Environments keine Entitäten; dort laufen sie nie.
 - **Auswahl in den Optionen:** Ist dort eine Auswahl gesetzt, erscheint für jedes
@@ -520,7 +524,14 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
-- **0.11.x:** 291 automatische Tests. 0.11.0: 15 neue Tests in `test_agenten.py`:
+- **0.11.x:** 294 automatische Tests. 0.11.1: 3 neue Tests in `test_agenten.py`:
+  bei getrenntem Agenten Zähler, Hoststatistik, Speicherwerte, Prune-Button,
+  „verbunden seit“ und Latenz nicht verfügbar, Online, letzter Kontakt und letzte
+  Trennung verfügbar, lokales Environment unberührt, alles zurück nach der
+  Rückkehr; letzter Kontakt springt nach der Trennung nicht zurück, ein neuerer
+  Heartbeat gilt. Gegenprobe: 8 Schutzmaßnahmen einzeln ausgebaut, jedes Mal schlug
+  ein Test fehl. Live gefunden am 16.11.2026 mit gestopptem Agent-Container.
+  0.11.0: 15 neue Tests in `test_agenten.py`:
   Agent-Sensoren nur bei entfernten Environments, Heartbeat vor `lastSeen`, Werte
   bei getrenntem Agenten; Attribute am Online-Sensor; Modell und Version am Gerät,
   Version nach einem Update des Agenten; getrennter (auch `pending`) Agent ohne
@@ -529,7 +540,9 @@ Arcane-Update) nur im Vertragstest.
   unverändert; Manager-Jobs nur lokal; Reparatur für nicht ausgewählte Environments,
   nicht für ausgeschaltete, weg nach Verschwinden und Entladen, keine ohne Auswahl;
   das Modell liest Arcanes Felder. Gegenprobe: 18 Schutzmaßnahmen einzeln ausgebaut,
-  jedes Mal schlug ein Test fehl. **Nicht live geprüft.**
+  jedes Mal schlug ein Test fehl. Live geprüft am 16.11.2026: Agent-Daten, Gerät,
+  Namen, getrennter Agent (dabei die Fehler gefunden, die 0.11.1 behebt); die
+  Reparatur für nicht ausgewählte Environments nicht.
 - **0.10.x:** 276 automatische Tests. 0.10.1: 11 neue Tests in
   `test_aufraeumen.py`: Bericht und Zähler erst nach dem Ende des Prunes und vor
   dem Ende des Drucks, auch während der Abklingzeit des Coordinators;
