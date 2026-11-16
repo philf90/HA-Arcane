@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.11.1.
+[Herkunft](#herkunft). Version 0.11.2.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -394,8 +394,12 @@ kommt `container.oom` direkt von Docker.
 
 Anmeldungen, Abmeldungen und Upgrades von Arcane legt Arcane ohne Umgebung ab; sie
 kommen mit `environment_id: null` und `environment: null`. Einträge einer
-Umgebung, der die Integration nicht folgt (Option **Environments**), werden nicht
-gemeldet.
+Umgebung, die unter **Environments** abgewählt ist, werden nicht gemeldet, ebenso
+Einträge einer Umgebung, die Arcane nicht listet und die die Integration nie kannte;
+von ihr kommen nur Einträge `environment.*` über die Umgebung selbst, mit dem Namen
+aus dem Eintrag. Fehlt eine bekannte Umgebung nur gerade in Arcanes Liste, etwa
+während sie bearbeitet wird oder ausgeschaltet ist, kommen ihre Einträge weiter, mit
+ihrem bisherigen Namen.
 
 Jeder Eintrag wird einmal gemeldet, älteste zuerst. Der erste Abruf nach dem Start
 markiert nur, was schon da ist; ein Neustart von Home Assistant spielt das
@@ -524,7 +528,13 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
-- **0.11.x:** 294 automatische Tests. 0.11.1: 3 neue Tests in `test_agenten.py`:
+- **0.11.x:** 297 automatische Tests. 0.11.2: 3 neue Tests in
+  `test_sofort_und_ereignisse.py`: Einträge einer bekannten Umgebung, die Arcane
+  gerade nicht listet, kommen mit ihrem bisherigen Namen; `environment.*` einer
+  unbekannten Umgebung kommt mit dem Namen aus dem Eintrag; abgewählte Umgebung
+  bleibt stumm, auch für `environment.*`. Gegenprobe: 7 Schutzmaßnahmen einzeln
+  ausgebaut, jedes Mal schlug ein Test fehl. Live gefunden am 16.11.2026.
+  0.11.1: 3 neue Tests in `test_agenten.py`:
   bei getrenntem Agenten Zähler, Hoststatistik, Speicherwerte, Prune-Button,
   „verbunden seit“ und Latenz nicht verfügbar, Online, letzter Kontakt und letzte
   Trennung verfügbar, lokales Environment unberührt, alles zurück nach der

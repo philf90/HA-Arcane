@@ -134,6 +134,10 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         # already there.
         self._arcane_events_seen: deque[str] | None = None
         self._arcane_events_since: datetime | None = None
+        # Name of every environment Arcane has listed since the start, so an
+        # entry of one that is missing for a moment (edited or switched off in
+        # Arcane) still gets announced with its name.
+        self._known_environments: dict[str, str] = {}
         # Environments Arcane reports that the options leave out, each with a
         # repair of its own so a new one shows up even when an earlier one was
         # ignored on purpose.
@@ -314,6 +318,12 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         )
         if self.option(CONF_EVENTS):
             self._fire_events(data)
+        self._known_environments.update(
+            {
+                environment_id: item.name
+                for environment_id, item in data.environments.items()
+            }
+        )
         if self.option(CONF_ARCANE_EVENTS):
             await self._async_read_arcane_events(data)
         if self.option(CONF_INSTANT_UPDATES):
@@ -595,9 +605,15 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         first, each one once: an entry is new when its ID has not been seen
         and it is not older than the newest one seen before. The first read
         only marks what is there, so a restart of Home Assistant does not
-        replay the log. An entry of an environment the integration does not
-        follow is marked as seen but not announced; one without an environment
-        belongs to the instance and is always announced.
+        replay the log. One without an environment belongs to the instance and
+        is always announced.
+
+        An entry of an environment the options leave out is marked as seen but
+        not announced. So is one of an environment Arcane does not list and the
+        integration has never known, except an ``environment.*`` entry about
+        that environment itself. An environment Arcane leaves out for a moment,
+        while it is edited or switched off, keeps its entries: they are
+        announced with the name it had.
         """
         entries = []
         for item in items:
@@ -619,6 +635,7 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             return
 
         since = self._arcane_events_since
+        selected = set(self.option(CONF_ENVIRONMENTS) or ())
         for timestamp, event_id, item in entries:
             if event_id in seen or (since is not None and timestamp < since):
                 continue
@@ -632,14 +649,22 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             environment = (
                 data.environments.get(environment_id) if environment_id else None
             )
+            name = environment.name if environment else None
             if environment_id is not None and environment is None:
-                continue
+                if selected and environment_id not in selected:
+                    continue
+                name = self._known_environments.get(environment_id)
+                if name is None:
+                    if not str(item.get("type") or "").startswith("environment."):
+                        continue
+                    if item.get("resourceType") == "environment":
+                        name = item.get("resourceName") or None
             metadata = item.get("metadata")
             self.hass.bus.async_fire(
                 EVENT_ARCANE,
                 {
                     "environment_id": environment_id,
-                    "environment": environment.name if environment else None,
+                    "environment": name,
                     "event_id": event_id,
                     "type": item.get("type"),
                     "severity": item.get("severity"),
