@@ -64,6 +64,7 @@ PERM_IMAGE_UPDATES_APPLY: Final = "image-updates:apply"
 PERM_CONTAINERS_AUTOUPDATE: Final = "containers:autoupdate"
 PERM_JOBS_LIST: Final = "jobs:list"
 PERM_JOBS_RUN: Final = "jobs:run"
+PERM_ACTIVITIES_READ: Final = "activities:read"
 
 # The permission each container and project action is gated on. Both mirror
 # ``CONTAINER_ACTIONS`` and ``PROJECT_ACTIONS`` of the API client: deploying a
@@ -209,7 +210,8 @@ def _control_permissions(options: Mapping[str, Any]) -> list[str]:
             # The button that has Arcane check every image for an update.
             permissions.append(PERM_IMAGE_UPDATES_CHECK)
     if _option(options, CONF_PRUNE_BUTTON) != PRUNE_OFF:
-        permissions.append(PERM_SYSTEM_PRUNE)
+        # The prune, and following it until Arcane reports it over.
+        permissions += [PERM_SYSTEM_PRUNE, PERM_ACTIVITIES_READ]
     if _option(options, CONF_JOBS):
         # The buttons that run a background job now.
         permissions.append(PERM_JOBS_RUN)

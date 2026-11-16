@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.10.0.
+[Herkunft](#herkunft). Version 0.10.1.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -107,7 +107,7 @@ ausgeschaltete Option nimmt ihre Rechte aus der Liste.
 | Arcane Updater: laufende Updates, letztes Update (Option) | `image-updates:read`, `image-updates:list` |
 | Arcane Hintergrund-Jobs (Option) | `jobs:list` |
 | Buttons „Job … ausführen“ | `jobs:run` |
-| Prune-Button | `system:prune` |
+| Prune-Button | `system:prune`, `activities:read` (verfolgt den Prune bis zum Ende) |
 | Arcane selbst aktualisieren | `system:upgrade` |
 | Versionshinweise der Container-Updates | `image-updates:read` |
 | Button „Nach Updates suchen“ | `image-updates:check` |
@@ -262,7 +262,15 @@ Volumes und gestoppte Container nie; die beiden Sensoren dazu sind nur Auskunft.
 
 Nach einem Prune fragt die Integration sofort einen neuen Bericht an, statt bis
 zu 15 Minuten zu warten. Läuft gerade einer, der vor dem Prune begann, folgt ihm
-ein zweiter. Das Attribut `report_started_at` der vier Sensoren nennt, wann der
+ein zweiter. Arcane 3 räumt im Hintergrund auf und antwortet, bevor etwas gelöscht
+ist; seit 0.10.1 verfolgt der Button deshalb Arcanes Aktivität
+(`activities/{id}`, alle 2 Sekunden, höchstens 15 Minuten) und fragt Bericht und
+Zähler erst danach ab. Der Druck kehrt erst zurück, wenn beides da ist; ein
+Skript, das auf den Druck wartet, sieht den Stand nach dem Prune. Meldet Arcane
+das Aufräumen als fehlgeschlagen oder abgebrochen, scheitert der Druck mit
+Arcanes Grund, nachdem Bericht und Zähler aktualisiert sind. Ohne
+`activities:read` geht es wie bis 0.10.0 weiter, und das Recht erscheint als
+Reparatur. Das Attribut `report_started_at` der vier Sensoren nennt, wann der
 gezeigte Bericht angefragt wurde (ISO 8601, UTC). Damit kann ein Dashboard einen
 Bericht von nach dem Prune von einem älteren unterscheiden, auch wenn sich der
 Wert nicht ändert. Die Zeit landet nicht in der Datenbank.
@@ -398,7 +406,8 @@ dahinter.
 | `agents/{environment}/jobs/{job}` | POST `?action=run`, Antwort 202 | Button „Job … ausführen“ | `jobs:run` |
 | `agents/{environment}/projects/{project}/deploy` | POST `?action=up`, `redeploy`; Antwort als NDJSON-Stream | Schalter an, Button „Redeploy“ | `projects:deploy` |
 | `agents/{environment}/projects/{project}` | POST `?action=down`, `restart` | Schalter aus, Button „Neustarten“ | `projects:down`, `projects:restart` |
-| `agents/{environment}/system/prune` | POST | Button „Ungenutztes entfernen“ | `system:prune` |
+| `agents/{environment}/system/prune` | POST; Arcane antwortet sofort mit `activityId` und räumt im Hintergrund auf | Button „Ungenutztes entfernen“ | `system:prune` |
+| `agents/{environment}/activities/{activity}` | GET `?limit=1`, alle 2 s bis zum Ende, höchstens 15 Minuten | nach dem Prune | `activities:read` |
 | `agents/{environment}/system/upgrade` | POST | Arcane-Update installieren | `system:upgrade` |
 | `agents/{environment}/system/df` | GET | Option freigebbarer Speicher, höchstens alle 15 Minuten im Hintergrund, dazu sofort nach einem Prune | `system:read` |
 | `agents/{environment}/images/updates/releasenotes` | GET `?imageRef=…&digest=…`, bei neuem Tag `&version=…` | Update-Dialog geöffnet | `image-updates:read` |
@@ -423,6 +432,7 @@ dauerhaft offene Anfrage.
 - **Prune** entfernt ungenutzte Images, ungenutzte Netzwerke und den Build-Cache,
   nie Container oder Volumes. Die Option wählt: kein Button, nur Dangling-Images
   oder alle ungenutzten Images. Ein Button in Home Assistant fragt nicht nach.
+  Der Druck dauert so lange wie das Aufräumen bei Arcane.
 - **Hoststatistik** gibt es bei Arcane nur über einen WebSocket. Die Integration
   öffnet ihn je Abfrage, liest die erste Nachricht und schließt ihn wieder. CPU und
   RAM je Container liefert die Integration nicht.
@@ -465,7 +475,15 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
-- **0.10.x:** 265 automatische Tests. 0.10.0: 25 neue Tests in `test_jobs.py`:
+- **0.10.x:** 276 automatische Tests. 0.10.1: 11 neue Tests in
+  `test_aufraeumen.py`: Bericht und Zähler erst nach dem Ende des Prunes und vor
+  dem Ende des Drucks, auch während der Abklingzeit des Coordinators;
+  fehlgeschlagenes und abgebrochenes Aufräumen mit Grund, nach der
+  Aktualisierung; Antwort ohne Aktivität, fehlendes Recht, verlorene Aktivität,
+  Grenze von 15 Minuten; Recht der Option; der Client liest die Aktivität mit
+  `limit=1`. Gegenprobe: 10 Schutzmaßnahmen einzeln ausgebaut, jedes Mal schlug
+  ein Test fehl. Live gefunden: Der Bericht nach dem Prune begann 2 ms nach dem
+  Druck und zeigte den Stand davor. 0.10.0: 25 neue Tests in `test_jobs.py`:
   Job-Sensor mit Ergebnis, Zeiten (Nanosekunden von Go), Fehler, laufendem Lauf,
   Job ohne Lauf, Status außerhalb der Optionen, Worker-Zustand; Kind-Jobs ohne
   Entität, Jobs kommen und gehen, abgelehnte Liste nennt `jobs:list`; Button stellt

@@ -160,3 +160,12 @@ LABEL_FALSE_VALUES: Final = frozenset({"false", "0", "no", "off"})
 # Outcomes of a finished run of one of Arcane's background jobs, as the job
 # list reports the last one. Arcane shows a run that needs attention as failed.
 JOB_RUN_STATUSES: Final = ["succeeded", "partial", "skipped", "failed", "canceled"]
+
+# Arcane 3 runs a prune as a background activity and answers before it starts
+# deleting. The prune button follows the activity until it is over, asking
+# every ACTIVITY_POLL_INTERVAL seconds for at most PRUNE_WAIT seconds, so the
+# disk usage report and the counts it asks for afterwards show the result.
+ACTIVITY_POLL_INTERVAL: Final = 2.0
+PRUNE_WAIT: Final = 900
+ACTIVITY_SUCCESS: Final = "success"
+ACTIVITY_DONE_STATUSES: Final = frozenset({"success", "failed", "cancelled"})
