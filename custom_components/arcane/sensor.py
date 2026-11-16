@@ -68,6 +68,8 @@ class ArcaneAgentSensorDescription(SensorEntityDescription):
 
     value_fn: Callable[[ArcaneAgent], StateType | datetime]
     attributes_fn: Callable[[ArcaneAgent], dict[str, Any] | None] | None = None
+    #: Whether the sensor stays available while the agent is disconnected.
+    available_while_disconnected: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -372,6 +374,7 @@ AGENT_SENSORS: tuple[ArcaneAgentSensorDescription, ...] = (
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda agent: agent.last_contact,
+        available_while_disconnected=True,
     ),
     ArcaneAgentSensorDescription(
         key="agent_connected_since",
@@ -397,6 +400,7 @@ AGENT_SENSORS: tuple[ArcaneAgentSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda agent: agent.last_disconnect_at,
         attributes_fn=lambda agent: {"reason": agent.last_disconnect_reason},
+        available_while_disconnected=True,
     ),
 )
 

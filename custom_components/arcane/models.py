@@ -464,11 +464,26 @@ class ArcaneAgent:
     memory_bytes: int | None = None
     last_disconnect_at: datetime | None = None
     last_disconnect_reason: str | None = None
+    #: When the agent was last heard from: its last heartbeat while the tunnel
+    #: is up, else ``last_seen``. Arcane writes ``last_seen`` at most every
+    #: 30 s (environment/service.go UpdateEnvironmentHeartbeat), so right
+    #: after a disconnect it can lie before the last heartbeat; the
+    #: coordinator keeps the later value (``keep_later_contact``).
+    last_contact: datetime | None = None
 
-    @property
-    def last_contact(self) -> datetime | None:
-        """Return when the agent was last heard from."""
-        return self.last_heartbeat or self.last_seen
+    def __post_init__(self) -> None:
+        """Derive the last contact unless it was given."""
+        if self.last_contact is None:
+            self.last_contact = self.last_heartbeat or self.last_seen
+
+    def keep_later_contact(self, previous: ArcaneAgent | None) -> None:
+        """Never let the last contact go back behind one already reported."""
+        if (
+            previous is not None
+            and previous.last_contact is not None
+            and (self.last_contact is None or previous.last_contact > self.last_contact)
+        ):
+            self.last_contact = previous.last_contact
 
     @classmethod
     def from_api(cls, payload: dict[str, Any]) -> ArcaneAgent:
@@ -555,6 +570,15 @@ class ArcaneEnvironment:
     def is_online(self) -> bool:
         """Return whether Arcane considers the environment online."""
         return self.reachable and self.status == ENVIRONMENT_STATUS_ONLINE
+
+    @property
+    def agent_disconnected(self) -> bool:
+        """Return whether a remote environment's agent is not connected now.
+
+        Arcane reports a remote environment ``online`` exactly while the
+        agent's tunnel is up (environment/lister.go ApplyRuntimeState).
+        """
+        return self.is_remote and self.status != ENVIRONMENT_STATUS_ONLINE
 
     @property
     def containers_running(self) -> int:

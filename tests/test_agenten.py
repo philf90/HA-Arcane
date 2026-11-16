@@ -1,4 +1,4 @@
-"""Tests fuer 0.11.0: mehrere Hosts mit Arcane-Agenten.
+"""Tests fuer 0.11.0 und 0.11.1: mehrere Hosts mit Arcane-Agenten.
 
 Belege im Quelltext von Arcane v3.0.1 (Commit c614e0d2):
 - ``GET agents`` liefert je Umgebung die Agent-Felder ``connected``,
@@ -21,7 +21,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNKNOWN
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
@@ -31,7 +31,9 @@ from custom_components.arcane.const import (
     CONF_DISK_USAGE,
     CONF_ENVIRONMENT_IN_NAME,
     CONF_ENVIRONMENTS,
+    CONF_HOST_STATS,
     CONF_INSTANT_UPDATES,
+    CONF_PRUNE_BUTTON,
     DOMAIN,
     MODEL_AGENT,
     MODEL_ENVIRONMENT,
@@ -237,10 +239,126 @@ async def test_disconnected_agent_is_not_asked(
     assert datetime.fromisoformat(
         hass.states.get("sensor.remote_agent_last_contact").state
     ) == datetime(2026, 11, 16, 11, 59, tzinfo=UTC)
+    assert hass.states.get("sensor.remote_agent_last_disconnect").attributes[
+        "reason"
+    ] == ("manager restart")
+    # Verbindungsdauer und Latenz gibt es ohne Verbindung nicht (0.11.1).
     assert hass.states.get("sensor.remote_agent_connected_since").state == (
-        STATE_UNKNOWN
+        STATE_UNAVAILABLE
     )
-    assert hass.states.get("sensor.remote_agent_latency").state == STATE_UNKNOWN
+    assert hass.states.get("sensor.remote_agent_latency").state == STATE_UNAVAILABLE
+
+
+# Live am 16.11.2026 mit gestopptem Agent-Container gesehen (0.11.0): Zaehler
+# der Umgebung standen auf 0, Speicherwerte auf dem alten Stand und die Knoepfe
+# blieben bedienbar, obwohl nichts abgefragt wurde. Ab 0.11.1 nicht verfuegbar.
+STALE_WHILE_DISCONNECTED = (
+    "sensor.remote_containers",
+    "sensor.remote_containers_running",
+    "sensor.remote_containers_stopped",
+    "sensor.remote_projects_running",
+    "sensor.remote_container_updates_available",
+    "sensor.remote_unhealthy_containers",
+    "sensor.remote_images",
+    "sensor.remote_host_cpu",
+    "sensor.remote_reclaimable_image_space",
+    "sensor.remote_agent_connected_since",
+    "sensor.remote_agent_latency",
+    "button.remote_prune_unused",
+)
+
+
+async def test_entities_of_a_disconnected_agent_become_unavailable(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    await _setup(
+        hass,
+        mock_config_entry,
+        mock_client,
+        [LOCAL, REMOTE],
+        {CONF_DISK_USAGE: True, CONF_HOST_STATS: True, CONF_PRUNE_BUTTON: "unused"},
+    )
+    for entity_id in STALE_WHILE_DISCONNECTED:
+        state = hass.states.get(entity_id)
+        assert state is not None, entity_id
+        assert state.state != STATE_UNAVAILABLE, entity_id
+
+    mock_client.async_get_environments.return_value = [
+        LOCAL,
+        _remote(status="offline", connected=False, lastHeartbeat=None),
+    ]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    for entity_id in STALE_WHILE_DISCONNECTED:
+        assert hass.states.get(entity_id).state == STATE_UNAVAILABLE, entity_id
+    # Was die Verbindung selbst beschreibt, bleibt.
+    assert hass.states.get("binary_sensor.remote_online").state == STATE_OFF
+    for entity_id in (
+        "sensor.remote_agent_last_contact",
+        "sensor.remote_agent_last_disconnect",
+    ):
+        assert hass.states.get(entity_id).state != STATE_UNAVAILABLE, entity_id
+    # Die lokale Umgebung ist nicht betroffen.
+    for key in ("containers", "host_cpu", "reclaimable_image_space"):
+        assert hass.states.get(f"sensor.local_{key}").state != STATE_UNAVAILABLE
+    assert hass.states.get("button.local_prune_unused").state != STATE_UNAVAILABLE
+
+    mock_client.async_get_environments.return_value = [LOCAL, REMOTE]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    for entity_id in STALE_WHILE_DISCONNECTED:
+        assert hass.states.get(entity_id).state != STATE_UNAVAILABLE, entity_id
+
+
+async def test_last_contact_does_not_go_back_after_a_disconnect(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    """Live gesehen: Heartbeat 13:37:25, danach lastSeen 13:36:59 (0.11.0)."""
+    await _setup(hass, mock_config_entry, mock_client, [LOCAL, REMOTE])
+
+    def contact() -> datetime:
+        return datetime.fromisoformat(
+            hass.states.get("sensor.remote_agent_last_contact").state
+        )
+
+    assert contact() == datetime(2026, 11, 16, 11, 59, 30, tzinfo=UTC)
+
+    # lastSeen (11:59:00) liegt vor dem letzten Heartbeat.
+    mock_client.async_get_environments.return_value = [
+        LOCAL,
+        _remote(status="offline", connected=False, lastHeartbeat=None),
+    ]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert contact() == datetime(2026, 11, 16, 11, 59, 30, tzinfo=UTC)
+
+    # Wieder verbunden: ein neuerer Heartbeat gilt.
+    mock_client.async_get_environments.return_value = [
+        LOCAL,
+        _remote(lastHeartbeat="2026-11-16T12:05:00Z"),
+    ]
+    await mock_config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert contact() == datetime(2026, 11, 16, 12, 5, tzinfo=UTC)
+
+
+def test_keep_later_contact() -> None:
+    later = ArcaneAgent(last_heartbeat=datetime(2026, 11, 16, 12, 0, tzinfo=UTC))
+    earlier = ArcaneAgent(last_seen=datetime(2026, 11, 16, 11, 0, tzinfo=UTC))
+    earlier.keep_later_contact(later)
+    assert earlier.last_contact == datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
+
+    newer = ArcaneAgent(last_heartbeat=datetime(2026, 11, 16, 13, 0, tzinfo=UTC))
+    newer.keep_later_contact(later)
+    assert newer.last_contact == datetime(2026, 11, 16, 13, 0, tzinfo=UTC)
+
+    unknown = ArcaneAgent()
+    unknown.keep_later_contact(later)
+    assert unknown.last_contact == datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
+    unknown = ArcaneAgent()
+    unknown.keep_later_contact(None)
+    assert unknown.last_contact is None
 
 
 async def test_reconnected_agent_is_asked_again(

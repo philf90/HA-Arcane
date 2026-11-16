@@ -130,8 +130,26 @@ class ArcaneEnvironmentEntity(ArcaneEntity):
 
     @property
     def available(self) -> bool:
-        """Return whether the environment is still known to Arcane."""
-        return super().available and self.environment is not None
+        """Return whether the entity has something current to show.
+
+        The environment must still be known to Arcane. While the agent of a
+        remote environment is disconnected, nothing is asked of it, so counts,
+        host values and actions would only show stale or made-up values; such
+        entities are unavailable then. Descriptions with
+        ``available_while_disconnected`` (Online, last contact, last
+        disconnect) report on the connection itself and stay.
+        """
+        environment = self.environment
+        return (
+            super().available
+            and environment is not None
+            and (
+                not environment.agent_disconnected
+                or getattr(
+                    self.entity_description, "available_while_disconnected", False
+                )
+            )
+        )
 
 
 class ArcaneContainerEntity(ArcaneEntity):
