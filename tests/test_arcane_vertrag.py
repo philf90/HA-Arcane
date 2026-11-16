@@ -42,6 +42,13 @@ def _antwort(route: dict, request: web.Request) -> web.StreamResponse:
         return web.json_response(
             {"observedAt": "2026-11-16T09:00:00Z", "jobs": [], "durableRuns": True}
         )
+    if path == "/agents/{id}/activities/{activityId}":
+        return web.json_response(
+            {
+                "success": True,
+                "data": {"activity": {"id": "a1", "status": "success"}, "messages": []},
+            }
+        )
     if path == "/agents/{id}/jobs/{jobId}":
         return web.json_response(
             {"success": True, "message": "Job accepted", "status": "queued"},
@@ -141,6 +148,7 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
     await client.async_get_updater_history("0", limit=1)
     await client.async_get_jobs("0")
     await client.async_run_job("0", "auto-update")
+    await client.async_get_activity("0", "a1")
     return {
         "async_get_version",
         "async_get_environments",
@@ -168,6 +176,7 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
         "async_get_updater_history",
         "async_get_jobs",
         "async_run_job",
+        "async_get_activity",
     }
 
 
@@ -205,6 +214,7 @@ async def test_every_call_hits_an_arcane_3_route(arcane3) -> None:
     assert ("GET", "/agents/{id}/updater/history", None) in calls
     assert ("GET", "/agents/{id}/jobs", None) in calls
     assert ("POST", "/agents/{id}/jobs/{jobId}", "run") in calls
+    assert ("GET", "/agents/{id}/activities/{activityId}", None) in calls
 
 
 async def test_actions_match_arcane(arcane3) -> None:

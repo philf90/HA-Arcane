@@ -703,7 +703,9 @@ class ArcaneClient:
         """Remove unused images, networks and build cache.
 
         Containers and volumes are never included: pruning those destroys data
-        that cannot be pulled again.
+        that cannot be pulled again. Arcane 3 starts the prune as a background
+        activity and answers at once with its ``activityId``, before anything
+        is deleted; ``async_get_activity`` tells when it is over.
         """
         payload = {
             "images": {"mode": "all" if unused_images else "dangling"},
@@ -719,6 +721,22 @@ class ArcaneClient:
         if isinstance(result, dict) and isinstance(result.get("data"), dict):
             return result["data"]
         return {}
+
+    async def async_get_activity(
+        self, environment_id: str, activity_id: str
+    ) -> dict[str, Any]:
+        """Return one of Arcane's background activities, such as a prune.
+
+        Its ``status`` is ``queued`` or ``running`` while it goes on and
+        ``success``, ``failed`` or ``cancelled`` once it is over. Only the
+        newest progress message is asked for; the status is what counts.
+        """
+        url = self._url(AGENTS, environment_id, "activities", activity_id)
+        data = await self._get_data(url, {"limit": "1"})
+        activity = data.get("activity") if isinstance(data, dict) else None
+        if not isinstance(activity, dict):
+            raise ArcaneResponseError(f"Unexpected payload from {url}")
+        return activity
 
     async def async_get_host_stats(
         self, environment_id: str, *, timeout: int = HOST_STATS_TIMEOUT

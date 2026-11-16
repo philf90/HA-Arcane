@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from time import monotonic
+from typing import Any
 
 from homeassistant.components.button import (
     ButtonDeviceClass,
@@ -16,6 +19,9 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import ArcaneConfigEntry
 from .api import ArcaneError, ArcanePermissionError
 from .const import (
+    ACTIVITY_DONE_STATUSES,
+    ACTIVITY_POLL_INTERVAL,
+    ACTIVITY_SUCCESS,
     CONF_ALLOW_CONTROL,
     CONF_JOBS,
     CONF_MONITOR_CONTAINERS,
@@ -27,6 +33,7 @@ from .const import (
     LOCAL_ENVIRONMENT_ID,
     PRUNE_OFF,
     PRUNE_UNUSED,
+    PRUNE_WAIT,
 )
 from .entity import (
     ArcaneContainerEntity,
@@ -37,6 +44,7 @@ from .entity import (
 from .helpers import action_error, async_setup_entities
 from .permissions import (
     CONTAINER_ACTION_PERMISSIONS,
+    PERM_ACTIVITIES_READ,
     PERM_IMAGE_UPDATES_APPLY,
     PERM_IMAGE_UPDATES_CHECK,
     PERM_JOBS_RUN,
@@ -47,6 +55,9 @@ from .permissions import (
 _LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 1
+
+# Waits between two looks at a running activity; replaced in tests.
+_pause = asyncio.sleep
 
 RESTART_BUTTON = ButtonEntityDescription(
     key="restart",
@@ -222,10 +233,16 @@ class ArcanePruneButton(ArcaneEnvironmentEntity, ButtonEntity):
 
     Containers and volumes are never pruned. Both hold state a user cannot get
     back, which is not something a single button press should be able to do.
+
+    Arcane 3 answers the prune request before it deletes anything and goes on
+    in the background. The press therefore follows Arcane's activity until it
+    is over and only then asks for a disk usage report and fresh counts, so
+    whatever waits for the press sees the environment after the prune.
     """
 
     async def async_press(self) -> None:
-        """Run the prune."""
+        """Run the prune and wait until Arcane has finished it."""
+        name = self.environment.name if self.environment else ""
         aggressive = self.coordinator.option(CONF_PRUNE_BUTTON) == PRUNE_UNUSED
         try:
             result = await self.coordinator.client.async_prune(
@@ -237,16 +254,64 @@ class ArcanePruneButton(ArcaneEnvironmentEntity, ButtonEntity):
                 err,
                 permission=PERM_SYSTEM_PRUNE,
                 action_key="prune",
-                placeholders={
-                    "name": self.environment.name if self.environment else ""
-                },
+                placeholders={"name": name},
             ) from err
         _LOGGER.debug(
             "Prune of environment %s returned %s", self.environment_id, result
         )
-        # The reclaimable space the last report counted is gone now.
+        outcome: dict[str, Any] | None = None
+        if isinstance(activity_id := result.get("activityId"), str) and activity_id:
+            outcome = await self._async_follow(activity_id, name)
+        # Whatever was deleted is gone from the last report and the counts.
         self.coordinator.async_disk_usage_now(self.environment_id)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_refresh()
+        if outcome is not None and outcome.get("status") != ACTIVITY_SUCCESS:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="prune_not_completed",
+                translation_placeholders={
+                    "name": name,
+                    "status": str(outcome.get("status")),
+                    "error": str(outcome.get("error") or "-"),
+                },
+            )
+
+    async def _async_follow(self, activity_id: str, name: str) -> dict[str, Any] | None:
+        """Wait for the prune activity to end and return it.
+
+        None when it could not be followed to its end: the key may not read
+        activities, Arcane did not answer, or it ran longer than PRUNE_WAIT.
+        The press then goes on as if the prune were over, as before 0.10.1.
+        """
+        client = self.coordinator.client
+        deadline = monotonic() + PRUNE_WAIT
+        while True:
+            try:
+                activity = await client.async_get_activity(
+                    self.environment_id, activity_id
+                )
+            except ArcanePermissionError:
+                self.coordinator.async_note_denied(PERM_ACTIVITIES_READ)
+                _LOGGER.warning(
+                    "Cannot follow the prune of %s: the API key lacks %s, so the "
+                    "reclaimable space is read before the prune may be over",
+                    name,
+                    PERM_ACTIVITIES_READ,
+                )
+                return None
+            except ArcaneError as err:
+                _LOGGER.warning("Lost track of the prune of %s: %s", name, err)
+                return None
+            if activity.get("status") in ACTIVITY_DONE_STATUSES:
+                return activity
+            if monotonic() >= deadline:
+                _LOGGER.warning(
+                    "The prune of %s is still running after %s seconds",
+                    name,
+                    PRUNE_WAIT,
+                )
+                return None
+            await _pause(ACTIVITY_POLL_INTERVAL)
 
 
 class ArcaneCheckUpdatesButton(ArcaneEnvironmentEntity, ButtonEntity):

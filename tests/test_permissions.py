@@ -97,6 +97,7 @@ def test_options_only_ask_for_what_they_use() -> None:
         "containers:stop",
         "containers:restart",
         "system:prune",
+        "activities:read",
     ]
 
 

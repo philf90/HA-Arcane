@@ -472,6 +472,9 @@
     },
     "run_job_forbidden": {
       "message": "Not allowed to run job {name}: the Arcane API key is missing the {permission} permission."
+    },
+    "prune_not_completed": {
+      "message": "Arcane did not complete the prune of environment {name} (status {status}): {error}"
     }
   },
   "issues": {

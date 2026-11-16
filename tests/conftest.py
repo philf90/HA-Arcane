@@ -157,4 +157,5 @@ def mock_client() -> Generator[AsyncMock]:
         client.async_get_updater_history.return_value = []
         client.async_get_jobs.return_value = []
         client.async_run_job.return_value = {}
+        client.async_get_activity.return_value = {"status": "success"}
         yield client
