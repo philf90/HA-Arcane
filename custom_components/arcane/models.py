@@ -145,6 +145,90 @@ def _created_at(value: Any) -> datetime | None:
     return None
 
 
+#: Host addresses that mean "every address". Docker lists a port published on
+#: all addresses once for IPv4 and once for IPv6.
+_ANY_ADDRESS = frozenset({"", "0.0.0.0", "::"})
+
+
+@dataclass(frozen=True, slots=True)
+class ArcanePort:
+    """A port of a container, published on the host or only exposed."""
+
+    container_port: int
+    protocol: str
+    #: Port on the host; None when the port is only exposed, not published.
+    host_port: int | None = None
+    #: Host address the port is bound to; None for every address.
+    host_ip: str | None = None
+
+    @property
+    def published(self) -> bool:
+        """Return whether the port is reachable on the host."""
+        return self.host_port is not None
+
+    @property
+    def host(self) -> str | None:
+        """Return the host side as Docker writes it, e.g. 127.0.0.1:8080."""
+        if self.host_port is None:
+            return None
+        if self.host_ip is None:
+            return str(self.host_port)
+        address = f"[{self.host_ip}]" if ":" in self.host_ip else self.host_ip
+        return f"{address}:{self.host_port}"
+
+    def __str__(self) -> str:
+        """Return the mapping as host→container/protocol, e.g. 8080→80/tcp."""
+        target = f"{self.container_port}/{self.protocol}"
+        return target if self.host is None else f"{self.host}→{target}"
+
+
+def _port_number(value: Any) -> int | None:
+    """Return a port number from Arcane, or None for anything else."""
+    if isinstance(value, int) and not isinstance(value, bool) and 0 < value < 65536:
+        return value
+    return None
+
+
+def _ports(payload: Any) -> tuple[ArcanePort, ...]:
+    """Read the ports of an Arcane container summary.
+
+    Each entry carries ``privatePort``, ``type`` and, once published,
+    ``publicPort`` and ``ip`` (types/container.go ContainerPort). The same
+    port published on every IPv4 and every IPv6 address becomes one entry.
+    """
+    ports: set[ArcanePort] = set()
+    for item in payload if isinstance(payload, list) else []:
+        if not isinstance(item, dict):
+            continue
+        if (container_port := _port_number(item.get("privatePort"))) is None:
+            continue
+        protocol = _version(item.get("type")) or "tcp"
+        host_port = _port_number(item.get("publicPort"))
+        address = _version(item.get("ip")) or ""
+        ports.add(
+            ArcanePort(
+                container_port=container_port,
+                protocol=protocol,
+                host_port=host_port,
+                host_ip=(
+                    None if host_port is None or address in _ANY_ADDRESS else address
+                ),
+            )
+        )
+    return tuple(
+        sorted(
+            ports,
+            key=lambda port: (
+                port.host_port is None,
+                port.host_port or 0,
+                port.container_port,
+                port.protocol,
+                port.host_ip or "",
+            ),
+        )
+    )
+
+
 @dataclass(slots=True)
 class ArcaneContainer:
     """A single Docker container as reported by Arcane."""
@@ -177,6 +261,13 @@ class ArcaneContainer:
     #: The container opts out of Arcane's updater by label, which no switch
     #: in Arcane or here can override.
     auto_update_label_disabled: bool = False
+    #: Published and exposed ports, published ones first by host port.
+    ports: tuple[ArcanePort, ...] = ()
+
+    @property
+    def published_ports(self) -> tuple[ArcanePort, ...]:
+        """Return the ports reachable on the host."""
+        return tuple(port for port in self.ports if port.published)
 
     @property
     def is_running(self) -> bool:
@@ -225,6 +316,7 @@ class ArcaneContainer:
                 else None
             ),
             auto_update_label_disabled=_label_disables_updater(labels),
+            ports=_ports(payload.get("ports")),
         )
 
 
@@ -614,6 +706,27 @@ class ArcaneEnvironment:
     def containers_unhealthy(self) -> int:
         """Return the number of containers reporting an unhealthy check."""
         return sum(1 for item in self.containers.values() if item.is_healthy is False)
+
+    @property
+    def host_ports(self) -> list[tuple[ArcanePort, str]]:
+        """Return every published port with the container holding it.
+
+        Docker only lists the ports of running containers as published, so
+        this is what is bound on the host right now, sorted by host port.
+        """
+        return sorted(
+            (
+                (port, container.name)
+                for container in self.containers.values()
+                for port in container.published_ports
+            ),
+            key=lambda item: (
+                item[0].host_port or 0,
+                item[0].protocol,
+                item[0].host_ip or "",
+                item[1],
+            ),
+        )
 
     def project_id_for(self, name: str | None) -> str | None:
         """Return the ID of the project with this compose name, if tracked."""

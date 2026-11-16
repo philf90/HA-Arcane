@@ -32,6 +32,7 @@ CONF_ARCANE_EVENTS: Final = "arcane_events"
 CONF_AUTO_UPDATE_SWITCHES: Final = "auto_update_switches"
 CONF_UPDATER: Final = "updater"
 CONF_JOBS: Final = "jobs"
+CONF_PORTS: Final = "ports"
 CONF_ENVIRONMENT_IN_NAME: Final = "environment_in_name"
 
 # Values of the prune button option. Containers and volumes are deliberately
@@ -93,6 +94,7 @@ DEFAULT_OPTIONS: Final[dict[str, object]] = {
     CONF_AUTO_UPDATE_SWITCHES: False,
     CONF_UPDATER: False,
     CONF_JOBS: False,
+    CONF_PORTS: False,
     CONF_ENVIRONMENT_IN_NAME: False,
 }
 

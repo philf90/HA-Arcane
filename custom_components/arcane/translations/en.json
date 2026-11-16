@@ -97,7 +97,8 @@
           "events": "Fire events on the Home Assistant bus",
           "arcane_events": "Arcane event log on the bus",
           "updater": "Arcane updater",
-          "jobs": "Arcane background jobs"
+          "jobs": "Arcane background jobs",
+          "ports": "Published ports"
         },
         "data_description": {
           "update_entities": "Offer an update entity per container that installs the newer image through Arcane's updater and shows release notes where Arcane finds them, plus a button per environment that checks for updates right away. An update Arcane holds back cannot be installed.",
@@ -108,7 +109,8 @@
           "events": "Fire arcane_container_state_changed, arcane_container_health_changed and arcane_project_state_changed so automations can react to crashes and health changes.",
           "arcane_events": "Read Arcane's own event log on every update and fire arcane_event for each new entry, such as a container that ran out of memory, an image pull or a login.",
           "updater": "Add a button per environment that installs every pending update the way Arcane's scheduled updates do, a sensor showing that updates are being installed and one with the last update Arcane applied.",
-          "jobs": "Add a sensor per background job of Arcane, such as its automatic updates or the image update watcher, with the outcome of the last run, when it runs next and the last error. With control allowed, also a button per job that runs it now."
+          "jobs": "Add a sensor per background job of Arcane, such as its automatic updates or the image update watcher, with the outcome of the last run, when it runs next and the last error. With control allowed, also a button per job that runs it now.",
+          "ports": "Each container gets a diagnostic sensor Ports with its published ports, such as 8080→80/tcp, and each environment a sensor with the number of host ports in use and the list of them with their containers. Needs no extra request; Docker lists ports of running containers only."
         }
       },
       "control": {
@@ -431,6 +433,25 @@
         "state_attributes": {
           "reason": {
             "name": "Reason"
+          }
+        }
+      },
+      "container_ports": {
+        "name": "Ports",
+        "state_attributes": {
+          "published": {
+            "name": "Published"
+          },
+          "exposed": {
+            "name": "Exposed only"
+          }
+        }
+      },
+      "host_ports": {
+        "name": "Host ports in use",
+        "state_attributes": {
+          "ports": {
+            "name": "Ports"
           }
         }
       }
