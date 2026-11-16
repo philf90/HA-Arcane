@@ -447,15 +447,37 @@ class ArcaneClient:
         *,
         include_internal: bool = False,
         include_hidden: bool = False,
+        resources: bool = False,
     ) -> list[dict[str, Any]]:
-        """Return all containers of an environment."""
+        """Return all containers of an environment.
+
+        With ``resources`` Arcane sorts the list by CPU usage, and only then
+        fills ``resourceSample`` (CPU, memory, network and block I/O) for every
+        running container (container/service.go, IsContainerResourceSort).
+        The order does not matter here; the sample does.
+        """
+        params = {
+            "limit": _ALL_ITEMS,
+            "includeInternal": str(include_internal).lower(),
+            "includeHidden": str(include_hidden).lower(),
+        }
+        if resources:
+            params["sort"] = "cpuUsage"
         data = await self._get_data(
-            self._url(AGENTS, environment_id, "containers"),
-            {
-                "limit": _ALL_ITEMS,
-                "includeInternal": str(include_internal).lower(),
-                "includeHidden": str(include_hidden).lower(),
-            },
+            self._url(AGENTS, environment_id, "containers"), params
+        )
+        return data if isinstance(data, list) else []
+
+    async def async_get_volume_sizes(self, environment_id: str) -> list[dict[str, Any]]:
+        """Return the size of every volume of an environment.
+
+        Docker measures each volume for this (Arcane calls it a slow
+        operation), so it is fetched in the background like the disk usage
+        report, not on every refresh.
+        """
+        data = await self._get_data(
+            self._url(AGENTS, environment_id, "volumes", "sizes"),
+            timeout=DISK_USAGE_TIMEOUT,
         )
         return data if isinstance(data, list) else []
 

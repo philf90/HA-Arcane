@@ -64,6 +64,8 @@ def _entity_keys() -> dict[str, set[str]]:
                 *sensor.ENVIRONMENT_SENSORS,
                 *sensor.CONTAINER_SENSORS,
                 sensor.CONTAINER_PORTS_SENSOR,
+                *sensor.CONTAINER_RESOURCE_SENSORS,
+                sensor.CONTAINER_VOLUME_SENSOR,
                 *sensor.PROJECT_SENSORS,
                 sensor.ARCANE_VERSION_SENSOR,
                 sensor.UPDATER_LAST_SENSOR,

@@ -184,6 +184,8 @@ async def test_options_flow_polling(
             "monitor_resources": True,
             "host_stats": False,
             "disk_usage": True,
+            "container_resources": False,
+            "volume_sizes": False,
             "instant_updates": True,
             "include_internal": True,
             "include_hidden": False,

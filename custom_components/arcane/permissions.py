@@ -21,6 +21,7 @@ from .const import (
     CONF_ALLOW_CONTROL,
     CONF_ARCANE_EVENTS,
     CONF_AUTO_UPDATE_SWITCHES,
+    CONF_CONTAINER_RESOURCES,
     CONF_DISK_USAGE,
     CONF_HOST_STATS,
     CONF_INSTANT_UPDATES,
@@ -32,6 +33,7 @@ from .const import (
     CONF_REDEPLOY_BUTTONS,
     CONF_UPDATE_ENTITIES,
     CONF_UPDATER,
+    CONF_VOLUME_SIZES,
     DEFAULT_OPTIONS,
     PRUNE_OFF,
 )
@@ -42,6 +44,7 @@ PERM_ENVIRONMENTS_READ: Final = "environments:read"
 
 # Permissions resolved against a single environment.
 PERM_CONTAINERS_LIST: Final = "containers:list"
+PERM_CONTAINERS_READ: Final = "containers:read"
 PERM_CONTAINERS_START: Final = "containers:start"
 PERM_CONTAINERS_STOP: Final = "containers:stop"
 PERM_CONTAINERS_RESTART: Final = "containers:restart"
@@ -140,6 +143,11 @@ def _monitoring_permissions(options: Mapping[str, Any]) -> list[str]:
 
     if _option(options, CONF_MONITOR_CONTAINERS):
         permissions.append(PERM_CONTAINERS_LIST)
+        if _option(options, CONF_CONTAINER_RESOURCES):
+            # Arcane only adds the resource samples to the container list for
+            # a key that may read containers (container/children/stats,
+            # ContainerResourceSortPermissionDenied).
+            permissions.append(PERM_CONTAINERS_READ)
     if _option(options, CONF_MONITOR_PROJECTS):
         permissions.append(PERM_PROJECTS_LIST)
     if _option(options, CONF_MONITOR_RESOURCES):
@@ -170,6 +178,9 @@ def _monitoring_permissions(options: Mapping[str, Any]) -> list[str]:
     if _option(options, CONF_JOBS):
         # Arcane's background jobs with their last and next run.
         permissions.append(PERM_JOBS_LIST)
+    if _option(options, CONF_VOLUME_SIZES):
+        # The size of every volume, measured in the background.
+        permissions.append(PERM_VOLUMES_LIST)
     return permissions
 
 

@@ -123,6 +123,8 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
     await client.async_get_environment_version("1")
     await client.async_upgrade("0")
     await client.async_get_containers("0", include_internal=True, include_hidden=True)
+    await client.async_get_containers("0", resources=True)
+    await client.async_get_volume_sizes("0")
     await client.async_get_projects("0")
     await client.async_get_image_counts("0")
     await client.async_get_volume_counts("0")
@@ -155,6 +157,7 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
         "async_get_environment_version",
         "async_upgrade",
         "async_get_containers",
+        "async_get_volume_sizes",
         "async_get_projects",
         "async_get_image_counts",
         "async_get_volume_counts",

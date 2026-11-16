@@ -71,7 +71,9 @@
           "disk_usage": "Freigebbarer Speicher",
           "instant_updates": "Bei Änderungen sofort aktualisieren",
           "include_internal": "Interne Container einbeziehen",
-          "include_hidden": "Versteckte Container einbeziehen"
+          "include_hidden": "Versteckte Container einbeziehen",
+          "container_resources": "CPU und Arbeitsspeicher je Container",
+          "volume_sizes": "Volume-Größen"
         },
         "data_description": {
           "scan_interval": "Wie oft Arcane abgefragt wird, in Sekunden.",
@@ -83,7 +85,9 @@
           "disk_usage": "Fragt im Hintergrund höchstens alle 15 Minuten ab, wie viel Platz ungenutzte Images, gestoppte Container, ungenutzte Volumes und der Build-Cache belegen. Standardmäßig aus, weil Docker dafür die Größe jedes Volumes ermittelt, was bei großen Volumes dauern kann.",
           "instant_updates": "Je Environment eine Anfrage offen halten, die Arcane beantwortet, sobald sich etwas ändert, und dann sofort aktualisieren statt auf das nächste Intervall zu warten. Die regelmäßige Abfrage läuft weiter.",
           "include_internal": "Auch Container einbeziehen, die Arcane als intern markiert.",
-          "include_hidden": "Auch Container einbeziehen, die in der Arcane Oberfläche versteckt sind."
+          "include_hidden": "Auch Container einbeziehen, die in der Arcane Oberfläche versteckt sind.",
+          "container_resources": "Jeder laufende Container bekommt einen Sensor CPU (Prozent, Mittel seit der letzten Aktualisierung) und einen Sensor Arbeitsspeicher, mit Speicherlimit sowie Netzwerk- und Datenträger-Verkehr als Attribute. Arcane liest dafür bei jeder Aktualisierung die Docker-Statistik aller laufenden Container, das belastet den Docker-Host. Braucht das Recht containers:read.",
+          "volume_sizes": "Jeder Container bekommt einen Sensor mit dem Platz seiner eingebundenen Volumes, jedes Environment einen mit allen Volumes, das größte zuerst. Docker misst dafür jedes Volume aus, deshalb läuft das im Hintergrund höchstens alle 15 Minuten und direkt nach einem Prune."
         }
       },
       "entities": {
@@ -452,6 +456,48 @@
         "state_attributes": {
           "ports": {
             "name": "Ports"
+          }
+        }
+      },
+      "container_cpu": {
+        "name": "CPU"
+      },
+      "container_memory": {
+        "name": "Arbeitsspeicher",
+        "state_attributes": {
+          "memory_limit": {
+            "name": "Speicherlimit"
+          },
+          "network_rx": {
+            "name": "Netzwerk empfangen"
+          },
+          "network_tx": {
+            "name": "Netzwerk gesendet"
+          },
+          "block_read": {
+            "name": "Datenträger gelesen"
+          },
+          "block_write": {
+            "name": "Datenträger geschrieben"
+          },
+          "pids": {
+            "name": "Prozesse"
+          }
+        }
+      },
+      "container_volume_size": {
+        "name": "Volume-Speicher",
+        "state_attributes": {
+          "volumes": {
+            "name": "Volumes"
+          }
+        }
+      },
+      "volumes_size_total": {
+        "name": "Volume-Speicher gesamt",
+        "state_attributes": {
+          "volumes": {
+            "name": "Volumes"
           }
         }
       }
