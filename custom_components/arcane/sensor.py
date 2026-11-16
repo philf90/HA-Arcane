@@ -13,7 +13,12 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfInformation
+from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
+    UnitOfInformation,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -31,6 +36,7 @@ from .const import (
     CONF_UPDATER,
     CONTAINER_STATES,
     JOB_RUN_STATUSES,
+    LOCAL_ENVIRONMENT_ID,
     PROJECT_STATES,
 )
 from .entity import (
@@ -40,7 +46,7 @@ from .entity import (
     ArcaneProjectEntity,
 )
 from .helpers import async_setup_entities
-from .models import ArcaneContainer, ArcaneEnvironment, ArcaneProject
+from .models import ArcaneAgent, ArcaneContainer, ArcaneEnvironment, ArcaneProject
 
 PARALLEL_UPDATES = 0
 
@@ -54,6 +60,14 @@ class ArcaneEnvironmentSensorDescription(SensorEntityDescription):
     requires: str
     #: State attributes, if the sensor has any.
     attributes_fn: Callable[[ArcaneEnvironment], dict[str, Any] | None] | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ArcaneAgentSensorDescription(SensorEntityDescription):
+    """Describes a sensor about the Arcane agent of a remote environment."""
+
+    value_fn: Callable[[ArcaneAgent], StateType | datetime]
+    attributes_fn: Callable[[ArcaneAgent], dict[str, Any] | None] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -351,6 +365,42 @@ PROJECT_SENSORS: tuple[ArcaneProjectSensorDescription, ...] = (
 )
 
 
+AGENT_SENSORS: tuple[ArcaneAgentSensorDescription, ...] = (
+    ArcaneAgentSensorDescription(
+        key="agent_last_contact",
+        translation_key="agent_last_contact",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda agent: agent.last_contact,
+    ),
+    ArcaneAgentSensorDescription(
+        key="agent_connected_since",
+        translation_key="agent_connected_since",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda agent: agent.connected_at if agent.connected else None,
+    ),
+    ArcaneAgentSensorDescription(
+        key="agent_latency",
+        translation_key="agent_latency",
+        device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.MILLISECONDS,
+        suggested_display_precision=1,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda agent: agent.round_trip_ms if agent.connected else None,
+    ),
+    ArcaneAgentSensorDescription(
+        key="agent_last_disconnect",
+        translation_key="agent_last_disconnect",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda agent: agent.last_disconnect_at,
+        attributes_fn=lambda agent: {"reason": agent.last_disconnect_reason},
+    ),
+)
+
+
 JOB_SENSOR = SensorEntityDescription(
     key="job",
     translation_key="job",
@@ -385,6 +435,11 @@ async def async_setup_entry(
                 if coordinator.option(description.requires)
             ),
             ArcaneVersionSensor(coordinator, environment_id, ARCANE_VERSION_SENSOR),
+            *(
+                ArcaneAgentSensor(coordinator, environment_id, description)
+                for description in AGENT_SENSORS
+                if environment_id != LOCAL_ENVIRONMENT_ID
+            ),
             *(
                 [
                     ArcaneUpdaterLastSensor(
@@ -550,3 +605,26 @@ class ArcaneJobSensor(ArcaneJobEntity, SensorEntity):
             "worker_status": job.worker_status,
             "worker_error": job.worker_error,
         }
+
+
+class ArcaneAgentSensor(ArcaneEnvironmentEntity, SensorEntity):
+    """Report on the Arcane agent that serves a remote environment."""
+
+    entity_description: ArcaneAgentSensorDescription
+
+    @property
+    def native_value(self) -> StateType | datetime:
+        """Return the value from Arcane's environment list."""
+        environment = self.environment
+        if environment is None or environment.agent is None:
+            return None
+        return self.entity_description.value_fn(environment.agent)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the state attributes, if the sensor has any."""
+        attributes_fn = self.entity_description.attributes_fn
+        environment = self.environment
+        if attributes_fn is None or environment is None or environment.agent is None:
+            return None
+        return attributes_fn(environment.agent)

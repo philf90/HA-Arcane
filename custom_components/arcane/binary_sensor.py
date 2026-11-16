@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -33,6 +34,26 @@ class ArcaneEnvironmentBinarySensorDescription(BinarySensorEntityDescription):
     """Describes an Arcane environment binary sensor."""
 
     value_fn: Callable[[ArcaneEnvironment], bool]
+    #: State attributes, if the sensor has any.
+    attributes_fn: Callable[[ArcaneEnvironment], dict[str, Any] | None] | None = None
+
+
+def _agent_attributes(environment: ArcaneEnvironment) -> dict[str, Any] | None:
+    """Return host and connection of the Arcane agent of a remote environment."""
+    if (agent := environment.agent) is None:
+        return None
+    return {
+        "hostname": agent.hostname,
+        "agent_version": agent.agent_version,
+        "docker_version": agent.docker_version,
+        "os": agent.os,
+        "kernel_version": agent.kernel_version,
+        "architecture": agent.architecture,
+        "cpus": agent.cpus,
+        "memory_bytes": agent.memory_bytes,
+        "transport": agent.transport,
+        "security_mode": agent.security_mode,
+    }
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -73,6 +94,7 @@ ENVIRONMENT_BINARY_SENSORS: tuple[ArcaneEnvironmentBinarySensorDescription, ...]
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda environment: environment.is_online,
+        attributes_fn=_agent_attributes,
     ),
 )
 
@@ -178,6 +200,14 @@ class ArcaneEnvironmentBinarySensor(ArcaneEnvironmentEntity, BinarySensorEntity)
         if (environment := self.environment) is None:
             return None
         return self.entity_description.value_fn(environment)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the state attributes, if the sensor has any."""
+        attributes_fn = self.entity_description.attributes_fn
+        if attributes_fn is None or (environment := self.environment) is None:
+            return None
+        return attributes_fn(environment)
 
 
 class ArcaneContainerBinarySensor(ArcaneContainerEntity, BinarySensorEntity):

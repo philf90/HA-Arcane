@@ -16,7 +16,7 @@ from homeassistant.helpers import device_registry as dr
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.arcane.const import DOMAIN
-from custom_components.arcane.entity import _find_device
+from custom_components.arcane.helpers import find_device as _find_device
 
 
 async def test_no_deprecated_via_device(

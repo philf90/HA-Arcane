@@ -6,6 +6,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -14,6 +15,22 @@ from .const import DOMAIN
 
 if TYPE_CHECKING:
     from .coordinator import ArcaneCoordinator
+
+
+def find_device(
+    registry: dr.DeviceRegistry, identifier: str, config_entry_id: str
+) -> dr.DeviceEntry | None:
+    """Return the device of this config entry with the given identifier.
+
+    Home Assistant 2026.11 deprecates ``async_get_device`` in favour of
+    ``async_get_device_by_identifier``, which older releases lack. The newer
+    lookup is used where it exists, so neither version reports a deprecation.
+    """
+    lookup = getattr(registry, "async_get_device_by_identifier", None)
+    if lookup is not None:
+        return lookup((DOMAIN, identifier), config_entry_id)
+    return registry.async_get_device(identifiers={(DOMAIN, identifier)})
+
 
 type EnvironmentFactory = Callable[[str], list[Entity]]
 type ContainerFactory = Callable[[str, str], list[Entity]]

@@ -336,7 +336,9 @@ async def test_manager_only_job_has_no_button_in_a_remote_environment(
     await _setup(hass, mock_config_entry)
 
     assert hass.states.get("button.local_run_job_environment_health") is not None
-    assert hass.states.get("sensor.remote_job_environment_health") is not None
+    # 0.11.0: Jobs, die nur die Hauptinstanz ausfuehrt, fehlen in entfernten
+    # Umgebungen ganz; dort laufen sie nie.
+    assert hass.states.get("sensor.remote_job_environment_health") is None
     assert hass.states.get("button.remote_run_job_environment_health") is None
 
 

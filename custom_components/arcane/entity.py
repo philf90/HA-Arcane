@@ -11,27 +11,17 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     CONF_ENTITY_PREFIX,
+    CONF_ENVIRONMENT_IN_NAME,
     CONF_NEST_CONTAINERS,
     DOMAIN,
+    LOCAL_ENVIRONMENT_ID,
     MANUFACTURER,
+    MODEL_AGENT,
+    MODEL_ENVIRONMENT,
 )
 from .coordinator import ArcaneCoordinator
+from .helpers import find_device
 from .models import ArcaneContainer, ArcaneEnvironment, ArcaneJob, ArcaneProject
-
-
-def _find_device(
-    registry: dr.DeviceRegistry, identifier: str, config_entry_id: str
-) -> dr.DeviceEntry | None:
-    """Return the device of this config entry with the given identifier.
-
-    Home Assistant 2026.11 deprecates ``async_get_device`` in favour of
-    ``async_get_device_by_identifier``, which older releases lack. The newer
-    lookup is used where it exists, so neither version reports a deprecation.
-    """
-    lookup = getattr(registry, "async_get_device_by_identifier", None)
-    if lookup is not None:
-        return lookup((DOMAIN, identifier), config_entry_id)
-    return registry.async_get_device(identifiers={(DOMAIN, identifier)})
 
 
 class ArcaneEntity(CoordinatorEntity[ArcaneCoordinator]):
@@ -72,7 +62,7 @@ class ArcaneEntity(CoordinatorEntity[ArcaneCoordinator]):
         if self.device_entry is None or (parent := self._parent_identifier()) is None:
             return
         registry = dr.async_get(self.hass)
-        parent_device = _find_device(
+        parent_device = find_device(
             registry, parent, self.coordinator.config_entry.entry_id
         )
         device = registry.async_get(self.device_entry.id)
@@ -85,13 +75,21 @@ class ArcaneEntity(CoordinatorEntity[ArcaneCoordinator]):
             return
         registry.async_update_device(device.id, via_device_id=parent_device.id)
 
-    def _device_name(self, kind: str, name: str) -> str:
+    def _device_name(self, kind: str, name: str, environment_id: str) -> str:
         """Return the device name, prefixed with its kind when asked for.
 
         A container and a compose project regularly carry the same name. Home
         Assistant builds entity IDs from the device name, so without the prefix
         the second device of that name only gets ``_2`` suffixed entity IDs.
+        The same happens to a container that runs under one name on two hosts;
+        with the option for it, the name of a remote environment goes in front
+        of the resource name. The local environment keeps its names.
         """
+        if self.coordinator.option(CONF_ENVIRONMENT_IN_NAME) and (
+            environment_id != LOCAL_ENVIRONMENT_ID
+        ):
+            environment = self.coordinator.data.environments.get(environment_id)
+            name = f"{environment.name if environment else environment_id} {name}"
         if not self.coordinator.option(CONF_ENTITY_PREFIX):
             return name
         return f"{kind} {name}"
@@ -111,12 +109,17 @@ class ArcaneEnvironmentEntity(ArcaneEntity):
         self.environment_id = environment_id
         entry_id = coordinator.config_entry.entry_id
         self._attr_unique_id = f"{entry_id}_{environment_id}_{description.key}"
+        environment = self.environment
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{entry_id}_{environment_id}")},
             manufacturer=MANUFACTURER,
-            model="Environment",
-            name=self.environment.name if self.environment else environment_id,
-            sw_version=coordinator.data.version,
+            model=(
+                MODEL_AGENT
+                if environment_id != LOCAL_ENVIRONMENT_ID
+                else MODEL_ENVIRONMENT
+            ),
+            name=environment.name if environment else environment_id,
+            sw_version=coordinator.environment_version(environment_id),
             configuration_url=self._configuration_url,
         )
 
@@ -155,7 +158,7 @@ class ArcaneContainerEntity(ArcaneEntity):
             },
             manufacturer=MANUFACTURER,
             model="Container",
-            name=self._device_name("Container", container_name),
+            name=self._device_name("Container", container_name, environment_id),
             configuration_url=f"{self._configuration_url}/containers",
         )
 
@@ -217,7 +220,9 @@ class ArcaneProjectEntity(ArcaneEntity):
             identifiers={(DOMAIN, f"{entry_id}_{environment_id}_project_{project_id}")},
             manufacturer=MANUFACTURER,
             model="Compose project",
-            name=self._device_name("Project", project.name if project else project_id),
+            name=self._device_name(
+                "Project", project.name if project else project_id, environment_id
+            ),
             configuration_url=f"{self._configuration_url}/projects/{project_id}",
         )
 

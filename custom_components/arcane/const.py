@@ -32,6 +32,7 @@ CONF_ARCANE_EVENTS: Final = "arcane_events"
 CONF_AUTO_UPDATE_SWITCHES: Final = "auto_update_switches"
 CONF_UPDATER: Final = "updater"
 CONF_JOBS: Final = "jobs"
+CONF_ENVIRONMENT_IN_NAME: Final = "environment_in_name"
 
 # Values of the prune button option. Containers and volumes are deliberately
 # never pruned: both destroy data that cannot be pulled back.
@@ -92,6 +93,7 @@ DEFAULT_OPTIONS: Final[dict[str, object]] = {
     CONF_AUTO_UPDATE_SWITCHES: False,
     CONF_UPDATER: False,
     CONF_JOBS: False,
+    CONF_ENVIRONMENT_IN_NAME: False,
 }
 
 # Reserved ID of the environment Arcane manages directly.
@@ -126,6 +128,11 @@ PROJECT_STATES: Final = [
 ]
 
 ENVIRONMENT_STATUS_ONLINE: Final = "online"
+
+# Model of the device of an environment, the local one and one served by an
+# Arcane agent on another host.
+MODEL_ENVIRONMENT: Final = "Environment"
+MODEL_AGENT: Final = "Arcane Agent"
 
 # Health as Docker reports it in the status line of a container.
 HEALTH_HEALTHY: Final = "healthy"

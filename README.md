@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.10.1.
+[Herkunft](#herkunft). Version 0.11.0.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -66,6 +66,7 @@ vorher ein Backup anlegen.
 - [Optionen](#optionen)
 - [Updates](#updates)
 - [Hintergrund-Jobs](#hintergrund-jobs)
+- [Mehrere Hosts](#mehrere-hosts)
 - [Ereignisse](#ereignisse)
 - [Sofort aktualisieren](#sofort-aktualisieren)
 - [Abfragen](#abfragen)
@@ -127,7 +128,8 @@ Namen wie auf einer deutschen Instanz; die Entity-IDs bildet Home Assistant dara
 
 | Entität | Art | Hinweis |
 |---|---|---|
-| Online | Binärsensor | Erreicht Arcane die Umgebung |
+| Online | Binärsensor | Erreicht Arcane die Umgebung; bei einem Agenten mit Hostname, Agent- und Docker-Version, Betriebssystem, Kernel, Architektur, CPUs, Arbeitsspeicher, Transport und Sicherheitsmodus als Attribute |
+| Agent letzter Kontakt, Agent verbunden seit, Agent-Latenz, Agent letzte Trennung | Sensor | Diagnose, nur bei entfernten Umgebungen (Arcane-Agent); letzte Trennung mit Attribut `reason`, siehe [Mehrere Hosts](#mehrere-hosts) |
 | Container, Laufende Container, Gestoppte Container | Sensor | |
 | Container-Updates verfügbar | Sensor | Container mit neuerem Image |
 | Ungesunde Container | Sensor | fehlgeschlagener Healthcheck |
@@ -186,8 +188,9 @@ Integration öffnen → **Konfigurieren**.
   nur auf Wunsch. Eine ausgeschaltete Option stoppt auch die
   Abfragen dahinter.
 - **Entitäten:** Update-Entitäten, Health-Sensoren, Art vor dem Gerätenamen,
-  Container unter ihrem Projekt, Ereignisse, Arcane-Ereignisprotokoll auf dem Bus,
-  Arcane Updater und Arcane Hintergrund-Jobs (die letzten drei standardmäßig aus).
+  Environment im Gerätenamen, Container unter ihrem Projekt, Ereignisse,
+  Arcane-Ereignisprotokoll auf dem Bus, Arcane Updater und Arcane Hintergrund-Jobs
+  (Environment im Gerätenamen und die letzten drei standardmäßig aus).
 - **Steuerung:** ob Home Assistant überhaupt steuern darf, dazu Redeploy- und
   Prune-Buttons und Auto-Update-Schalter (alle standardmäßig aus).
 
@@ -197,6 +200,13 @@ Container und Projekte heißen oft gleich, und Home Assistant bildet Entity-IDs 
 dem Gerätenamen; das zweite Gerät bekäme nur IDs mit `_2`. Mit Präfix heißen sie
 `Container kopia` und `Project kopia`, also `switch.container_kopia` und
 `switch.project_kopia`. Vorhandene Entity-IDs werden nie umgeschrieben.
+
+Läuft ein Container unter demselben Namen auf zwei Hosts, gilt dasselbe. Mit der
+Option **Environment im Gerätenamen** steht der Name eines entfernten Environments
+vor dem Namen: `Container host-2 kopia`, also `switch.container_host_2_kopia`. Das
+lokale Environment behält seine Namen. Schon vorhandene Geräte bekommen den neuen
+Namen, ihre Entity-IDs bleiben; wer einheitliche IDs will, benennt sie in Home
+Assistant um.
 
 ## Updates
 
@@ -307,6 +317,40 @@ ob der letzte Lauf geklappt hat und wann der nächste kommt. Eine Automation kan
 auf den Zustand `failed` reagieren oder darauf, dass `next_run` lange vorbei ist,
 ohne dass ein neuer Lauf kam. Jobs, die Arcane unter einem anderen auflistet (etwa
 einer je GitOps-Sync oder Volume-Backup), bekommen keine eigenen Entitäten.
+
+## Mehrere Hosts
+
+Arcane bindet weitere Docker-Hosts über den Arcane-Agenten an. Jeder gekoppelte
+Agent ist in Arcane ein eigenes Environment. Die Integration liest bei jeder Abfrage
+Arcanes Liste der Environments (`agents`) und legt für ein neues automatisch ein
+Gerät mit allen Entitäten an, solange in den Optionen keine Auswahl gesetzt ist.
+Alle Abfragen eines entfernten Environments reicht Arcane an dessen Agenten weiter;
+Container, Projekte, Hoststatistik, Speicher, Jobs und Updates funktionieren wie
+beim lokalen.
+
+- **Gerät:** Modell „Arcane Agent“, als Version die des Agenten (aus
+  `agentHost.agentVersion`); das lokale Environment zeigt die Version der
+  Hauptinstanz. Nach einem Update des Agenten oder von Arcane zieht die
+  Integration die Version am Gerät nach.
+- **Zustand des Agenten:** Arcane liefert ihn in derselben Liste mit, ohne eigene
+  Abfrage: Diagnose-Sensoren „Agent letzter Kontakt“ (letzter Heartbeat, sonst
+  `lastSeen`), „Agent verbunden seit“, „Agent-Latenz“ (ms) und „Agent letzte
+  Trennung“ (mit Grund). Hostname, Versionen und Verbindung stehen als Attribute am
+  Binärsensor „Online“.
+- **Getrennter Agent:** Arcane meldet ein entferntes Environment nur `online`,
+  solange der Tunnel des Agenten steht. Ist es `offline` oder noch `pending`, fragt
+  die Integration es in diesem Durchlauf nicht ab; Arcane würde jede Anfrage bis zu
+  4 s halten und dann mit 503 ablehnen. „Online“ ist dann aus, die Container-Entitäten
+  sind nicht verfügbar, letzter Kontakt und letzte Trennung bleiben sichtbar. Sobald
+  der Agent wieder verbunden ist, geht es mit dem nächsten Durchlauf weiter.
+- **Jobs**, die nur die Hauptinstanz ausführt (`managerOnly`, etwa „Environment
+  Health“), bekommen bei entfernten Environments keine Entitäten; dort laufen sie nie.
+- **Auswahl in den Optionen:** Ist dort eine Auswahl gesetzt, erscheint für jedes
+  Environment, das Arcane meldet, das aber nicht ausgewählt ist, eine Reparatur
+  „Neues Arcane-Environment“. Zum Hinzufügen unter **Konfigurieren → Abfrage**
+  auswählen, sonst ignorieren; ein weiteres neues Environment bekommt eine eigene.
+- **Koppeln** eines Agenten geschieht in Arcane, nicht in Home Assistant.
+- Gleich benannte Container auf zwei Hosts: siehe [Gerätenamen](#gerätenamen).
 
 ## Ereignisse
 
@@ -423,7 +467,8 @@ mit der OpenAPI-Datei einer laufenden Arcane-3.0.0-Instanz
 Routen mit denselben Aktionen (Skript gegen Tag `v3.0.1` laufen lassen und
 verglichen). Mit allen Abfrage-Optionen an sind das je Durchlauf und Umgebung neun
 Anfragen, mit der Option Arcane Updater zwei mehr, mit Arcane Hintergrund-Jobs eine
-mehr, und eine für das Ereignisprotokoll, dazu höchstens alle 15 Minuten und nach
+mehr, und eine für das Ereignisprotokoll (ein entferntes Environment mit getrenntem
+Agenten gar keine), dazu höchstens alle 15 Minuten und nach
 jedem Prune `system/df` und mit der Option sofort aktualisieren je Umgebung eine
 dauerhaft offene Anfrage.
 
@@ -475,6 +520,16 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
+- **0.11.x:** 291 automatische Tests. 0.11.0: 15 neue Tests in `test_agenten.py`:
+  Agent-Sensoren nur bei entfernten Environments, Heartbeat vor `lastSeen`, Werte
+  bei getrenntem Agenten; Attribute am Online-Sensor; Modell und Version am Gerät,
+  Version nach einem Update des Agenten; getrennter (auch `pending`) Agent ohne
+  Abfragen, ohne Speicherbericht und ohne Warten auf Änderungen, Rückkehr, lokales
+  Environment immer abgefragt; Environment im Gerätenamen mit und ohne Art, lokal
+  unverändert; Manager-Jobs nur lokal; Reparatur für nicht ausgewählte Environments,
+  nicht für ausgeschaltete, weg nach Verschwinden und Entladen, keine ohne Auswahl;
+  das Modell liest Arcanes Felder. Gegenprobe: 18 Schutzmaßnahmen einzeln ausgebaut,
+  jedes Mal schlug ein Test fehl. **Nicht live geprüft.**
 - **0.10.x:** 276 automatische Tests. 0.10.1: 11 neue Tests in
   `test_aufraeumen.py`: Bericht und Zähler erst nach dem Ende des Prunes und vor
   dem Ende des Drucks, auch während der Abklingzeit des Coordinators;

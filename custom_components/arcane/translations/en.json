@@ -92,6 +92,7 @@
           "update_entities": "Image update entities",
           "health_sensors": "Health binary sensors",
           "entity_prefix": "Prefix device names with their kind",
+          "environment_in_name": "Environment in device names",
           "nest_containers": "Nest containers under their project",
           "events": "Fire events on the Home Assistant bus",
           "arcane_events": "Arcane event log on the bus",
@@ -102,6 +103,7 @@
           "update_entities": "Offer an update entity per container that installs the newer image through Arcane's updater and shows release notes where Arcane finds them, plus a button per environment that checks for updates right away. An update Arcane holds back cannot be installed.",
           "health_sensors": "Add a Healthy sensor to containers that define a health check.",
           "entity_prefix": "Name devices Container x and Project x so a container and a project of the same name do not collide. Entity IDs that already exist keep their current name.",
+          "environment_in_name": "Put the name of a remote environment in front of the names of its containers and projects, such as Container host-2 nginx, so a container that runs on two hosts does not collide. The local environment keeps its names; entity IDs that already exist keep their current name.",
           "nest_containers": "Show a container as a child device of the Compose project it belongs to.",
           "events": "Fire arcane_container_state_changed, arcane_container_health_changed and arcane_project_state_changed so automations can react to crashes and health changes.",
           "arcane_events": "Read Arcane's own event log on every update and fire arcane_event for each new entry, such as a container that ran out of memory, an image pull or a login.",
@@ -142,7 +144,39 @@
   "entity": {
     "binary_sensor": {
       "environment_online": {
-        "name": "Online"
+        "name": "Online",
+        "state_attributes": {
+          "hostname": {
+            "name": "Hostname"
+          },
+          "agent_version": {
+            "name": "Agent version"
+          },
+          "docker_version": {
+            "name": "Docker version"
+          },
+          "os": {
+            "name": "Operating system"
+          },
+          "kernel_version": {
+            "name": "Kernel version"
+          },
+          "architecture": {
+            "name": "Architecture"
+          },
+          "cpus": {
+            "name": "CPUs"
+          },
+          "memory_bytes": {
+            "name": "Memory"
+          },
+          "transport": {
+            "name": "Transport"
+          },
+          "security_mode": {
+            "name": "Security mode"
+          }
+        }
       },
       "container_running": {
         "name": "Running"
@@ -382,6 +416,23 @@
             "name": "Worker error"
           }
         }
+      },
+      "agent_last_contact": {
+        "name": "Agent last contact"
+      },
+      "agent_connected_since": {
+        "name": "Agent connected since"
+      },
+      "agent_latency": {
+        "name": "Agent latency"
+      },
+      "agent_last_disconnect": {
+        "name": "Agent last disconnect",
+        "state_attributes": {
+          "reason": {
+            "name": "Reason"
+          }
+        }
       }
     },
     "update": {
@@ -481,6 +532,10 @@
     "missing_permissions": {
       "title": "Arcane API key is missing permissions",
       "description": "The API key of {name} was refused for: {permissions}\n\nUntil the role behind the key carries these, the parts that need them stay empty or fail when you use them. Add them under **Settings > Roles** in Arcane, or turn those parts off under the integration's **Configure > API key permissions**. The repair clears once the polling gets through again, or when the integration is reloaded."
+    },
+    "unselected_environment": {
+      "title": "New Arcane environment {environment}",
+      "description": "Arcane reports the environment {environment}, which the options of {name} leave out, so it has no devices in Home Assistant. To add it, select it under **Configure > Polling**. To keep it out, ignore this repair; a further new environment gets a repair of its own."
     }
   }
 }

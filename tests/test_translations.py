@@ -67,6 +67,7 @@ def _entity_keys() -> dict[str, set[str]]:
                 sensor.ARCANE_VERSION_SENSOR,
                 sensor.UPDATER_LAST_SENSOR,
                 sensor.JOB_SENSOR,
+                *sensor.AGENT_SENSORS,
             )
         },
         "binary_sensor": {
@@ -129,12 +130,16 @@ def test_exception_and_issue_keys_translated(path: str) -> None:
     )
     source = (BASE / "coordinator.py").read_text(encoding="utf-8")
     keys = set(re.findall(r'translation_key="(\w+)"', source))
+    # Reparaturen: der Schluessel steht im selben Aufruf von async_create_issue,
+    # vor dessen schliessender Klammer auf eigener Zeile.
     issues = set(
         re.findall(
-            r'async_create_issue\([^)]*?translation_key="(\w+)"', source, re.DOTALL
+            r'async_create_issue\((?:(?!\n\s*\)\n).)*?translation_key="(\w+)"',
+            source,
+            re.DOTALL,
         )
     )
-    assert issues == {"missing_permissions"}
+    assert issues == {"missing_permissions", "unselected_environment"}
     assert issues <= set(strings["issues"]), issues - set(strings["issues"])
     # Alle uebrigen Schluessel im Coordinator sind Fehlermeldungen (UpdateFailed).
     failures = keys - issues

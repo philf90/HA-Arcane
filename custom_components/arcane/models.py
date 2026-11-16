@@ -16,6 +16,7 @@ from .const import (
     HEALTH_UNHEALTHY,
     LABEL_FALSE_VALUES,
     LABEL_UPDATER,
+    LOCAL_ENVIRONMENT_ID,
     PROJECT_STATE_PARTIALLY_RUNNING,
     PROJECT_STATE_RUNNING,
     STATE_RUNNING,
@@ -438,6 +439,81 @@ class ArcaneJob:
 
 
 @dataclass(slots=True)
+class ArcaneAgent:
+    """Connection and host of the Arcane agent behind a remote environment.
+
+    Arcane fills these fields in its environment list (``GET agents``) from
+    the agent's tunnel, so they cost no request of their own. While the agent
+    is disconnected only ``last_seen`` and the last disconnect remain.
+    """
+
+    connected: bool = False
+    connected_at: datetime | None = None
+    last_heartbeat: datetime | None = None
+    last_seen: datetime | None = None
+    round_trip_ms: float | None = None
+    transport: str | None = None
+    security_mode: str | None = None
+    hostname: str | None = None
+    os: str | None = None
+    kernel_version: str | None = None
+    architecture: str | None = None
+    docker_version: str | None = None
+    agent_version: str | None = None
+    cpus: int | None = None
+    memory_bytes: int | None = None
+    last_disconnect_at: datetime | None = None
+    last_disconnect_reason: str | None = None
+
+    @property
+    def last_contact(self) -> datetime | None:
+        """Return when the agent was last heard from."""
+        return self.last_heartbeat or self.last_seen
+
+    @classmethod
+    def from_api(cls, payload: dict[str, Any]) -> ArcaneAgent:
+        """Create the agent part of an entry of Arcane's environment list."""
+        host = payload.get("agentHost")
+        host = host if isinstance(host, dict) else {}
+        stats = payload.get("agentTunnelStats")
+        stats = stats if isinstance(stats, dict) else {}
+        round_trip = payload.get("agentRoundTripMs")
+
+        def whole(value: Any) -> int | None:
+            return (
+                value
+                if isinstance(value, int) and not isinstance(value, bool)
+                else None
+            )
+
+        return cls(
+            connected=payload.get("connected") is True,
+            connected_at=_timestamp(payload.get("connectedAt")),
+            last_heartbeat=_timestamp(payload.get("lastHeartbeat")),
+            last_seen=_timestamp(payload.get("lastSeen")),
+            round_trip_ms=(
+                float(round_trip)
+                if isinstance(round_trip, (int, float))
+                and not isinstance(round_trip, bool)
+                else None
+            ),
+            transport=_text(payload.get("agentTransport"))
+            or _text(payload.get("lastAgentTransport")),
+            security_mode=_text(payload.get("agentSecurityMode")),
+            hostname=_text(host.get("hostname")),
+            os=_text(host.get("os")),
+            kernel_version=_text(host.get("kernelVersion")),
+            architecture=_text(host.get("architecture")),
+            docker_version=_text(host.get("dockerVersion")),
+            agent_version=_text(host.get("agentVersion")),
+            cpus=whole(host.get("cpus")),
+            memory_bytes=whole(host.get("memoryBytes")),
+            last_disconnect_at=_timestamp(stats.get("lastDisconnectAt")),
+            last_disconnect_reason=_text(stats.get("lastDisconnectReason")),
+        )
+
+
+@dataclass(slots=True)
 class ArcaneEnvironment:
     """Everything the integration knows about one Arcane environment."""
 
@@ -467,6 +543,13 @@ class ArcaneEnvironment:
     #: Arcane's background jobs by ID, with the option for them. Jobs Arcane
     #: lists below another one, such as one per GitOps sync, are left out.
     jobs: dict[str, ArcaneJob] = field(default_factory=dict)
+    #: The Arcane agent serving a remote environment; None for the local one.
+    agent: ArcaneAgent | None = None
+
+    @property
+    def is_remote(self) -> bool:
+        """Return whether an Arcane agent on another host serves the environment."""
+        return self.id != LOCAL_ENVIRONMENT_ID
 
     @property
     def is_online(self) -> bool:
