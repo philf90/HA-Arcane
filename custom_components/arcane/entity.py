@@ -16,7 +16,7 @@ from .const import (
     MANUFACTURER,
 )
 from .coordinator import ArcaneCoordinator
-from .models import ArcaneContainer, ArcaneEnvironment, ArcaneProject
+from .models import ArcaneContainer, ArcaneEnvironment, ArcaneJob, ArcaneProject
 
 
 def _find_device(
@@ -237,3 +237,41 @@ class ArcaneProjectEntity(ArcaneEntity):
     def available(self) -> bool:
         """Return whether the project still exists."""
         return super().available and self.project is not None
+
+
+class ArcaneJobEntity(ArcaneEnvironmentEntity):
+    """An entity describing one of Arcane's background jobs.
+
+    Jobs belong to the environment they run in, so their entities sit on the
+    environment device; Arcane's own name of the job goes into the entity name.
+    """
+
+    def __init__(
+        self,
+        coordinator: ArcaneCoordinator,
+        environment_id: str,
+        job_id: str,
+        description: EntityDescription,
+    ) -> None:
+        """Initialize the job entity."""
+        super().__init__(coordinator, environment_id, description)
+        self.job_id = job_id
+        entry_id = coordinator.config_entry.entry_id
+        self._attr_unique_id = (
+            f"{entry_id}_{environment_id}_job_{job_id}_{description.key}"
+        )
+        job = self.job
+        self._attr_translation_placeholders = {"name": job.name if job else job_id}
+
+    @property
+    def job(self) -> ArcaneJob | None:
+        """Return the job this entity belongs to."""
+        environment = self.environment
+        if environment is None:
+            return None
+        return environment.jobs.get(self.job_id)
+
+    @property
+    def available(self) -> bool:
+        """Return whether Arcane still lists the job."""
+        return super().available and self.job is not None

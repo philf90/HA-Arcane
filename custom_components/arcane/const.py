@@ -31,6 +31,7 @@ CONF_INSTANT_UPDATES: Final = "instant_updates"
 CONF_ARCANE_EVENTS: Final = "arcane_events"
 CONF_AUTO_UPDATE_SWITCHES: Final = "auto_update_switches"
 CONF_UPDATER: Final = "updater"
+CONF_JOBS: Final = "jobs"
 
 # Values of the prune button option. Containers and volumes are deliberately
 # never pruned: both destroy data that cannot be pulled back.
@@ -90,6 +91,7 @@ DEFAULT_OPTIONS: Final[dict[str, object]] = {
     CONF_ARCANE_EVENTS: False,
     CONF_AUTO_UPDATE_SWITCHES: False,
     CONF_UPDATER: False,
+    CONF_JOBS: False,
 }
 
 # Reserved ID of the environment Arcane manages directly.
@@ -154,3 +156,7 @@ UPDATER_APPLIED_STATUSES: Final = frozenset({"updated", "restarted"})
 # regard to case, with the values Arcane reads as false (kit.ParseBool).
 LABEL_UPDATER: Final = "com.getarcaneapp.arcane.updater"
 LABEL_FALSE_VALUES: Final = frozenset({"false", "0", "no", "off"})
+
+# Outcomes of a finished run of one of Arcane's background jobs, as the job
+# list reports the last one. Arcane shows a run that needs attention as failed.
+JOB_RUN_STATUSES: Final = ["succeeded", "partial", "skipped", "failed", "canceled"]

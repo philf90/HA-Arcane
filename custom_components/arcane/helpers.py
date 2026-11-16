@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 type EnvironmentFactory = Callable[[str], list[Entity]]
 type ContainerFactory = Callable[[str, str], list[Entity]]
 type ProjectFactory = Callable[[str, str], list[Entity]]
+type JobFactory = Callable[[str, str], list[Entity]]
 
 
 def async_setup_entities(
@@ -27,11 +28,12 @@ def async_setup_entities(
     environments: EnvironmentFactory | None = None,
     containers: ContainerFactory | None = None,
     projects: ProjectFactory | None = None,
+    jobs: JobFactory | None = None,
 ) -> None:
     """Add entities now and whenever Arcane reports new resources.
 
-    Containers and projects come and go while Home Assistant runs, so the
-    platforms keep listening instead of only reading the first snapshot.
+    Containers, projects and jobs come and go while Home Assistant runs, so
+    the platforms keep listening instead of only reading the first snapshot.
     """
     known: set[tuple[str, ...]] = set()
 
@@ -57,6 +59,12 @@ def async_setup_entities(
                     if key not in known:
                         known.add(key)
                         new_entities.extend(containers(environment_id, name))
+            if jobs is not None:
+                for job_id in environment.jobs:
+                    key = ("job", environment_id, job_id)
+                    if key not in known:
+                        known.add(key)
+                        new_entities.extend(jobs(environment_id, job_id))
         if new_entities:
             async_add_entities(new_entities)
 

@@ -626,6 +626,31 @@ class ArcaneClient:
         )
         return data if isinstance(data, list) else []
 
+    async def async_get_jobs(self, environment_id: str) -> list[dict[str, Any]]:
+        """Return Arcane's background jobs with their last and next run.
+
+        Unlike most of the API, Arcane sends the job list without the usual
+        ``{"success", "data"}`` envelope (``JobListResponse``).
+        """
+        url = self._url(AGENTS, environment_id, "jobs")
+        payload = await self._request("GET", url)
+        if not isinstance(payload, dict) or not isinstance(payload.get("jobs"), list):
+            raise ArcaneResponseError(f"Unexpected payload from {url}")
+        return [job for job in payload["jobs"] if isinstance(job, dict)]
+
+    async def async_run_job(self, environment_id: str, job_id: str) -> dict[str, Any]:
+        """Queue a run of one of Arcane's background jobs.
+
+        Arcane accepts the run and answers at once (202), before the job runs;
+        the job list shows it running and then its outcome.
+        """
+        payload = await self._request(
+            "POST",
+            self._url(AGENTS, environment_id, "jobs", job_id),
+            params={"action": "run"},
+        )
+        return payload if isinstance(payload, dict) else {}
+
     async def async_check_image_updates(self, environment_id: str) -> None:
         """Ask Arcane to check every image for an update right now.
 

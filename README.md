@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.9.0.
+[Herkunft](#herkunft). Version 0.10.0.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -65,6 +65,7 @@ vorher ein Backup anlegen.
 - [Entitäten](#entitäten)
 - [Optionen](#optionen)
 - [Updates](#updates)
+- [Hintergrund-Jobs](#hintergrund-jobs)
 - [Ereignisse](#ereignisse)
 - [Sofort aktualisieren](#sofort-aktualisieren)
 - [Abfragen](#abfragen)
@@ -104,6 +105,8 @@ ausgeschaltete Option nimmt ihre Rechte aus der Liste.
 | Container-Updates installieren, Button „Alle Updates installieren“ | `image-updates:apply` |
 | Auto-Update-Schalter (Option) | `containers:autoupdate` |
 | Arcane Updater: laufende Updates, letztes Update (Option) | `image-updates:read`, `image-updates:list` |
+| Arcane Hintergrund-Jobs (Option) | `jobs:list` |
+| Buttons „Job … ausführen“ | `jobs:run` |
 | Prune-Button | `system:prune` |
 | Arcane selbst aktualisieren | `system:upgrade` |
 | Versionshinweise der Container-Updates | `image-updates:read` |
@@ -140,6 +143,8 @@ Namen wie auf einer deutschen Instanz; die Entity-IDs bildet Home Assistant dara
 | Updates werden installiert | Binärsensor | Option Arcane Updater |
 | Letztes Image-Update | Sensor | Option Arcane Updater; Zeitpunkt, Attribute `resource_name`, `resource_type`, `status`, `update_applied`, `error` |
 | Alle Updates installieren | Button | Option Arcane Updater, mit Steuerung |
+| Job …, je Job von Arcane (etwa „Job Auto Update“) | Sensor | Option Arcane Hintergrund-Jobs, Diagnose; siehe [Hintergrund-Jobs](#hintergrund-jobs) |
+| Job … ausführen | Button | Option Arcane Hintergrund-Jobs, mit Steuerung, nur für Jobs, die Arcane von Hand starten lässt |
 
 ### Container
 
@@ -182,7 +187,7 @@ Integration öffnen → **Konfigurieren**.
   Abfragen dahinter.
 - **Entitäten:** Update-Entitäten, Health-Sensoren, Art vor dem Gerätenamen,
   Container unter ihrem Projekt, Ereignisse, Arcane-Ereignisprotokoll auf dem Bus,
-  Arcane Updater (standardmäßig aus).
+  Arcane Updater und Arcane Hintergrund-Jobs (die letzten drei standardmäßig aus).
 - **Steuerung:** ob Home Assistant überhaupt steuern darf, dazu Redeploy- und
   Prune-Buttons und Auto-Update-Schalter (alle standardmäßig aus).
 
@@ -261,6 +266,39 @@ ein zweiter. Das Attribut `report_started_at` der vier Sensoren nennt, wann der
 gezeigte Bericht angefragt wurde (ISO 8601, UTC). Damit kann ein Dashboard einen
 Bericht von nach dem Prune von einem älteren unterscheiden, auch wenn sich der
 Wert nicht ändert. Die Zeit landet nicht in der Datenbank.
+
+## Hintergrund-Jobs
+
+Arcane erledigt vieles mit eigenen Hintergrund-Jobs: die automatischen Updates
+(„Auto Update“), die Suche nach Image-Updates („Image Update Watcher“), Aufräumen,
+Schwachstellen-Scans und andere. Mit der Option **Arcane Hintergrund-Jobs** (unter
+**Entitäten**, standardmäßig aus) bekommt jeder Job, den Arcane für eine Umgebung
+auflistet, einen Sensor am Gerät der Umgebung. Grundlage ist `agents/{id}/jobs`,
+dieselbe Liste, die Arcane unter den Job-Einstellungen zeigt.
+
+- **Zustand:** Ergebnis des letzten beendeten Laufs: `succeeded`, `partial`,
+  `skipped`, `failed` oder `canceled` (deutsch: Erfolgreich, Teilweise erfolgreich,
+  Übersprungen, Fehlgeschlagen, Abgebrochen). Einen Lauf, der Aufmerksamkeit
+  braucht, meldet Arcane als `failed`. Ist der Job noch nie gelaufen, ist der
+  Zustand unbekannt.
+- **Attribute:** `next_run` (nächster geplanter Lauf), `last_run`, `last_finished`,
+  `last_success`, `trigger` (`schedule`, `manual` …), `message` (Meldung des letzten
+  Laufs), `last_error` (Meldung des letzten fehlgeschlagenen, teilweisen oder
+  wiederholten Laufs), `running` (ein Lauf wartet oder läuft), `enabled`,
+  `schedule`, `category`, `job_id`, bei Dauer-Jobs wie dem Image Update Watcher
+  `worker_status` und `worker_error`.
+- **Button „Job … ausführen“** (mit Steuerung): stellt einen Lauf ein
+  (`?action=run`); Arcane antwortet sofort, der Sensor zeigt danach `running` und
+  das Ergebnis. Es gibt ihn nur für Jobs, die Arcane von Hand starten lässt, und
+  nicht für Jobs, die nur Arcane selbst ausführt, in entfernten Umgebungen. Er ist
+  nicht verfügbar, solange der Job in Arcane ausgeschaltet ist oder eine
+  Voraussetzung fehlt, etwa ein Scanner; Arcane würde den Lauf dann ablehnen.
+
+Wofür: Seit die automatischen Updates bei Arcane liegen, zeigt „Job Auto Update“,
+ob der letzte Lauf geklappt hat und wann der nächste kommt. Eine Automation kann
+auf den Zustand `failed` reagieren oder darauf, dass `next_run` lange vorbei ist,
+ohne dass ein neuer Lauf kam. Jobs, die Arcane unter einem anderen auflistet (etwa
+einer je GitOps-Sync oder Volume-Backup), bekommen keine eigenen Entitäten.
 
 ## Ereignisse
 
@@ -356,6 +394,8 @@ dahinter.
 | `agents/{environment}/updater/run` | POST `?automatic=true`, wartet bis zu 31 Minuten | Button „Alle Updates installieren“, im Hintergrund | `image-updates:apply` |
 | `agents/{environment}/updater/status` | GET | Option Arcane Updater, jede Abfrage | `image-updates:read` |
 | `agents/{environment}/updater/history` | GET `?limit=1` | Option Arcane Updater, jede Abfrage | `image-updates:list` |
+| `agents/{environment}/jobs` | GET; Antwort ohne `data`-Hülle | Option Arcane Hintergrund-Jobs, jede Abfrage | `jobs:list` |
+| `agents/{environment}/jobs/{job}` | POST `?action=run`, Antwort 202 | Button „Job … ausführen“ | `jobs:run` |
 | `agents/{environment}/projects/{project}/deploy` | POST `?action=up`, `redeploy`; Antwort als NDJSON-Stream | Schalter an, Button „Redeploy“ | `projects:deploy` |
 | `agents/{environment}/projects/{project}` | POST `?action=down`, `restart` | Schalter aus, Button „Neustarten“ | `projects:down`, `projects:restart` |
 | `agents/{environment}/system/prune` | POST | Button „Ungenutztes entfernen“ | `system:prune` |
@@ -373,9 +413,10 @@ mit der OpenAPI-Datei einer laufenden Arcane-3.0.0-Instanz
 (`tests/fixtures/arcane_openapi_v3.0.0.json`). Arcane 3.0.1 bietet dieselben 474
 Routen mit denselben Aktionen (Skript gegen Tag `v3.0.1` laufen lassen und
 verglichen). Mit allen Abfrage-Optionen an sind das je Durchlauf und Umgebung neun
-Anfragen, mit der Option Arcane Updater elf, und eine für das Ereignisprotokoll, dazu höchstens alle 15 Minuten und
-nach jedem Prune `system/df` und mit der Option sofort aktualisieren je Umgebung
-eine dauerhaft offene Anfrage.
+Anfragen, mit der Option Arcane Updater zwei mehr, mit Arcane Hintergrund-Jobs eine
+mehr, und eine für das Ereignisprotokoll, dazu höchstens alle 15 Minuten und nach
+jedem Prune `system/df` und mit der Option sofort aktualisieren je Umgebung eine
+dauerhaft offene Anfrage.
 
 ## Gut zu wissen
 
@@ -424,6 +465,16 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
+- **0.10.x:** 265 automatische Tests. 0.10.0: 25 neue Tests in `test_jobs.py`:
+  Job-Sensor mit Ergebnis, Zeiten (Nanosekunden von Go), Fehler, laufendem Lauf,
+  Job ohne Lauf, Status außerhalb der Optionen, Worker-Zustand; Kind-Jobs ohne
+  Entität, Jobs kommen und gehen, abgelehnte Liste nennt `jobs:list`; Button stellt
+  den Lauf ein und fragt neu ab, nur für von Hand startbare Jobs, nicht für
+  Manager-Jobs in entfernten Umgebungen, nicht verfügbar bei ausgeschaltetem Job
+  oder fehlender Voraussetzung, fehlendes Recht und Ablehnung durch Arcane; Rechte,
+  Option im Dialog, Übersetzungen; der Client liest die Liste ohne Hülle und sendet
+  `action=run` ohne Body. Gegenprobe: 17 Schutzmaßnahmen einzeln ausgebaut, jedes
+  Mal schlug ein Test fehl. **Nicht live geprüft.**
 - **0.9.x:** 240 automatische Tests. 0.9.0: 28 neue Tests in `test_updater.py`:
   Installieren über den Updater, übersprungene und abgelehnte Updates mit Grund,
   das eigene Ergebnis entscheidet, leeres Ergebnis kein Erfolg, fehlendes Recht;

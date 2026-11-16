@@ -24,6 +24,7 @@ from .const import (
     CONF_DISK_USAGE,
     CONF_HOST_STATS,
     CONF_INSTANT_UPDATES,
+    CONF_JOBS,
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
@@ -61,6 +62,8 @@ PERM_EVENTS_LIST: Final = "events:list"
 PERM_IMAGE_UPDATES_LIST: Final = "image-updates:list"
 PERM_IMAGE_UPDATES_APPLY: Final = "image-updates:apply"
 PERM_CONTAINERS_AUTOUPDATE: Final = "containers:autoupdate"
+PERM_JOBS_LIST: Final = "jobs:list"
+PERM_JOBS_RUN: Final = "jobs:run"
 
 # The permission each container and project action is gated on. Both mirror
 # ``CONTAINER_ACTIONS`` and ``PROJECT_ACTIONS`` of the API client: deploying a
@@ -93,6 +96,7 @@ POLL_PERMISSIONS: Final[dict[str, str]] = {
     "disk_usage": PERM_SYSTEM_READ,
     "updater_status": PERM_IMAGE_UPDATES_READ,
     "updater_history": PERM_IMAGE_UPDATES_LIST,
+    "jobs": PERM_JOBS_LIST,
 }
 
 
@@ -162,6 +166,9 @@ def _monitoring_permissions(options: Mapping[str, Any]) -> list[str]:
     if _option(options, CONF_UPDATER):
         # What the updater is busy with, and the last update it applied.
         permissions += [PERM_IMAGE_UPDATES_READ, PERM_IMAGE_UPDATES_LIST]
+    if _option(options, CONF_JOBS):
+        # Arcane's background jobs with their last and next run.
+        permissions.append(PERM_JOBS_LIST)
     return permissions
 
 
@@ -203,6 +210,9 @@ def _control_permissions(options: Mapping[str, Any]) -> list[str]:
             permissions.append(PERM_IMAGE_UPDATES_CHECK)
     if _option(options, CONF_PRUNE_BUTTON) != PRUNE_OFF:
         permissions.append(PERM_SYSTEM_PRUNE)
+    if _option(options, CONF_JOBS):
+        # The buttons that run a background job now.
+        permissions.append(PERM_JOBS_RUN)
     return permissions
 
 

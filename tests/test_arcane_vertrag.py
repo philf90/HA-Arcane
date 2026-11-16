@@ -37,6 +37,16 @@ def _antwort(route: dict, request: web.Request) -> web.StreamResponse:
         return web.json_response(VERSION)
     if path.endswith("/system/docker/info"):
         return web.json_response({"success": True, "ServerVersion": "28.0.0"})
+    if path == "/agents/{id}/jobs":
+        # Die Job-Liste kommt ohne Huelle {"success", "data"} (JobListResponse).
+        return web.json_response(
+            {"observedAt": "2026-11-16T09:00:00Z", "jobs": [], "durableRuns": True}
+        )
+    if path == "/agents/{id}/jobs/{jobId}":
+        return web.json_response(
+            {"success": True, "message": "Job accepted", "status": "queued"},
+            status=202,
+        )
     if path.endswith(("/counts", "/version")):
         return web.json_response({"success": True, "data": {}})
     if request.method == "GET":
@@ -129,6 +139,8 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
     await client.async_run_updater("0")
     await client.async_get_updater_status("0")
     await client.async_get_updater_history("0", limit=1)
+    await client.async_get_jobs("0")
+    await client.async_run_job("0", "auto-update")
     return {
         "async_get_version",
         "async_get_environments",
@@ -154,6 +166,8 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
         "async_run_updater",
         "async_get_updater_status",
         "async_get_updater_history",
+        "async_get_jobs",
+        "async_run_job",
     }
 
 
@@ -189,6 +203,8 @@ async def test_every_call_hits_an_arcane_3_route(arcane3) -> None:
     assert ("POST", "/agents/{id}/updater/run", None) in calls
     assert ("GET", "/agents/{id}/updater/status", None) in calls
     assert ("GET", "/agents/{id}/updater/history", None) in calls
+    assert ("GET", "/agents/{id}/jobs", None) in calls
+    assert ("POST", "/agents/{id}/jobs/{jobId}", "run") in calls
 
 
 async def test_actions_match_arcane(arcane3) -> None:
@@ -205,6 +221,7 @@ async def test_actions_match_arcane(arcane3) -> None:
         ("/agents/{id}/projects/{projectId}", "down"),
         ("/agents/{id}/projects/{projectId}", "restart"),
         ("/agents/{id}/images/updates/check", "all"),
+        ("/agents/{id}/jobs/{jobId}", "run"),
     }
 
 
