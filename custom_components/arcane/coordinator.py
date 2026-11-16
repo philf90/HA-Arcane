@@ -11,8 +11,9 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_SCAN_INTERVAL
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -46,6 +47,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DISK_USAGE_INTERVAL,
     DOMAIN,
+    ENVIRONMENT_STATUS_ONLINE,
     EVENT_ARCANE,
     EVENT_CONTAINER_HEALTH,
     EVENT_CONTAINER_STATE,
@@ -54,7 +56,9 @@ from .const import (
     LOCAL_ENVIRONMENT_ID,
     STATE_RUNNING,
 )
+from .helpers import find_device
 from .models import (
+    ArcaneAgent,
     ArcaneContainer,
     ArcaneData,
     ArcaneEnvironment,
@@ -131,6 +135,10 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         # already there.
         self._arcane_events_seen: deque[str] | None = None
         self._arcane_events_since: datetime | None = None
+        # Environments Arcane reports that the options leave out, each with a
+        # repair of its own so a new one shows up even when an earlier one was
+        # ignored on purpose.
+        self._unselected_issues: set[str] = set()
 
     def option(self, key: str) -> Any:
         """Return an option of the config entry, or its default."""
@@ -166,8 +174,90 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         return f"missing_permissions_{self.config_entry.entry_id}"
 
     def async_clear_permission_issue(self) -> None:
-        """Drop the repair, for an entry that is being unloaded."""
+        """Drop the repairs of this entry, for an entry that is being unloaded."""
         ir.async_delete_issue(self.hass, DOMAIN, self._permission_issue_id)
+        for environment_id in self._unselected_issues:
+            ir.async_delete_issue(
+                self.hass, DOMAIN, self._unselected_issue_id(environment_id)
+            )
+        self._unselected_issues = set()
+
+    def _unselected_issue_id(self, environment_id: str) -> str:
+        """Return the ID of the repair about an environment left out."""
+        return f"unselected_environment_{self.config_entry.entry_id}_{environment_id}"
+
+    def _async_update_unselected_issues(
+        self, environments: list[dict[str, Any]], selected: list[str]
+    ) -> None:
+        """Point out environments the options leave out.
+
+        With a selection in the options, an environment paired later, such as
+        a new Arcane agent, would otherwise stay out of Home Assistant without
+        a word. Without a selection every environment is taken anyway.
+        """
+        unselected = {
+            str(environment["id"]): str(environment.get("name") or environment["id"])
+            for environment in environments
+            if selected
+            and environment.get("id") is not None
+            and environment.get("enabled", True)
+            and str(environment["id"]) not in selected
+        }
+        for environment_id in self._unselected_issues - set(unselected):
+            ir.async_delete_issue(
+                self.hass, DOMAIN, self._unselected_issue_id(environment_id)
+            )
+        for environment_id, name in unselected.items():
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                self._unselected_issue_id(environment_id),
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="unselected_environment",
+                translation_placeholders={
+                    "name": self.config_entry.title,
+                    "environment": name,
+                },
+            )
+        self._unselected_issues = set(unselected)
+
+    def environment_version(self, environment_id: str) -> str | None:
+        """Return the Arcane version that serves an environment.
+
+        The local environment runs on the instance the integration talks to; a
+        remote one on an Arcane agent with a version of its own, which Arcane
+        only knows while the agent is connected.
+        """
+        if self.data is None:
+            return None
+        if environment_id == LOCAL_ENVIRONMENT_ID:
+            return self.data.version
+        environment = self.data.environments.get(environment_id)
+        agent = environment.agent if environment else None
+        return agent.agent_version if agent else None
+
+    @callback
+    def async_update_listeners(self) -> None:
+        """Hand a new snapshot to the entities, then sync device versions."""
+        super().async_update_listeners()
+        if self.data is not None:
+            self._async_update_device_versions()
+
+    def _async_update_device_versions(self) -> None:
+        """Keep the version of each environment device current.
+
+        Home Assistant only takes the device info of an entity when it is
+        added, so an Arcane or agent upgrade would otherwise show up only after
+        a reload.
+        """
+        registry = dr.async_get(self.hass)
+        entry_id = self.config_entry.entry_id
+        for environment_id in self.data.environments:
+            version = self.environment_version(environment_id)
+            device = find_device(registry, f"{entry_id}_{environment_id}", entry_id)
+            if version and device is not None and device.sw_version != version:
+                registry.async_update_device(device.id, sw_version=version)
 
     def _async_update_permission_issue(self) -> None:
         """Raise or drop the repair that lists the missing permissions."""
@@ -206,6 +296,7 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             raise UpdateFailed(str(err)) from err
 
         selected: list[str] = self.option(CONF_ENVIRONMENTS)
+        self._async_update_unselected_issues(environments, selected)
         wanted = [
             environment
             for environment in environments
@@ -227,7 +318,14 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         if self.option(CONF_ARCANE_EVENTS):
             await self._async_read_arcane_events(data)
         if self.option(CONF_INSTANT_UPDATES):
-            self.change_watcher.async_sync(set(data.environments))
+            # A disconnected agent would only answer 503 until it is back.
+            self.change_watcher.async_sync(
+                {
+                    environment_id
+                    for environment_id, environment in data.environments.items()
+                    if not self._agent_disconnected(environment)
+                }
+            )
         self._async_update_permission_issue()
         return data
 
@@ -305,8 +403,15 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             enabled=bool(payload.get("enabled", True)),
         )
 
+        if environment.is_remote:
+            environment.agent = ArcaneAgent.from_api(payload)
+
         results: dict[str, Any] = {}
-        if calls := self._environment_calls(environment_id):
+        if self._agent_disconnected(environment):
+            # Arcane would hold every request up to 4 s waiting for the agent's
+            # tunnel and then answer 503 "Agent is not connected".
+            environment.reachable = False
+        elif calls := self._environment_calls(environment_id):
             results = dict(
                 zip(
                     calls,
@@ -326,6 +431,15 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
 
         self._apply_results(environment, results, version_info)
         return environment
+
+    @staticmethod
+    def _agent_disconnected(environment: ArcaneEnvironment) -> bool:
+        """Return whether a remote environment's agent is not connected now.
+
+        Arcane reports a remote environment ``online`` exactly while the
+        agent's tunnel is up (environment/lister.go ApplyRuntimeState).
+        """
+        return environment.is_remote and environment.status != ENVIRONMENT_STATUS_ONLINE
 
     def _apply_results(
         self,
@@ -368,12 +482,14 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         environment.jobs = {
             job.id: job
             for job in (ArcaneJob.from_api(item) for item in value("jobs", []))
-            if job.id
+            # Jobs only the manager runs never run in a remote environment.
+            if job.id and not (job.manager_only and environment.is_remote)
         }
         if self.option(CONF_DISK_USAGE):
             environment.disk_usage = self._disk_usage.get(environment_id, {})
             environment.disk_usage_at = self._disk_usage_at.get(environment_id)
-            self._async_schedule_disk_usage(environment)
+            if not self._agent_disconnected(environment):
+                self._async_schedule_disk_usage(environment)
         if self.option(CONF_UPDATE_ENTITIES):
             version = (
                 version_info

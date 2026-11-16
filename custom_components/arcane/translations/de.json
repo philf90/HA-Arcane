@@ -92,6 +92,7 @@
           "update_entities": "Update Entitäten für Images",
           "health_sensors": "Health Binärsensoren",
           "entity_prefix": "Gerätenamen mit ihrer Art voranstellen",
+          "environment_in_name": "Environment im Gerätenamen",
           "nest_containers": "Container unter ihrem Projekt einordnen",
           "events": "Events auf dem Home Assistant Bus auslösen",
           "arcane_events": "Arcane Ereignisprotokoll auf dem Bus",
@@ -102,6 +103,7 @@
           "update_entities": "Für jeden Container eine Update Entität, die das neuere Image über Arcanes Updater installiert und Versionshinweise zeigt, wo Arcane welche findet, dazu je Environment ein Button, der sofort nach Updates sucht. Ein Update, das Arcane zurückhält, lässt sich nicht installieren.",
           "health_sensors": "Container mit Health Check bekommen einen Sensor Healthy.",
           "entity_prefix": "Geräte als Container x und Project x benennen, damit ein Container und ein Projekt mit gleichem Namen nicht kollidieren. Bereits vorhandene Entity IDs bleiben unverändert.",
+          "environment_in_name": "Den Namen eines entfernten Environments vor die Namen seiner Container und Projekte setzen, etwa Container host-2 nginx, damit ein Container, der auf zwei Hosts läuft, nicht kollidiert. Das lokale Environment behält seine Namen; bereits vorhandene Entity IDs bleiben unverändert.",
           "nest_containers": "Einen Container als Untergerät des Compose Projekts anzeigen, zu dem er gehört.",
           "events": "Löst arcane_container_state_changed, arcane_container_health_changed und arcane_project_state_changed aus, damit Automatisierungen auf Abstürze und Health Wechsel reagieren können.",
           "arcane_events": "Bei jeder Aktualisierung Arcanes eigenes Ereignisprotokoll lesen und für jeden neuen Eintrag arcane_event feuern, etwa für einen Container ohne Speicher, einen Image Pull oder eine Anmeldung.",
@@ -142,7 +144,39 @@
   "entity": {
     "binary_sensor": {
       "environment_online": {
-        "name": "Online"
+        "name": "Online",
+        "state_attributes": {
+          "hostname": {
+            "name": "Hostname"
+          },
+          "agent_version": {
+            "name": "Agent-Version"
+          },
+          "docker_version": {
+            "name": "Docker-Version"
+          },
+          "os": {
+            "name": "Betriebssystem"
+          },
+          "kernel_version": {
+            "name": "Kernel-Version"
+          },
+          "architecture": {
+            "name": "Architektur"
+          },
+          "cpus": {
+            "name": "CPUs"
+          },
+          "memory_bytes": {
+            "name": "Arbeitsspeicher"
+          },
+          "transport": {
+            "name": "Transport"
+          },
+          "security_mode": {
+            "name": "Sicherheitsmodus"
+          }
+        }
       },
       "container_running": {
         "name": "Läuft"
@@ -382,6 +416,23 @@
             "name": "Worker-Fehler"
           }
         }
+      },
+      "agent_last_contact": {
+        "name": "Agent letzter Kontakt"
+      },
+      "agent_connected_since": {
+        "name": "Agent verbunden seit"
+      },
+      "agent_latency": {
+        "name": "Agent-Latenz"
+      },
+      "agent_last_disconnect": {
+        "name": "Agent letzte Trennung",
+        "state_attributes": {
+          "reason": {
+            "name": "Grund"
+          }
+        }
       }
     },
     "update": {
@@ -481,6 +532,10 @@
     "missing_permissions": {
       "title": "Dem Arcane-API-Key fehlen Berechtigungen",
       "description": "Der API-Key von {name} wurde abgelehnt für: {permissions}\n\nSolange die Rolle hinter dem Key diese nicht hat, bleiben die Teile, die sie brauchen, leer oder scheitern beim Benutzen. Ergänze sie in Arcane unter **Einstellungen > Rollen**, oder schalte diese Teile unter **Konfigurieren > Berechtigungen des API-Keys** ab. Die Reparatur verschwindet, sobald die Abfrage wieder durchkommt oder die Integration neu geladen wird."
+    },
+    "unselected_environment": {
+      "title": "Neues Arcane-Environment {environment}",
+      "description": "Arcane meldet das Environment {environment}, das die Optionen von {name} nicht ausgewählt haben; es hat deshalb keine Geräte in Home Assistant. Zum Hinzufügen unter **Konfigurieren > Abfrage** auswählen. Soll es draußen bleiben, diese Reparatur ignorieren; ein weiteres neues Environment bekommt eine eigene."
     }
   }
 }
