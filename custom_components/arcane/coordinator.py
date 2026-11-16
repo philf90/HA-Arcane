@@ -36,6 +36,7 @@ from .const import (
     CONF_INCLUDE_HIDDEN,
     CONF_INCLUDE_INTERNAL,
     CONF_INSTANT_UPDATES,
+    CONF_JOBS,
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
@@ -58,6 +59,7 @@ from .models import (
     ArcaneData,
     ArcaneEnvironment,
     ArcaneHostStats,
+    ArcaneJob,
     ArcaneProject,
     ArcaneVersion,
 )
@@ -262,6 +264,8 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
             calls["updater_history"] = self.client.async_get_updater_history(
                 environment_id, limit=1
             )
+        if self.option(CONF_JOBS):
+            calls["jobs"] = self.client.async_get_jobs(environment_id)
         return calls
 
     def _note_denied_polling(self, results: dict[str, Any]) -> None:
@@ -361,6 +365,11 @@ class ArcaneCoordinator(DataUpdateCoordinator[ArcaneData]):
         environment.updater_last = (
             history[0] if history and isinstance(history[0], dict) else None
         )
+        environment.jobs = {
+            job.id: job
+            for job in (ArcaneJob.from_api(item) for item in value("jobs", []))
+            if job.id
+        }
         if self.option(CONF_DISK_USAGE):
             environment.disk_usage = self._disk_usage.get(environment_id, {})
             environment.disk_usage_at = self._disk_usage_at.get(environment_id)

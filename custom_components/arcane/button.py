@@ -17,21 +17,29 @@ from . import ArcaneConfigEntry
 from .api import ArcaneError, ArcanePermissionError
 from .const import (
     CONF_ALLOW_CONTROL,
+    CONF_JOBS,
     CONF_MONITOR_CONTAINERS,
     CONF_PRUNE_BUTTON,
     CONF_REDEPLOY_BUTTONS,
     CONF_UPDATE_ENTITIES,
     CONF_UPDATER,
     DOMAIN,
+    LOCAL_ENVIRONMENT_ID,
     PRUNE_OFF,
     PRUNE_UNUSED,
 )
-from .entity import ArcaneContainerEntity, ArcaneEnvironmentEntity, ArcaneProjectEntity
+from .entity import (
+    ArcaneContainerEntity,
+    ArcaneEnvironmentEntity,
+    ArcaneJobEntity,
+    ArcaneProjectEntity,
+)
 from .helpers import action_error, async_setup_entities
 from .permissions import (
     CONTAINER_ACTION_PERMISSIONS,
     PERM_IMAGE_UPDATES_APPLY,
     PERM_IMAGE_UPDATES_CHECK,
+    PERM_JOBS_RUN,
     PERM_SYSTEM_PRUNE,
     PROJECT_ACTION_PERMISSIONS,
 )
@@ -66,6 +74,11 @@ APPLY_UPDATES_BUTTON = ButtonEntityDescription(
     translation_key="apply_updates",
 )
 
+RUN_JOB_BUTTON = ButtonEntityDescription(
+    key="run",
+    translation_key="run_job",
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -88,6 +101,16 @@ async def async_setup_entry(
     apply_updates = coordinator.option(CONF_UPDATER) and coordinator.option(
         CONF_MONITOR_CONTAINERS
     )
+
+    def job_buttons(environment_id: str, job_id: str) -> list[ButtonEntity]:
+        job = coordinator.data.environments[environment_id].jobs[job_id]
+        # Arcane runs only jobs it marks as runnable by hand, and a job only the
+        # manager runs is never started in a remote environment.
+        if not job.can_run_manually or (
+            job.manager_only and environment_id != LOCAL_ENVIRONMENT_ID
+        ):
+            return []
+        return [ArcaneJobButton(coordinator, environment_id, job_id, RUN_JOB_BUTTON)]
 
     def environment_buttons(environment_id: str) -> list[ButtonEntity]:
         buttons: list[ButtonEntity] = []
@@ -139,6 +162,7 @@ async def async_setup_entry(
                 else []
             ),
         ],
+        jobs=job_buttons if coordinator.option(CONF_JOBS) else None,
     )
 
 
@@ -303,3 +327,44 @@ class ArcaneApplyUpdatesButton(ArcaneEnvironmentEntity, ButtonEntity):
         finally:
             coordinator.updater_runs.discard(environment_id)
         await coordinator.async_request_refresh()
+
+
+class ArcaneJobButton(ArcaneJobEntity, ButtonEntity):
+    """Have Arcane run one of its background jobs now.
+
+    Arcane queues the run and answers at once; the job's sensor shows the run
+    under way and then how it went.
+    """
+
+    @property
+    def available(self) -> bool:
+        """Return whether Arcane would accept a run of the job now.
+
+        Arcane refuses a job that is switched off or whose prerequisites, such
+        as a configured scanner, are not met; the button follows that.
+        """
+        job = self.job
+        return (
+            super().available
+            and job is not None
+            and job.enabled
+            and job.prerequisites_met
+        )
+
+    async def async_press(self) -> None:
+        """Queue a run of the job."""
+        name = self.job.name if self.job else self.job_id
+        try:
+            result = await self.coordinator.client.async_run_job(
+                self.environment_id, self.job_id
+            )
+        except ArcaneError as err:
+            raise action_error(
+                self.coordinator,
+                err,
+                permission=PERM_JOBS_RUN,
+                action_key="run_job",
+                placeholders={"name": name},
+            ) from err
+        _LOGGER.debug("Arcane accepted a run of job %s: %s", self.job_id, result)
+        await self.coordinator.async_request_refresh()

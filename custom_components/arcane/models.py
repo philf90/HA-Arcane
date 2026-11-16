@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from homeassistant.util import dt as dt_util
+
 from .const import (
     ENVIRONMENT_STATUS_ONLINE,
     HEALTH_HEALTHY,
@@ -344,6 +346,97 @@ class ArcaneHostStats:
         )
 
 
+def _timestamp(value: Any) -> datetime | None:
+    """Return an RFC 3339 timestamp from the API as an aware datetime."""
+    if not isinstance(value, str) or not value:
+        return None
+    parsed = dt_util.parse_datetime(value)
+    return parsed if parsed is not None and parsed.tzinfo is not None else None
+
+
+def _text(value: Any) -> str | None:
+    """Return a non-empty string from the API, or None."""
+    return value if isinstance(value, str) and value else None
+
+
+@dataclass(slots=True)
+class ArcaneJob:
+    """One of Arcane's background jobs, such as its automatic updates.
+
+    Built from an entry of ``GET agents/{id}/jobs``. Arcane fills ``lastRun``
+    with the newest finished run and ``currentRun`` with one that is queued or
+    running; ``lastError`` carries the message of the newest run that failed,
+    went partly wrong or is being retried.
+    """
+
+    id: str
+    name: str
+    category: str | None = None
+    schedule: str | None = None
+    enabled: bool = False
+    can_run_manually: bool = False
+    manager_only: bool = False
+    #: Whether every setting the job needs, such as a configured scanner, is on.
+    prerequisites_met: bool = True
+    next_run: datetime | None = None
+    last_success: datetime | None = None
+    last_error: str | None = None
+    #: Status of the newest finished run, one of ``JOB_RUN_STATUSES``.
+    last_status: str | None = None
+    last_trigger: str | None = None
+    last_started: datetime | None = None
+    last_finished: datetime | None = None
+    last_message: str | None = None
+    #: Status of a run that is queued, waiting, running or being retried.
+    current_status: str | None = None
+    #: Health of the worker of a continuous job, such as the image watcher.
+    worker_status: str | None = None
+    worker_error: str | None = None
+
+    @property
+    def running(self) -> bool:
+        """Return whether a run of the job is queued or under way."""
+        return self.current_status is not None
+
+    @classmethod
+    def from_api(cls, payload: dict[str, Any]) -> ArcaneJob:
+        """Create a job from an entry of Arcane's job list."""
+        last = payload.get("lastRun")
+        last = last if isinstance(last, dict) else {}
+        outcome = last.get("outcome")
+        outcome = outcome if isinstance(outcome, dict) else {}
+        current = payload.get("currentRun")
+        current = current if isinstance(current, dict) else {}
+        worker = payload.get("workerHealth")
+        worker = worker if isinstance(worker, dict) else {}
+        prerequisites = payload.get("prerequisites")
+        return cls(
+            id=str(payload.get("id") or ""),
+            name=str(payload.get("name") or payload.get("id") or ""),
+            category=_text(payload.get("category")),
+            schedule=_text(payload.get("schedule")),
+            enabled=payload.get("enabled") is True,
+            can_run_manually=payload.get("canRunManually") is True,
+            manager_only=payload.get("managerOnly") is True,
+            prerequisites_met=all(
+                isinstance(item, dict) and item.get("isMet") is True
+                for item in (prerequisites if isinstance(prerequisites, list) else [])
+            ),
+            next_run=_timestamp(payload.get("nextRun")),
+            last_success=_timestamp(payload.get("lastSuccess")),
+            last_error=_text(payload.get("lastError")),
+            last_status=_text(last.get("status")),
+            last_trigger=_text(last.get("trigger")),
+            last_started=_timestamp(last.get("startedAt"))
+            or _timestamp(last.get("createdAt")),
+            last_finished=_timestamp(last.get("finishedAt")),
+            last_message=_text(outcome.get("message")),
+            current_status=_text(current.get("status")) if current else None,
+            worker_status=_text(worker.get("status")),
+            worker_error=_text(worker.get("lastError")),
+        )
+
+
 @dataclass(slots=True)
 class ArcaneEnvironment:
     """Everything the integration knows about one Arcane environment."""
@@ -371,6 +464,9 @@ class ArcaneEnvironment:
     disk_usage: dict[str, Any] = field(default_factory=dict)
     #: When the report in ``disk_usage`` was asked for; None until one is in.
     disk_usage_at: datetime | None = None
+    #: Arcane's background jobs by ID, with the option for them. Jobs Arcane
+    #: lists below another one, such as one per GitOps sync, are left out.
+    jobs: dict[str, ArcaneJob] = field(default_factory=dict)
 
     @property
     def is_online(self) -> bool:

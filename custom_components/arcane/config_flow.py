@@ -56,6 +56,7 @@ from .const import (
     CONF_INCLUDE_HIDDEN,
     CONF_INCLUDE_INTERNAL,
     CONF_INSTANT_UPDATES,
+    CONF_JOBS,
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
@@ -430,6 +431,7 @@ class ArcaneOptionsFlow(OptionsFlow):
                     vol.Required(CONF_EVENTS): bool,
                     vol.Required(CONF_ARCANE_EVENTS): bool,
                     vol.Required(CONF_UPDATER): bool,
+                    vol.Required(CONF_JOBS): bool,
                 }
             ),
         )

@@ -66,6 +66,7 @@ def _entity_keys() -> dict[str, set[str]]:
                 *sensor.PROJECT_SENSORS,
                 sensor.ARCANE_VERSION_SENSOR,
                 sensor.UPDATER_LAST_SENSOR,
+                sensor.JOB_SENSOR,
             )
         },
         "binary_sensor": {
@@ -86,6 +87,7 @@ def _entity_keys() -> dict[str, set[str]]:
                 button.PRUNE_BUTTON,
                 button.CHECK_UPDATES_BUTTON,
                 button.APPLY_UPDATES_BUTTON,
+                button.RUN_JOB_BUTTON,
             )
         },
         "switch": {switch.AUTO_UPDATE_SWITCH.translation_key},

@@ -95,7 +95,8 @@
           "nest_containers": "Nest containers under their project",
           "events": "Fire events on the Home Assistant bus",
           "arcane_events": "Arcane event log on the bus",
-          "updater": "Arcane updater"
+          "updater": "Arcane updater",
+          "jobs": "Arcane background jobs"
         },
         "data_description": {
           "update_entities": "Offer an update entity per container that installs the newer image through Arcane's updater and shows release notes where Arcane finds them, plus a button per environment that checks for updates right away. An update Arcane holds back cannot be installed.",
@@ -104,7 +105,8 @@
           "nest_containers": "Show a container as a child device of the Compose project it belongs to.",
           "events": "Fire arcane_container_state_changed, arcane_container_health_changed and arcane_project_state_changed so automations can react to crashes and health changes.",
           "arcane_events": "Read Arcane's own event log on every update and fire arcane_event for each new entry, such as a container that ran out of memory, an image pull or a login.",
-          "updater": "Add a button per environment that installs every pending update the way Arcane's scheduled updates do, a sensor showing that updates are being installed and one with the last update Arcane applied."
+          "updater": "Add a button per environment that installs every pending update the way Arcane's scheduled updates do, a sensor showing that updates are being installed and one with the last update Arcane applied.",
+          "jobs": "Add a sensor per background job of Arcane, such as its automatic updates or the image update watcher, with the outcome of the last run, when it runs next and the last error. With control allowed, also a button per job that runs it now."
         }
       },
       "control": {
@@ -173,6 +175,9 @@
       },
       "apply_updates": {
         "name": "Install all updates"
+      },
+      "run_job": {
+        "name": "Run job {name}"
       }
     },
     "sensor": {
@@ -323,6 +328,60 @@
             "name": "Error"
           }
         }
+      },
+      "job": {
+        "name": "Job {name}",
+        "state": {
+          "succeeded": "Succeeded",
+          "partial": "Partly succeeded",
+          "skipped": "Skipped",
+          "failed": "Failed",
+          "canceled": "Canceled"
+        },
+        "state_attributes": {
+          "job_id": {
+            "name": "Job ID"
+          },
+          "category": {
+            "name": "Category"
+          },
+          "enabled": {
+            "name": "Enabled"
+          },
+          "schedule": {
+            "name": "Schedule"
+          },
+          "next_run": {
+            "name": "Next run"
+          },
+          "last_run": {
+            "name": "Last run"
+          },
+          "last_finished": {
+            "name": "Last run finished"
+          },
+          "last_success": {
+            "name": "Last success"
+          },
+          "trigger": {
+            "name": "Trigger"
+          },
+          "message": {
+            "name": "Message"
+          },
+          "last_error": {
+            "name": "Last error"
+          },
+          "running": {
+            "name": "Running"
+          },
+          "worker_status": {
+            "name": "Worker status"
+          },
+          "worker_error": {
+            "name": "Worker error"
+          }
+        }
       }
     },
     "update": {
@@ -407,6 +466,12 @@
     },
     "apply_updates_running": {
       "message": "Arcane is already installing the updates of {name}."
+    },
+    "run_job_failed": {
+      "message": "Failed to run job {name}: {error}"
+    },
+    "run_job_forbidden": {
+      "message": "Not allowed to run job {name}: the Arcane API key is missing the {permission} permission."
     }
   },
   "issues": {

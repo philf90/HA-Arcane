@@ -95,7 +95,8 @@
           "nest_containers": "Container unter ihrem Projekt einordnen",
           "events": "Events auf dem Home Assistant Bus auslösen",
           "arcane_events": "Arcane Ereignisprotokoll auf dem Bus",
-          "updater": "Arcane Updater"
+          "updater": "Arcane Updater",
+          "jobs": "Arcane Hintergrund-Jobs"
         },
         "data_description": {
           "update_entities": "Für jeden Container eine Update Entität, die das neuere Image über Arcanes Updater installiert und Versionshinweise zeigt, wo Arcane welche findet, dazu je Environment ein Button, der sofort nach Updates sucht. Ein Update, das Arcane zurückhält, lässt sich nicht installieren.",
@@ -104,7 +105,8 @@
           "nest_containers": "Einen Container als Untergerät des Compose Projekts anzeigen, zu dem er gehört.",
           "events": "Löst arcane_container_state_changed, arcane_container_health_changed und arcane_project_state_changed aus, damit Automatisierungen auf Abstürze und Health Wechsel reagieren können.",
           "arcane_events": "Bei jeder Aktualisierung Arcanes eigenes Ereignisprotokoll lesen und für jeden neuen Eintrag arcane_event feuern, etwa für einen Container ohne Speicher, einen Image Pull oder eine Anmeldung.",
-          "updater": "Je Environment ein Button, der alle ausstehenden Updates so installiert wie Arcanes geplante Updates, ein Sensor, der zeigt, dass Updates installiert werden, und einer mit dem letzten Update, das Arcane eingespielt hat."
+          "updater": "Je Environment ein Button, der alle ausstehenden Updates so installiert wie Arcanes geplante Updates, ein Sensor, der zeigt, dass Updates installiert werden, und einer mit dem letzten Update, das Arcane eingespielt hat.",
+          "jobs": "Je Hintergrund-Job von Arcane, etwa die automatischen Updates oder die Suche nach Image-Updates, ein Sensor mit dem Ergebnis des letzten Laufs, dem nächsten Lauf und dem letzten Fehler. Ist Steuerung erlaubt, dazu je Job ein Button, der ihn sofort ausführt."
         }
       },
       "control": {
@@ -173,6 +175,9 @@
       },
       "apply_updates": {
         "name": "Alle Updates installieren"
+      },
+      "run_job": {
+        "name": "Job {name} ausführen"
       }
     },
     "sensor": {
@@ -323,6 +328,60 @@
             "name": "Fehler"
           }
         }
+      },
+      "job": {
+        "name": "Job {name}",
+        "state": {
+          "succeeded": "Erfolgreich",
+          "partial": "Teilweise erfolgreich",
+          "skipped": "Übersprungen",
+          "failed": "Fehlgeschlagen",
+          "canceled": "Abgebrochen"
+        },
+        "state_attributes": {
+          "job_id": {
+            "name": "Job-ID"
+          },
+          "category": {
+            "name": "Kategorie"
+          },
+          "enabled": {
+            "name": "Aktiviert"
+          },
+          "schedule": {
+            "name": "Zeitplan"
+          },
+          "next_run": {
+            "name": "Nächster Lauf"
+          },
+          "last_run": {
+            "name": "Letzter Lauf"
+          },
+          "last_finished": {
+            "name": "Letzter Lauf beendet"
+          },
+          "last_success": {
+            "name": "Letzter Erfolg"
+          },
+          "trigger": {
+            "name": "Auslöser"
+          },
+          "message": {
+            "name": "Meldung"
+          },
+          "last_error": {
+            "name": "Letzter Fehler"
+          },
+          "running": {
+            "name": "Läuft"
+          },
+          "worker_status": {
+            "name": "Worker-Status"
+          },
+          "worker_error": {
+            "name": "Worker-Fehler"
+          }
+        }
       }
     },
     "update": {
@@ -407,6 +466,12 @@
     },
     "apply_updates_running": {
       "message": "Arcane installiert die Updates von {name} bereits."
+    },
+    "run_job_failed": {
+      "message": "Job {name} konnte nicht ausgeführt werden: {error}"
+    },
+    "run_job_forbidden": {
+      "message": "Job {name} darf nicht ausgeführt werden: Dem Arcane-API-Key fehlt die Berechtigung {permission}."
     }
   },
   "issues": {

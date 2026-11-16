@@ -24,16 +24,19 @@ from .const import (
     CONF_DISK_USAGE,
     CONF_HEALTH_SENSORS,
     CONF_HOST_STATS,
+    CONF_JOBS,
     CONF_MONITOR_CONTAINERS,
     CONF_MONITOR_PROJECTS,
     CONF_MONITOR_RESOURCES,
     CONF_UPDATER,
     CONTAINER_STATES,
+    JOB_RUN_STATUSES,
     PROJECT_STATES,
 )
 from .entity import (
     ArcaneContainerEntity,
     ArcaneEnvironmentEntity,
+    ArcaneJobEntity,
     ArcaneProjectEntity,
 )
 from .helpers import async_setup_entities
@@ -348,6 +351,15 @@ PROJECT_SENSORS: tuple[ArcaneProjectSensorDescription, ...] = (
 )
 
 
+JOB_SENSOR = SensorEntityDescription(
+    key="job",
+    translation_key="job",
+    device_class=SensorDeviceClass.ENUM,
+    options=JOB_RUN_STATUSES,
+    entity_category=EntityCategory.DIAGNOSTIC,
+)
+
+
 UPDATER_LAST_SENSOR = SensorEntityDescription(
     key="updater_last_update",
     translation_key="updater_last_update",
@@ -391,6 +403,15 @@ async def async_setup_entry(
             ArcaneProjectSensor(coordinator, environment_id, project_id, description)
             for description in PROJECT_SENSORS
         ],
+        jobs=(
+            (
+                lambda environment_id, job_id: [
+                    ArcaneJobSensor(coordinator, environment_id, job_id, JOB_SENSOR)
+                ]
+            )
+            if coordinator.option(CONF_JOBS)
+            else None
+        ),
     )
 
 
@@ -489,4 +510,43 @@ class ArcaneUpdaterLastSensor(ArcaneEnvironmentEntity, SensorEntity):
             "status": record.get("status"),
             "update_applied": record.get("updateApplied"),
             "error": record.get("error"),
+        }
+
+
+class ArcaneJobSensor(ArcaneJobEntity, SensorEntity):
+    """Report how the newest finished run of an Arcane background job went.
+
+    The state is the outcome Arcane reports for that run. When the job ran,
+    when it runs next, whether a run is under way and the last error are in
+    the attributes, so an automation can notice a run that failed as well as
+    one that is overdue.
+    """
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the outcome of the newest finished run."""
+        if (job := self.job) is None or job.last_status not in JOB_RUN_STATUSES:
+            return None
+        return job.last_status
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the schedule, the last and next run and what went wrong."""
+        if (job := self.job) is None:
+            return None
+        return {
+            "job_id": job.id,
+            "category": job.category,
+            "enabled": job.enabled,
+            "schedule": job.schedule,
+            "next_run": job.next_run,
+            "last_run": job.last_started,
+            "last_finished": job.last_finished,
+            "last_success": job.last_success,
+            "trigger": job.last_trigger,
+            "message": job.last_message,
+            "last_error": job.last_error,
+            "running": job.running,
+            "worker_status": job.worker_status,
+            "worker_error": job.worker_error,
         }
