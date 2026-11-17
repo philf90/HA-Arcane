@@ -659,7 +659,10 @@ Arcane-Update) nur im Vertragstest.
   das Byte den freigebbaren Volume-Speicher, Messung samt Speicherbericht unter 0,25 s;
   CPU und Arbeitsspeicher für alle laufenden Container, CPU als Anteil am ganzen Host
   (Summe der Container 2,3 % bei 1,9 bis 2,9 % Host-CPU), Zähler nicht aufgezeichnet,
-  keine messbare Mehrlast. Nicht live geprüft: neue Messung nach einem Prune.
+  keine messbare Mehrlast, auch nicht im Stundenmittel über eine Nacht. Volume-Größen
+  alle 15 Minuten (35 Messungen je Host über eine Nacht, Abstand 900 bis 930 s) und
+  sofort nach einem Prune (2 Sekunden nach dem Start, mit dem Speicherbericht; der
+  15-Minuten-Takt beginnt danach neu).
 - **0.12.x:** 307 automatische Tests. 0.12.0: 10 neue Tests in `test_ports.py`:
   Ports aus der Container-Liste, IPv4 und IPv6 zusammengefasst, feste Adressen
   behalten, ungültige Einträge übersprungen; Sensor je Container mit Attributen und
