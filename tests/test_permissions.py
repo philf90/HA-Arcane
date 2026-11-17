@@ -65,6 +65,8 @@ def test_defaults_need_read_and_control() -> None:
         "projects:down",
         "projects:restart",
         "system:upgrade",
+        # Pruefung und Fortschritt des Arcane-Updates (0.14.0).
+        "system:read",
         "image-updates:check",
     ]
 

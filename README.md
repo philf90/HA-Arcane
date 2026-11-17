@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.13.0.
+[Herkunft](#herkunft). Version 0.14.0.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -111,7 +111,7 @@ ausgeschaltete Option nimmt ihre Rechte aus der Liste.
 | Arcane Hintergrund-Jobs (Option) | `jobs:list` |
 | Buttons „Job … ausführen“ | `jobs:run` |
 | Prune-Button | `system:prune`, `activities:read` (verfolgt den Prune bis zum Ende) |
-| Arcane selbst aktualisieren | `system:upgrade` |
+| Arcane selbst aktualisieren | `system:upgrade`, für Prüfung und Fortschritt `system:read` |
 | Versionshinweise der Container-Updates | `image-updates:read` |
 | Button „Nach Updates suchen“ | `image-updates:check` |
 | Freigebbarer Speicher (Option) | `system:read` |
@@ -140,7 +140,7 @@ Namen wie auf einer deutschen Instanz; die Entity-IDs bildet Home Assistant dara
 | Projekte, Laufende Projekte | Sensor | |
 | Images, Ungenutzte Images, Image-Speicher | Sensor | |
 | Volumes, Ungenutzte Volumes, Netzwerke | Sensor | |
-| Arcane | Update | aktualisiert die Arcane-Instanz selbst |
+| Arcane | Update | aktualisiert die Arcane-Instanz selbst über einen Upgrade-Job, mit Fortschritt; siehe [Updates](#updates) |
 | Host CPU, Host Arbeitsspeicher (belegt, gesamt), Host Festplatte (belegt) | Sensor | standardmäßig aus |
 | Docker-Version, Arcane Version | Sensor | Diagnose, standardmäßig deaktiviert |
 | Freigebbarer Image-Speicher, Freigebbarer Container-Speicher, Freigebbarer Volume-Speicher, Freigebbarer Build-Cache | Sensor | standardmäßig aus, siehe [Freigebbarer Speicher](#freigebbarer-speicher) |
@@ -224,11 +224,27 @@ Assistant um.
 Container-Updates und Arcane selbst erscheinen unter **Einstellungen → Updates**.
 Ein Container-Update installiert Arcanes Updater (siehe unten). Das Arcane-Update lässt
 Arcane sein neueres Image ziehen und neu starten; alles hier ist dann kurz nicht
-verfügbar. Ob ein Update ansteht, entscheidet Arcane, nicht ein Versionsvergleich in
+verfügbar (siehe „Arcane selbst aktualisieren“ unten). Ob ein Update ansteht, entscheidet Arcane, nicht ein Versionsvergleich in
 Home Assistant: Versionen sind oft Digests und lassen sich nicht ordnen. Mit
 ausgeschalteter Steuerung zeigen die Entitäten Versionen, erscheinen aber nicht in
 der Liste.
 
+- **Arcane selbst aktualisieren:** Seit 0.14.0 startet „Installieren“ an der
+  Arcane-Update-Entität einen Upgrade-Job auf dem Arcane-Manager, denselben, den
+  Arcanes Oberfläche startet (`system/upgrade/jobs` mit der Umgebung; für eine
+  entfernte Umgebung aktualisiert der Manager deren Agenten). Vorher fragt die
+  Integration `system/upgrade/check`, ob sich Arcane dort überhaupt selbst
+  aktualisieren kann (Docker-Socket, Container, kein Quadlet), und bricht sonst mit
+  Arcanes Begründung ab; ob es eine neue Version gibt, sagt diese Prüfung nicht.
+  Danach liest sie alle 5 Sekunden `system/upgrade/jobs/current`, höchstens 30
+  Minuten lang: Die Entität zeigt „wird installiert“ und den Fortschritt in Prozent.
+  Startet sich der Manager dabei neu, ist er kurz nicht erreichbar; das gehört dazu.
+  Scheitert das Upgrade oder ist der Agent nicht verbunden, meldet die Aktion Arcanes
+  Fehlertext; ein Upgrade, das Arcane angestoßen, aber nicht bestätigt hat
+  (`triggered`), steht nur im Protokoll. Fehlt `system:read`, läuft das Upgrade
+  trotzdem, nur ohne Fortschritt, und das Recht erscheint in der Reparatur. Updates,
+  die Arcanes Auto Update selbst installiert, laufen nicht über diese Entität; die
+  zeigt der Sensor „Letztes Update“ (Option Arcane Updater).
 - **Installieren über den Updater:** Seit 0.9.0 installiert die Update-Entität
   über `containers/{id}/update`, so wie „Update“ in Arcane selbst. Der Updater
   folgt der Tag-Regel des Containers auf einen neueren Tag, zieht über Arcanes
@@ -545,7 +561,9 @@ dahinter.
 | `agents/{environment}/projects/{project}` | POST `?action=down`, `restart` | Schalter aus, Button „Neustarten“ | `projects:down`, `projects:restart` |
 | `agents/{environment}/system/prune` | POST; Arcane antwortet sofort mit `activityId` und räumt im Hintergrund auf | Button „Ungenutztes entfernen“ | `system:prune` |
 | `agents/{environment}/activities/{activity}` | GET `?limit=1`, alle 2 s bis zum Ende, höchstens 15 Minuten | nach dem Prune | `activities:read` |
-| `agents/{environment}/system/upgrade` | POST | Arcane-Update installieren | `system:upgrade` |
+| `agents/{environment}/system/upgrade/check` | GET | vor dem Arcane-Update: kann Arcane sich selbst aktualisieren | `system:read` |
+| `agents/0/system/upgrade/jobs` | POST | Arcane-Update installieren (Upgrade-Job mit der Umgebung; nur auf dem Manager) | `system:upgrade` |
+| `agents/0/system/upgrade/jobs/current` | GET | Fortschritt des Arcane-Updates, alle 5 Sekunden, nur während es läuft | `system:read` |
 | `agents/{environment}/system/df` | GET | Option freigebbarer Speicher, höchstens alle 15 Minuten im Hintergrund, dazu sofort nach einem Prune | `system:read` |
 | `agents/{environment}/volumes/sizes` | GET | Option Volume-Größen, im Hintergrund zusammen mit dem Speicherbericht: höchstens alle 15 Minuten und sofort nach einem Prune | `volumes:list` |
 | `agents/{environment}/images/updates/releasenotes` | GET `?imageRef=…&digest=…`, bei neuem Tag `&version=…` | Update-Dialog geöffnet | `image-updates:read` |
@@ -616,6 +634,17 @@ Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
 3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
 Arcane-Update) nur im Vertragstest.
 
+- **0.14.x:** 335 automatische Tests. 0.14.0: 15 neue Tests in
+  `test_arcane_upgrade.py`: Job wird verfolgt, Fortschritt in Prozent, Neustart des
+  Managers ohne Fehler; fremder Job zählt nicht; Arcane, das sich nicht selbst
+  aktualisieren kann, startet keinen Job; gescheiterte Prüfung hält nichts auf;
+  gescheitertes Upgrade, nicht verbundener Agent und gescheiterter Job mit Arcanes
+  Grund; `triggered` nur im Protokoll; abgelehnter Start nennt `system:upgrade`;
+  laufender Job gemeldet; nicht lesbarer Job lässt das Upgrade weiterlaufen und nennt
+  `system:read`; Zeitlimit; entfernte Umgebung mit ihrer ID; Fortschritt nur mit
+  Steuerung, Rechte; Client schickt Jobs an Umgebung 0 und die Prüfung an die eigene
+  Umgebung. Dazu der Optionstext zur CPU: Anteil am ganzen Host.
+  **Nicht live geprüft.**
 - **0.13.x:** 320 automatische Tests. 0.13.0: 13 neue Tests in `test_ressourcen.py`:
   Probe aus `resourceSample`, ungültige Werte übersprungen; ohne Option keine
   Sortierung und keine Sensoren; CPU und Arbeitsspeicher mit Attributen, gestoppter

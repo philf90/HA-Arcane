@@ -86,7 +86,7 @@
           "instant_updates": "Je Environment eine Anfrage offen halten, die Arcane beantwortet, sobald sich etwas ändert, und dann sofort aktualisieren statt auf das nächste Intervall zu warten. Die regelmäßige Abfrage läuft weiter.",
           "include_internal": "Auch Container einbeziehen, die Arcane als intern markiert.",
           "include_hidden": "Auch Container einbeziehen, die in der Arcane Oberfläche versteckt sind.",
-          "container_resources": "Jeder laufende Container bekommt einen Sensor CPU (Prozent, Mittel seit der letzten Aktualisierung) und einen Sensor Arbeitsspeicher, mit Speicherlimit sowie Netzwerk- und Datenträger-Verkehr als Attribute. Arcane liest dafür bei jeder Aktualisierung die Docker-Statistik aller laufenden Container, das belastet den Docker-Host. Braucht das Recht containers:read.",
+          "container_resources": "Jeder laufende Container bekommt einen Sensor CPU (Anteil am ganzen Host in Prozent, 100 % heißt alle Kerne ausgelastet; Mittel seit der letzten Aktualisierung, in Schritten von 0,1 %) und einen Sensor Arbeitsspeicher, mit Speicherlimit sowie Netzwerk- und Datenträger-Verkehr als Attribute. Arcane liest dafür bei jeder Aktualisierung die Docker-Statistik aller laufenden Container, das belastet den Docker-Host. Braucht das Recht containers:read.",
           "volume_sizes": "Jeder Container bekommt einen Sensor mit dem Platz seiner eingebundenen Volumes, jedes Environment einen mit allen Volumes, das größte zuerst. Docker misst dafür jedes Volume aus, deshalb läuft das im Hintergrund höchstens alle 15 Minuten und direkt nach einem Prune."
         }
       },
@@ -551,6 +551,12 @@
     },
     "upgrade_forbidden": {
       "message": "Upgrade von Arcane auf {name} nicht erlaubt: Dem Arcane-API-Key fehlt die Berechtigung {permission}."
+    },
+    "upgrade_not_possible": {
+      "message": "Arcane auf {name} kann sich nicht selbst aktualisieren: {reason}"
+    },
+    "upgrade_timeout": {
+      "message": "Das Upgrade von Arcane auf {name} ist nach {minutes} Minuten nicht abgeschlossen. Es läuft womöglich noch; den Stand zeigt Arcane."
     },
     "unsupported_version": {
       "message": "Arcane {version} wird nicht unterstützt. Arcane auf 3.0 oder neuer aktualisieren."

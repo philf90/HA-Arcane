@@ -29,6 +29,9 @@ ALLOWED_SCHEMES: Final = ("http", "https")
 # Arcane 3 addresses environments under /api/agents/; /api/environments/ is
 # gone (Arcane 3.0.0, backend/internal/environment/module.go).
 AGENTS: Final = "agents"
+# Upgrade jobs run on the Arcane manager only, the local environment "0"
+# (environment.LocalEnvironmentID); Arcane refuses them on an agent.
+MANAGER: Final = "0"
 
 # Only these actions may be sent to Arcane.
 CONTAINER_ACTIONS: Final = ("start", "stop", "restart", "redeploy")
@@ -424,17 +427,48 @@ class ArcaneClient:
         data = await self._get_data(self._url(AGENTS, environment_id, "version"))
         return data if isinstance(data, dict) else {}
 
-    async def async_upgrade(self, environment_id: str) -> None:
-        """Upgrade the Arcane instance of an environment.
+    async def async_check_upgrade(self, environment_id: str) -> dict[str, Any]:
+        """Return whether Arcane in an environment can upgrade itself.
 
-        Arcane pulls its own newer image and restarts itself, so the call is
-        accepted and then carried out in the background.
+        ``canUpgrade`` is false when it cannot: no Docker socket, not running
+        in a container, or run from a Quadlet unit (system/children/upgrade,
+        CanUpgrade). Whether a newer version exists is not part of it. Arcane
+        answers without its usual envelope here.
         """
-        await self._request(
+        data = await self._request(
+            "GET", self._url(AGENTS, environment_id, "system", "upgrade", "check")
+        )
+        return data if isinstance(data, dict) else {}
+
+    async def async_start_upgrade_job(
+        self, environment_ids: list[str]
+    ) -> dict[str, Any]:
+        """Have the Arcane manager upgrade the given environments.
+
+        Upgrade jobs run on the manager only, so the request always goes to the
+        local environment, whichever environments it names; agents come first
+        and the manager last (StartUpgradeJob). The reply is the new job.
+        """
+        payload = await self._request(
             "POST",
-            self._url(AGENTS, environment_id, "system", "upgrade"),
+            self._url(AGENTS, MANAGER, "system", "upgrade", "jobs"),
+            json={"environmentIds": environment_ids},
             timeout=ACTION_TIMEOUT,
         )
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(data, dict):
+            raise ArcaneResponseError("Unexpected reply to the upgrade job request")
+        return data
+
+    async def async_get_upgrade_job(self) -> dict[str, Any] | None:
+        """Return the newest upgrade job of the manager; None before the first."""
+        try:
+            data = await self._get_data(
+                self._url(AGENTS, MANAGER, "system", "upgrade", "jobs", "current")
+            )
+        except ArcaneNotFoundError:
+            return None
+        return data if isinstance(data, dict) else None
 
     async def async_get_environments(self) -> list[dict[str, Any]]:
         """Return every environment the API key may see."""
