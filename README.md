@@ -13,7 +13,7 @@ Schaltern zum Starten und Stoppen, Buttons für Neustart und Redeploy, Sensoren 
 Zustand und Zähler und Update-Entitäten, die unter *Einstellungen → Updates*
 erscheinen, sobald ein neueres Image bereitsteht. Fork von
 [Arcane-HA](https://github.com/ProfessorQuantumUniverse/Arcane-HA), siehe
-[Herkunft](#herkunft). Version 0.14.0.
+[Herkunft](#herkunft). Version 0.14.1.
 
 > **Arcane 3.x:** Ab Version 0.6.0 braucht die Integration Arcane 3.0 oder neuer.
 > Arcane 3.0.0 hat die API-Pfade umbenannt (`/api/environments/…` heißt jetzt
@@ -604,7 +604,12 @@ Docker (siehe [Ressourcen und Volumes](#ressourcen-und-volumes)).
   ganze Abfrage scheitern zu lassen. Container-Entitäten hängen am Namen und
   überleben deshalb ein Redeploy mit neuer Container-ID. `down` entfernt die
   Container eines Projekts; ihre Entitäten sind bis zum nächsten `up` nicht
-  verfügbar. Einen Health-Sensor bekommt ein Container, wenn er beim Entdecken einen
+  verfügbar. Schaltet man eine Option ab, entfernt die Integration seit 0.14.1 die
+  Entitäten, die sie dadurch nicht mehr erzeugt, beim Neuladen aus der Registry,
+  statt sie als „nicht verfügbar“ stehen zu lassen; bei Containern, Projekten und
+  Jobs, die Arcane gerade nicht meldet, erst wenn sie wieder auftauchen. Ein
+  Health-Sensor bleibt, solange die Option an ist, auch wenn der Container gerade
+  gestoppt ist. Einen Health-Sensor bekommt ein Container, wenn er beim Entdecken einen
   Healthcheck hat; kommt er später dazu, nach dem Neuladen der Integration.
 - **Diagnose:** Integration öffnen → ⋮ → **Diagnose herunterladen**. Enthält
   Optionen, nötige und abgelehnte Rechte und den Stand jeder Umgebung, ohne
@@ -631,10 +636,23 @@ Versionen 0.1.0 bis 0.4.0 hatten kein Release; ihre Einträge stehen in
 Automatische Tests laufen gegen Home Assistant 2026.2.3, die Pfade gegen die
 Routen von Arcane 3.0.0. Live geprüft mit Arcane 3.0.0 und Home Assistant 2026.11.1:
 Einrichtung und alle lesenden Abfragen; der Prune mit Version 0.7.0 und Arcane
-3.0.1; die übrigen schreibenden Aktionen (Start, Stop, Neustart, Redeploy,
-Arcane-Update) nur im Vertragstest.
+3.0.1; Start, Stop, Neustart, `down`/`up` und Redeploy von Container und Projekt am
+17.11.2026 mit Version 0.14.0, Arcane 3.0.1 und Home Assistant 2026.11.2. Das
+Arcane-Update, das Installieren eines Image-Updates und „Alle Updates installieren“
+nur im Vertragstest; sie brauchen ein anstehendes Update.
 
-- **0.14.x:** 335 automatische Tests. 0.14.0: 15 neue Tests in
+- **0.14.x:** 346 automatische Tests. 0.14.1: 11 neue Tests in
+  `test_veraltete_entitaeten.py`: Redeploy-Buttons, Schalter und Buttons ohne
+  Steuerung, Sensoren für Ports, CPU und Arbeitsspeicher und Volumes, Job-Sensoren
+  und -Buttons (auch ohne Abfrage der Jobs) und Update-Entitäten gehen mit ihrer
+  Option; Health-Sensor eines gestoppten Containers bleibt; nicht gemeldeter
+  Container behält seine Entitäten, bis er wiederkommt; ähnlicher Containername
+  unberührt; einfaches Neuladen entfernt nichts, auch nichts, was gleich wieder
+  angelegt würde; Aufräumen bleibt auf der eigenen Plattform; jede Entität ist für
+  das Aufräumen erreichbar. `test_config_flow.py` erwartet den Schalter nach dem Abschalten der
+  Steuerung nicht mehr als Rest. Live gefunden beim Test der schreibenden Aktionen
+  (17.11.): Start, Stop, Neustart von Container und Projekt, `down`/`up` und
+  Redeploy an einem Container live geprüft. 0.14.0: 15 neue Tests in
   `test_arcane_upgrade.py`: Job wird verfolgt, Fortschritt in Prozent, Neustart des
   Managers ohne Fehler; fremder Job zählt nicht; Arcane, das sich nicht selbst
   aktualisieren kann, startet keinen Job; gescheiterte Prüfung hält nichts auf;
