@@ -54,6 +54,19 @@ def _antwort(route: dict, request: web.Request) -> web.StreamResponse:
             {"success": True, "message": "Job accepted", "status": "queued"},
             status=202,
         )
+    if path == "/agents/{id}/system/upgrade/check":
+        # Ohne Huelle (CheckUpgradeOutput liefert UpgradeCheckResult direkt).
+        return web.json_response(
+            {"canUpgrade": True, "error": False, "message": "System can be upgraded"}
+        )
+    if path in (
+        "/agents/{id}/system/upgrade/jobs",
+        "/agents/{id}/system/upgrade/jobs/current",
+    ):
+        return web.json_response(
+            {"success": True, "data": {"id": "job-1", "status": "running"}},
+            status=202 if request.method == "POST" else 200,
+        )
     if path.endswith(("/counts", "/version")):
         return web.json_response({"success": True, "data": {}})
     if request.method == "GET":
@@ -121,7 +134,9 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
     await client.async_get_version()
     await client.async_get_environments()
     await client.async_get_environment_version("1")
-    await client.async_upgrade("0")
+    await client.async_check_upgrade("1")
+    await client.async_start_upgrade_job(["1"])
+    await client.async_get_upgrade_job()
     await client.async_get_containers("0", include_internal=True, include_hidden=True)
     await client.async_get_containers("0", resources=True)
     await client.async_get_volume_sizes("0")
@@ -155,7 +170,9 @@ async def _alle_aufrufe(client: ArcaneClient) -> set[str]:
         "async_get_version",
         "async_get_environments",
         "async_get_environment_version",
-        "async_upgrade",
+        "async_check_upgrade",
+        "async_start_upgrade_job",
+        "async_get_upgrade_job",
         "async_get_containers",
         "async_get_volume_sizes",
         "async_get_projects",

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from time import monotonic
 from typing import Any
 
 from homeassistant.components.update import (
@@ -24,6 +26,11 @@ from .const import (
     UPDATE_TYPE_NOT_PULLED,
     UPDATE_TYPE_TAG,
     UPDATER_APPLIED_STATUSES,
+    UPGRADE_JOB_DONE_STATUSES,
+    UPGRADE_POLL_INTERVAL,
+    UPGRADE_RESULT_FAILED_STATUSES,
+    UPGRADE_RESULT_UNCONFIRMED,
+    UPGRADE_WAIT,
 )
 from .entity import ArcaneContainerEntity, ArcaneEnvironmentEntity
 from .helpers import action_error, async_setup_entities
@@ -31,6 +38,7 @@ from .models import ArcaneVersion, image_name
 from .permissions import (
     PERM_IMAGE_UPDATES_APPLY,
     PERM_IMAGE_UPDATES_READ,
+    PERM_SYSTEM_READ,
     PERM_SYSTEM_UPGRADE,
 )
 
@@ -41,6 +49,9 @@ PARALLEL_UPDATES = 1
 # Home Assistant stores the release summary as a state attribute, which is
 # capped at 255 characters.
 MAX_RELEASE_SUMMARY = 255
+
+# Waiting between two looks at an upgrade job; replaced in the tests.
+_pause = asyncio.sleep
 
 CONTAINER_UPDATE = UpdateEntityDescription(
     key="image_update",
@@ -254,8 +265,10 @@ class ArcaneContainerUpdate(ArcaneContainerEntity, UpdateEntity):
 class ArcaneInstanceUpdate(ArcaneEnvironmentEntity, UpdateEntity):
     """Report and install a newer version of Arcane itself.
 
-    Installing asks Arcane to pull its own newer image and restart, so the
-    instance is briefly unreachable afterwards.
+    Installing starts an upgrade job on the Arcane manager, the same one
+    Arcane's own interface starts, and follows it to its end, so the entity
+    shows the installation and its progress and reports a failure. Upgrading
+    the manager restarts it; the instance is briefly unreachable then.
     """
 
     _attr_title = MANUFACTURER
@@ -268,7 +281,7 @@ class ArcaneInstanceUpdate(ArcaneEnvironmentEntity, UpdateEntity):
         if version is not None and version.release_notes:
             features |= UpdateEntityFeature.RELEASE_NOTES
         if self.coordinator.option(CONF_ALLOW_CONTROL):
-            features |= UpdateEntityFeature.INSTALL
+            features |= UpdateEntityFeature.INSTALL | UpdateEntityFeature.PROGRESS
         return features
 
     @property
@@ -316,17 +329,129 @@ class ArcaneInstanceUpdate(ArcaneEnvironmentEntity, UpdateEntity):
     async def async_install(
         self, version: str | None, backup: bool, **kwargs: Any
     ) -> None:
-        """Ask Arcane to upgrade itself."""
+        """Upgrade Arcane through an upgrade job and follow it to its end."""
+        name = self.environment.name if self.environment else ""
+        client = self.coordinator.client
         try:
-            await self.coordinator.client.async_upgrade(self.environment_id)
+            check = await client.async_check_upgrade(self.environment_id)
+        except ArcaneError as err:
+            # The check only spares a start that is bound to fail; without it
+            # the job still reports the failure.
+            _LOGGER.debug("Upgrade check for %s failed: %s", name, err)
+        else:
+            if check.get("canUpgrade") is False:
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="upgrade_not_possible",
+                    translation_placeholders={
+                        "name": name,
+                        "reason": str(check.get("message") or "-"),
+                    },
+                )
+        try:
+            job = await client.async_start_upgrade_job([self.environment_id])
         except ArcaneError as err:
             raise action_error(
                 self.coordinator,
                 err,
                 permission=PERM_SYSTEM_UPGRADE,
                 action_key="upgrade",
-                placeholders={
-                    "name": self.environment.name if self.environment else ""
-                },
+                placeholders={"name": name},
             ) from err
+        self._attr_in_progress = True
+        self._attr_update_percentage = None
+        self.async_write_ha_state()
+        finished = await self._async_follow(job, name)
         await self.coordinator.async_request_refresh()
+        if finished is not None:
+            _raise_unless_upgraded(finished, self.environment_id, name)
+
+    async def _async_follow(
+        self, job: dict[str, Any], name: str
+    ) -> dict[str, Any] | None:
+        """Show the progress of an upgrade job and return it once it ended.
+
+        None when it cannot be followed because the key may not read it; the
+        upgrade itself goes on. A manager that restarts itself cannot be asked
+        for a while, which is part of the upgrade, not a failure.
+        """
+        client = self.coordinator.client
+        job_id = job.get("id")
+        deadline = monotonic() + UPGRADE_WAIT
+        current: dict[str, Any] | None = job
+        while True:
+            if current is not None and current.get("id") == job_id:
+                self._show_progress(_upgrade_row(current, self.environment_id))
+                if current.get("status") in UPGRADE_JOB_DONE_STATUSES:
+                    return current
+            if monotonic() >= deadline:
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="upgrade_timeout",
+                    translation_placeholders={
+                        "name": name,
+                        "minutes": str(UPGRADE_WAIT // 60),
+                    },
+                )
+            await _pause(UPGRADE_POLL_INTERVAL)
+            try:
+                current = await client.async_get_upgrade_job()
+            except ArcanePermissionError:
+                self.coordinator.async_note_denied(PERM_SYSTEM_READ)
+                _LOGGER.warning(
+                    "The Arcane upgrade of %s was started, but cannot be followed: "
+                    "the API key lacks %s",
+                    name,
+                    PERM_SYSTEM_READ,
+                )
+                return None
+            except ArcaneError as err:
+                _LOGGER.debug("Upgrade job of %s not readable yet: %s", name, err)
+                current = None
+
+    def _show_progress(self, row: dict[str, Any] | None) -> None:
+        """Show how far the upgrade of this environment has come."""
+        percent = row.get("percent") if row else None
+        self._attr_update_percentage = (
+            percent
+            if isinstance(percent, int)
+            and not isinstance(percent, bool)
+            and 0 < percent <= 100
+            else None
+        )
+        self.async_write_ha_state()
+
+
+def _upgrade_row(job: dict[str, Any], environment_id: str) -> dict[str, Any] | None:
+    """Return the result of one environment in an upgrade job."""
+    results = job.get("results")
+    for row in results if isinstance(results, list) else []:
+        if isinstance(row, dict) and str(row.get("environmentId")) == environment_id:
+            return row
+    return None
+
+
+def _raise_unless_upgraded(job: dict[str, Any], environment_id: str, name: str) -> None:
+    """Raise when a finished upgrade job did not upgrade this environment.
+
+    A job that failed as a whole (``failed``), or whose result for this
+    environment failed or was skipped because the agent was offline, is an
+    error with Arcane's own reason. ``triggered`` means the upgrade was asked
+    for but the new version not confirmed; that is logged, not raised.
+    """
+    row = _upgrade_row(job, environment_id) or {}
+    status = row.get("status")
+    if job.get("status") == "failed" or status in UPGRADE_RESULT_FAILED_STATUSES:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="upgrade_failed",
+            translation_placeholders={
+                "name": name,
+                "error": str(row.get("error") or job.get("error") or status or "-"),
+            },
+        )
+    if status == UPGRADE_RESULT_UNCONFIRMED:
+        _LOGGER.warning(
+            "Arcane on %s was asked to upgrade, but did not confirm the new version",
+            name,
+        )

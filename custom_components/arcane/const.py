@@ -182,3 +182,16 @@ ACTIVITY_POLL_INTERVAL: Final = 2.0
 PRUNE_WAIT: Final = 900
 ACTIVITY_SUCCESS: Final = "success"
 ACTIVITY_DONE_STATUSES: Final = frozenset({"success", "failed", "cancelled"})
+
+# Installing an Arcane update starts an upgrade job on the manager, which the
+# update entity follows every UPGRADE_POLL_INTERVAL seconds for at most
+# UPGRADE_WAIT seconds, showing its progress. Arcane gives up on a job after
+# an hour (upgradeJobStaleThreshold); half of that covers a pull and restart.
+# While the manager restarts itself the job cannot be read; that is expected.
+UPGRADE_POLL_INTERVAL: Final = 5.0
+UPGRADE_WAIT: Final = 1800
+UPGRADE_JOB_DONE_STATUSES: Final = frozenset({"completed", "failed"})
+# Per environment: ``updated``, ``up_to_date`` and ``triggered`` (asked, but
+# the new version not confirmed) are not failures.
+UPGRADE_RESULT_FAILED_STATUSES: Final = frozenset({"failed", "skipped_offline"})
+UPGRADE_RESULT_UNCONFIRMED: Final = "triggered"

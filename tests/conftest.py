@@ -159,4 +159,15 @@ def mock_client() -> Generator[AsyncMock]:
         client.async_get_jobs.return_value = []
         client.async_run_job.return_value = {}
         client.async_get_activity.return_value = {"status": "success"}
+        client.async_check_upgrade.return_value = {
+            "canUpgrade": True,
+            "error": False,
+            "message": "System can be upgraded",
+        }
+        client.async_start_upgrade_job.return_value = {
+            "id": "job-1",
+            "status": "completed",
+            "results": [{"environmentId": "0", "status": "updated", "percent": 100}],
+        }
+        client.async_get_upgrade_job.return_value = None
         yield client

@@ -216,7 +216,9 @@ def _control_permissions(options: Mapping[str, Any]) -> list[str]:
             PERM_PROJECTS_RESTART,
         ]
     if updates:
-        permissions.append(PERM_SYSTEM_UPGRADE)
+        # Installing an Arcane update checks first whether Arcane can upgrade
+        # itself and then follows the upgrade job; both are reads.
+        permissions += [PERM_SYSTEM_UPGRADE, PERM_SYSTEM_READ]
         if containers:
             # The button that has Arcane check every image for an update.
             permissions.append(PERM_IMAGE_UPDATES_CHECK)

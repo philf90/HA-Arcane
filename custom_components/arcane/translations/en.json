@@ -86,7 +86,7 @@
           "instant_updates": "Keep one request per environment open that Arcane answers as soon as something changes, then update right away instead of waiting for the next interval. Polling continues as before.",
           "include_internal": "Also expose containers Arcane marks as internal.",
           "include_hidden": "Also expose containers hidden in the Arcane interface.",
-          "container_resources": "Each running container gets a CPU sensor (percent, mean since the last update) and a memory sensor, with the memory limit and network and disk I/O as attributes. Arcane then reads Docker's statistics of every running container on each update, which loads the Docker host. Needs the permission containers:read.",
+          "container_resources": "Each running container gets a CPU sensor (share of the whole host in percent, 100 % being all cores busy; mean since the last update, in steps of 0.1 %) and a memory sensor, with the memory limit and network and disk I/O as attributes. Arcane then reads Docker's statistics of every running container on each update, which loads the Docker host. Needs the permission containers:read.",
           "volume_sizes": "Each container gets a sensor with the space of the volumes it mounts, each environment one with all volumes, largest first. Docker measures every volume for this, so it runs in the background at most every 15 minutes and right after a prune."
         }
       },
@@ -551,6 +551,12 @@
     },
     "upgrade_forbidden": {
       "message": "Not allowed to upgrade Arcane on {name}: the Arcane API key is missing the {permission} permission."
+    },
+    "upgrade_not_possible": {
+      "message": "Arcane on {name} cannot upgrade itself: {reason}"
+    },
+    "upgrade_timeout": {
+      "message": "The Arcane upgrade on {name} did not finish within {minutes} minutes. It may still be running; Arcane shows its state."
     },
     "unsupported_version": {
       "message": "Arcane {version} is not supported. Update Arcane to 3.0 or newer."

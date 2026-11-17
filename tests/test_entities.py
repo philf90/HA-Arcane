@@ -533,7 +533,7 @@ async def test_arcane_update_entity(
         blocking=True,
     )
     assert notes is None
-    mock_client.async_upgrade.assert_awaited_once_with("0")
+    mock_client.async_start_upgrade_job.assert_awaited_once_with(["0"])
 
 
 async def test_arcane_update_falls_back_to_the_digest(
