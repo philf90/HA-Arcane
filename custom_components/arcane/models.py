@@ -242,7 +242,11 @@ class ArcaneResourceSample:
 
     Arcane takes the CPU share against its previous sample of the container,
     kept up to a minute (container/children/stats/service.go), so it is the
-    mean since the last refresh rather than a single moment.
+    mean since the last refresh rather than a single moment. The share is of
+    the whole host, not of one core: Arcane divides by the system's CPU time
+    and, unlike ``docker stats``, does not multiply by the number of cores
+    (kit.getarcane.app/docker streams/stats BuildSample). Memory leaves out
+    the page cache (``inactive_file``), as ``docker stats`` does.
     """
 
     cpu_percent: float | None = None

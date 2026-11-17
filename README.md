@@ -361,14 +361,24 @@ Zwei Optionen unter **Konfigurieren → Abfrage**, beide standardmäßig aus.
 dann sortiert nach CPU-Last ab (`?sort=cpuUsage`); nur so legt Arcane jedem laufenden
 Container eine Probe bei (`resourceSample`). Es bleibt bei einer Anfrage, aber Arcane
 liest dafür bei jeder Aktualisierung die Docker-Statistik aller laufenden Container,
-höchstens 16 gleichzeitig. Das belastet den Docker-Host; vorher und nachher auf die
-Host-CPU schauen.
+höchstens 16 gleichzeitig. Das kann den Docker-Host belasten; vorher und nachher auf
+die Host-CPU schauen. An einer Instanz mit 32 laufenden Containern auf zwei Hosts war
+nach dem Einschalten keine Mehrlast in der Host-CPU zu sehen (10 Minuten verglichen
+mit den zwei Stunden davor).
 
-- **Sensor „CPU“** je Container, in Prozent. Arcane rechnet gegen seine vorige Probe
-  (bis zu einer Minute alt); bei 30 s Intervall ist der Wert also das Mittel der
-  letzten 30 s, kein Momentwert.
-- **Sensor „Arbeitsspeicher“** je Container, mit dem Speicherlimit und den Zählern
-  für Netzwerk und Datenträger als Attribute. Die Zähler ändern sich ständig und
+- **Sensor „CPU“** je Container: Anteil am **ganzen Host** in Prozent, 100 % heißt
+  alle Kerne voll ausgelastet. Arcane teilt den CPU-Zeitzuwachs des Containers durch
+  den des Systems und multipliziert, anders als `docker stats`, nicht mit der Zahl
+  der Kerne (`BuildSample` in `kit.getarcane.app/docker` v0.3.3,
+  `streams/stats/history.go`). Arcane rundet auf 0,1 %; ruhige Container zeigen
+  deshalb oft 0,0. Gerechnet wird gegen die vorige Probe (bis zu einer Minute alt);
+  bei 30 s Intervall ist der Wert also das Mittel der letzten 30 s, kein Momentwert.
+  Die Werte aller Container zusammen liegen damit in der Größenordnung der
+  Host-CPU.
+- **Sensor „Arbeitsspeicher“** je Container: belegter Speicher ohne den Seitencache
+  (`inactive_file`), wie bei `docker stats`. Das Speicherlimit und die Zähler für
+  Netzwerk und Datenträger stehen in den Attributen; ohne eigenes Limit ist
+  `memory_limit` der Arbeitsspeicher des Hosts. Die Zähler ändern sich ständig und
   landen deshalb nicht in der Datenbank.
 - Ein gestoppter Container hat keine Probe; beide Sensoren sind dann unbekannt.
 - Braucht das Recht `containers:read`. Fehlt es, lehnt Arcane die sortierte Liste
@@ -614,8 +624,13 @@ Arcane-Update) nur im Vertragstest.
   Volumes aus `mounts`, Größe -1 unbekannt; Volume-Speicher je Container (Summe, 0
   ohne Volumes, unbekannt ohne Messung) und je Umgebung (sortiert); höchstens alle
   15 Minuten, zusammen mit dem Speicherbericht; abgelehnte Messung nennt
-  `volumes:list`; nach dem Prune neu gemessen; Optionen im Dialog. **Nicht live
-  geprüft.**
+  `volumes:list`; nach dem Prune neu gemessen; Optionen im Dialog. **Live geprüft**
+  (Arcane 3.0.1, zwei Hosts, 32 laufende Container): Volume-Größen je Container und
+  gesamt stimmen mit den Einzel-Volumes überein, Volumes ohne Container ergeben auf
+  das Byte den freigebbaren Volume-Speicher, Messung samt Speicherbericht unter 0,25 s;
+  CPU und Arbeitsspeicher für alle laufenden Container, CPU als Anteil am ganzen Host
+  (Summe der Container 2,3 % bei 1,9 bis 2,9 % Host-CPU), Zähler nicht aufgezeichnet,
+  keine messbare Mehrlast. Nicht live geprüft: neue Messung nach einem Prune.
 - **0.12.x:** 307 automatische Tests. 0.12.0: 10 neue Tests in `test_ports.py`:
   Ports aus der Container-Liste, IPv4 und IPv6 zusammengefasst, feste Adressen
   behalten, ungültige Einträge übersprungen; Sensor je Container mit Attributen und
