@@ -41,7 +41,7 @@ from .entity import (
     ArcaneJobEntity,
     ArcaneProjectEntity,
 )
-from .helpers import action_error, async_setup_entities
+from .helpers import action_error, async_setup_entities, description_keys
 from .permissions import (
     CONTAINER_ACTION_PERMISSIONS,
     PERM_ACTIVITIES_READ,
@@ -98,7 +98,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up Arcane buttons."""
     coordinator = entry.runtime_data
+    stale_keys = description_keys(globals())
     if not coordinator.option(CONF_ALLOW_CONTROL):
+        # No buttons at all; the ones from before control was switched off go.
+        async_setup_entities(coordinator, async_add_entities, stale_keys=stale_keys)
         return
 
     redeploy = coordinator.option(CONF_REDEPLOY_BUTTONS)
@@ -144,6 +147,7 @@ async def async_setup_entry(
     async_setup_entities(
         coordinator,
         async_add_entities,
+        stale_keys=stale_keys,
         environments=(
             environment_buttons if prune or check_updates or apply_updates else None
         ),

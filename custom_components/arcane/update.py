@@ -33,7 +33,7 @@ from .const import (
     UPGRADE_WAIT,
 )
 from .entity import ArcaneContainerEntity, ArcaneEnvironmentEntity
-from .helpers import action_error, async_setup_entities
+from .helpers import action_error, async_setup_entities, description_keys
 from .models import ArcaneVersion, image_name
 from .permissions import (
     PERM_IMAGE_UPDATES_APPLY,
@@ -71,12 +71,16 @@ async def async_setup_entry(
 ) -> None:
     """Set up Arcane update entities."""
     coordinator = entry.runtime_data
+    stale_keys = description_keys(globals())
     if not coordinator.option(CONF_UPDATE_ENTITIES):
+        # No update entities at all; the ones from before go.
+        async_setup_entities(coordinator, async_add_entities, stale_keys=stale_keys)
         return
 
     async_setup_entities(
         coordinator,
         async_add_entities,
+        stale_keys=stale_keys,
         environments=lambda environment_id: [
             ArcaneInstanceUpdate(coordinator, environment_id, ARCANE_UPDATE)
         ],

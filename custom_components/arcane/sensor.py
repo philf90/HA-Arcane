@@ -49,7 +49,7 @@ from .entity import (
     ArcaneJobEntity,
     ArcaneProjectEntity,
 )
-from .helpers import async_setup_entities
+from .helpers import async_setup_entities, description_keys
 from .models import ArcaneAgent, ArcaneContainer, ArcaneEnvironment, ArcaneProject
 
 PARALLEL_UPDATES = 0
@@ -580,6 +580,7 @@ async def async_setup_entry(
     async_setup_entities(
         coordinator,
         async_add_entities,
+        stale_keys=description_keys(globals()),
         environments=lambda environment_id: [
             *(
                 ArcaneEnvironmentSensor(coordinator, environment_id, description)

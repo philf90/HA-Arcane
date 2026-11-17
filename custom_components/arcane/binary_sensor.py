@@ -23,7 +23,7 @@ from .entity import (
     ArcaneEnvironmentEntity,
     ArcaneProjectEntity,
 )
-from .helpers import async_setup_entities
+from .helpers import async_setup_entities, description_keys
 from .models import ArcaneContainer, ArcaneEnvironment, ArcaneProject
 
 PARALLEL_UPDATES = 0
@@ -162,10 +162,16 @@ async def async_setup_entry(
 ) -> None:
     """Set up Arcane binary sensors."""
     coordinator = entry.runtime_data
+    stale_keys = description_keys(globals())
+    if coordinator.option(CONF_HEALTH_SENSORS):
+        # A container gets its health sensor only while Docker reports a
+        # health, which a stopped one does not; its sensor must not go then.
+        stale_keys -= {HEALTH_BINARY_SENSOR.key}
 
     async_setup_entities(
         coordinator,
         async_add_entities,
+        stale_keys=stale_keys,
         environments=lambda environment_id: [
             ArcaneEnvironmentBinarySensor(coordinator, environment_id, description)
             for description in (

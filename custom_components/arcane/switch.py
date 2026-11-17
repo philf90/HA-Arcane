@@ -24,7 +24,7 @@ from .const import (
     LABEL_UPDATER,
 )
 from .entity import ArcaneContainerEntity, ArcaneProjectEntity
-from .helpers import action_error, async_setup_entities
+from .helpers import action_error, async_setup_entities, description_keys
 from .permissions import (
     CONTAINER_ACTION_PERMISSIONS,
     PERM_CONTAINERS_AUTOUPDATE,
@@ -59,7 +59,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up Arcane switches."""
     coordinator = entry.runtime_data
+    stale_keys = description_keys(globals())
     if not coordinator.option(CONF_ALLOW_CONTROL):
+        # No switches at all; the ones from before control was switched off go.
+        async_setup_entities(coordinator, async_add_entities, stale_keys=stale_keys)
         return
 
     auto_update = coordinator.option(CONF_AUTO_UPDATE_SWITCHES) and coordinator.option(
@@ -69,6 +72,7 @@ async def async_setup_entry(
     async_setup_entities(
         coordinator,
         async_add_entities,
+        stale_keys=stale_keys,
         containers=lambda environment_id, name: [
             ArcaneContainerSwitch(coordinator, environment_id, name, CONTAINER_SWITCH),
             *(

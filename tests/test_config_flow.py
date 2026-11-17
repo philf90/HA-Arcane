@@ -9,6 +9,7 @@ from homeassistant.config_entries import SOURCE_USER
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.arcane.api import (
@@ -228,6 +229,7 @@ async def test_options_flow_control(
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert mock_config_entry.options["allow_control"] is False
-    # The entry reloaded without the control platforms, so the switch is gone
-    # and only its restored registry entry is left behind.
-    assert hass.states.get("switch.container_homeassistant").state == STATE_UNAVAILABLE
+    # The entry reloaded without the control platforms. Since 0.14.1 the
+    # switch does not linger as a restored registry entry either.
+    assert hass.states.get("switch.container_homeassistant") is None
+    assert er.async_get(hass).async_get("switch.container_homeassistant") is None
